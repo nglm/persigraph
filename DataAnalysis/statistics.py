@@ -22,7 +22,7 @@ import seaborn as sns
 from netCDF4 import Dataset
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
-from scipy.stats import norm
+from scipy.stats import norm, kurtosis
 from galib.tools.plt import get_nrows_ncols_from_nplots, get_subplot_indices
 from galib.tools.npy import running_mean
 
@@ -369,7 +369,8 @@ def get_list_std(
     list_std=[]
     # find std values for each variable at each time step
     for var in list_var:
-        std = np.squeeze(np.std(var,axis=0, keepdims=True))
+        #std = np.squeeze(np.std(var,axis=0, keepdims=True))
+        std = np.squeeze(np.std(var,axis=0))
         list_std.append(std)
     # return List[ndarray(n_time, [n_long, n_lat])]
     return(list_std)
@@ -384,6 +385,18 @@ def get_list_average_values(
     #list_average_values: List[ndarray(n_time)]
     return list_average_values
 
+def get_list_stats(
+    list_values # List[ndarray(n_time, n_members, [n_long, n_lat])]
+):
+    list_std = []
+    list_mean = []
+    list_kurtosis = []
+    for values in list_values:
+        list_std.append(np.squeeze(np.std(values, axis=1)))
+        list_mean.append(np.squeeze(np.mean(values, axis=1)))
+        list_kurtosis.append(np.squeeze(kurtosis(values, axis=1)))
+    # List[ndarray(n_values, n_time, [n_long, n_lat])]
+    return ([np.array(list_mean), np.array(list_std), np.array(list_kurtosis)])
 
 def plot_list_time_series(
     list_time_series,  # List[ndarray(n_time)]
