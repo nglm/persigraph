@@ -6,7 +6,7 @@ from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 from scipy.stats import kurtosis
 
-sys.path.append("/home/natacha/Documents/Work/")  # to import galib
+sys.path.append("/home/natacha/Documents/Work/python/")  # to import galib
 sys.path.insert(1, os.path.join(sys.path[0], '..'))  #to use DataAnalysis submodules
 
 from statistics import extract_variables, standardize

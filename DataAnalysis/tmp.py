@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from netCDF4 import Dataset
 
-sys.path.append("/home/natacha/Documents/Work/")  # to import galib
+sys.path.append("/home/natacha/Documents/Work/python/")  # to import galib
 sys.path.insert(1, os.path.join(sys.path[0], '..'))  #to use DataAnalysis submodules
 
 from galib.tools.nc import print_nc_dict
