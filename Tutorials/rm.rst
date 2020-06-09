@@ -6,7 +6,10 @@ Outline
 Earth's atmosphere
 -------------------------------
 
--
+--------------------------------
+Small scales and large scales 
+--------------------------------
+
 
 --------------------------------
 History of weather forecast
@@ -15,6 +18,10 @@ History of weather forecast
 ---------------------------
 Zoom in on Lorenz' system
 ---------------------------
+
+------------------------
+Measurements
+------------------------
 
 ---------------------------------
 Introduction to Weather Forecast
@@ -48,6 +55,8 @@ Introduction to Weather Forecast
   - Visualization of DA outputs
 
 - A few words about ECMWF
+
+
 
 ---------------------------------
 Introduction to Multimodality
