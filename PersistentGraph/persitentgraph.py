@@ -78,30 +78,52 @@ class PersistentGraph():
 
     def __add_vertex(
         self,
+        t:int,
+        members=None,
         value:float = None,
         std: float = None,
-        t: int = None,
         representative: int = None,
+
     ):
         """
         Add a vertex to the current graph
 
+        If ``members`̀  is not None then ``value`` and ``std``
+        will be ignored and computed according to ``members``
+        In this case and if ``representative`` is not specified then the first
+        element of ``member`` is considered as the representative
+
+        :param t: Time step at which the vertex should be added
+        :type t: int
+        :param members: members associated with this vertex, defaults to None
+        :type members: List[int], optional
         :param value: [description], defaults to None
         :type value: float, optional
         :param std: [description], defaults to None
         :type std: float, optional
-        :param t: [description], defaults to None
-        :type t: int, optional
         :param representative: [description], defaults to None
         :type representative: int, optional
         """
         # creating the vertex
         v = Vertex()
-        v._Vertex__value = value
-        v._Vertex__std = std
         v._Vertex__num = nb_vertices[t]
-        v._Vertex__representative = int(representative)
         v.s_born = self.__s    #current step in the graph
+        # In this case 'value', 'std' and 'representative' have to be specified
+        if members is None:
+            v._Vertex__value = value
+            v._Vertex__std = std
+            v._Vertex__representative = int(representative)
+        # Else: compute attributes according to 'members'
+        else:
+            if representative is None:
+                v._Vertex__representative = int(members[0])
+            else:
+                v._Vertex__representative = int(representative)
+            members_values = np.asarray(
+                [self.__members[i,t] for i in members]
+            )
+            v._Vertex__value = np.mean(members_values, axis=0)
+            v._Vertex__std = np.std(members_values, axis=0)
 
         # update the graph with the new vertex
         self.__nb_vertices[t] += 1
@@ -111,8 +133,11 @@ class PersistentGraph():
         self,
         vertices
     ):
-        if isinstance(vertices, list)
-        v.s_death = self.__s
+        if isinstance(vertices, list):
+            for v in vertices:
+                v.s_death = self.__s
+        else:
+            vertices.s_death = self.__s
 
     def extract_alive_vertices(
         self,
@@ -211,15 +236,17 @@ class PersistentGraph():
     def construct_graph(
         self,
     ):
-        # Initialize the graph with the mean
+        # Initialize the graph with the mean (one vertex per time step)
         self.initialization()
 
-        # argsort of the pairwise distance matrix
-        sort_idx = self.__sort_dist_matrix()
+        # reverse argsort of the pairwise distance matrix
+        sort_idx = np.flip(self.__sort_dist_matrix())
+
+        # Take the 2 farthest members and the corresponding time step
         for (t_s, i_s, j_s) in sort_idx:
             s = self.__s
 
-            # Are i_s and j_s in the same vertex?
+            # Iterate algo only if i_s and j_s are in the same vertex
             if (self.__M_v[s, t_s, i_s] == self.__M_v[s, t_s, i_s]):
 
                 # Break the vertex k into 2 vertices i_s and j_s
@@ -244,47 +271,56 @@ class PersistentGraph():
                 v_to_create = []
                 rep_v_to_create = []
 
-                for i in range(self.__N):
+                for member in range(self.__N):
 
-                    v_prev = prev_v_distrib[i]
+                    # Previous vertex to which 'member' was associated
+                    v_prev = prev_v_distrib[member]
+                    # Get representative of this vertex
                     rep_prev = self.__vertices[t_s][v_prev].representative
-                    rep_new = new_rep_distrib[i]
+                    # Get the new representative of this member
+                    rep_new = new_rep_distrib[member]
+
                     # if the representative of this member has changed
                     # then the vertex of rep_prev must be killed
-                    # and we can add this member to
+                    # Otherwise we don't do anything
                     if rep_prev != rep_new:
+
                         # add to the "to_kill" list
                         v_to_kill.append(v_prev)
 
-                        list_members = get_indices_element(
+                        # Check if 'rep_new' is already used for a new vertex
+                        idx = get_indices_element(
                             my_list=rep_v_to_create,
                             my_element=rep_new,
                             all_indices=False,
                             if_none=-1
                         )
-                        # If this new rep is already taken for a new vertex...
+
                         if idx == -1:
-                            # ... then we have another vertex to create with
-                            # rep_new as representant
+                            # Then we have another vertex to create with
+                            # 'rep_new' as representative
                             rep_v_to_create.append(rep_new)
                             v_to_create.append([rep_new])
 
                         else:
-                            # ...then idx is the index of the new
+                            # Then idx is the index of the new
                             # vertex in the queue to their creation
 
-                            # So we just associate the member with this rep
-                            v_to_create[idx].append(i)
-
+                            # So we just associate 'member' with this rep
+                            v_to_create[idx].append(member)
 
                     # Remove multiple occurences of the same vertex key
                     v_to_kill = list(set(v_to_kill))
+                    # Kill the vertices
+                    self.__kill_vertices(v_to_kill)
 
-                # Add vertices
+                    # Add necessary vertices
+                    for members in v_to_create:
+                        self.__add_vertex(t=t_s, members=members)
 
-                # update the graph with the new vertex
-                #self.__nb_vertices[t] +=
-                #self.__vertices[t].append(v)
+
+
+
 
     @property
     def N(self):
