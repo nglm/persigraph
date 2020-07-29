@@ -263,14 +263,15 @@ class PersistentGraph():
 
                 # Kill unused vertices, create necessary ones
                 prev_v_distrib = self.__M_v[self.__s, t_s]
-                alive_vertices = self.extract_alive_vertices(t=t_s)
                 v_to_kill = []
-                # v_to_create is a nested list. The first element of the
-                # sublists is the representative, others are members associated
-                # with it
+                rep_visited = []
+                # v_to_create is a nested list.
+                # the first element of the sublists is the representative.
+                # others are members associated with it
                 v_to_create = []
-                rep_v_to_create = []
+                to_create = [] # boolean for potential vertex creation
 
+                # Check which members have changed their representative
                 for member in range(self.__N):
 
                     # Previous vertex to which 'member' was associated
@@ -280,34 +281,29 @@ class PersistentGraph():
                     # Get the new representative of this member
                     rep_new = new_rep_distrib[member]
 
-                    # if the representative of this member has changed
-                    # then the vertex of rep_prev must be killed
-                    # Otherwise we don't do anything
-                    if rep_prev != rep_new:
+                    # Check if 'rep_new' has already been visited
+                    [idx] = get_indices_element(
+                        my_list=rep_visited,
+                        my_element=rep_new,
+                        if_none=-1
+                    )
 
-                        # add to the "to_kill" list
+                    # If rep_new has never been visited and should be added
+                    if idx == -1:
+                        # Note: idx is then the 'right' index of appended elts
+                        rep_visited.append(rep_new)
+                        v_to_create.append([rep_new, member])
+                        to_create.append(False)
+                    # Else idx is then the index of the corresponding vertex
+                    else:
+                        v_to_create[idx].append(member)
+
+                    # If its representative has changed its previous vertex
+                    # must be killed
+                    if rep_new != rep_prev:
+
                         v_to_kill.append(v_prev)
-
-                        # Check if 'rep_new' is already used for a new vertex
-                        idx = get_indices_element(
-                            my_list=rep_v_to_create,
-                            my_element=rep_new,
-                            all_indices=False,
-                            if_none=-1
-                        )
-
-                        if idx == -1:
-                            # Then we have another vertex to create with
-                            # 'rep_new' as representative
-                            rep_v_to_create.append(rep_new)
-                            v_to_create.append([rep_new])
-
-                        else:
-                            # Then idx is the index of the new
-                            # vertex in the queue to their creation
-
-                            # So we just associate 'member' with this rep
-                            v_to_create[idx].append(member)
+                        to_create[idx] = True
 
                     # Remove multiple occurences of the same vertex key
                     v_to_kill = list(set(v_to_kill))
@@ -315,11 +311,9 @@ class PersistentGraph():
                     self.__kill_vertices(v_to_kill)
 
                     # Add necessary vertices
-                    for members in v_to_create:
-                        self.__add_vertex(t=t_s, members=members)
-
-
-
+                    for i, members in enumerate(v_to_create):
+                        if to_create[i]:
+                            self.__add_vertex(t=t_s, members=members)
 
 
     @property
