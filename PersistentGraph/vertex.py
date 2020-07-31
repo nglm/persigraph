@@ -5,15 +5,14 @@ class Vertex():
     def __init__(
         self,
         representative: int = None,
-        # s_born: int = None,
-        # s_death: int = None,
+        s_born: int = None,
     ):
         self.__key: int = Vertex.key_incr
         self.__num: int = None
         self.__value: float = 0.
         self.__std: float = 1.
         self.__representative = representative
-        self.__s_born:int = None
+        self.__s_born = s_born
         self.__s_death:int = None
         Vertex.key_incr += 1
 

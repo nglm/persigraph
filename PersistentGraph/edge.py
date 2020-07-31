@@ -5,16 +5,17 @@ class Edge():
 
     def __init__(
         self,
-        v_start,
-        v_end,
-        # s_born: int = None,
-        # s_death: int = None,
+        v_start:int,
+        v_end:int,
+        nb_members:int,
+        s_born: int = None
     ):
         self.key: int = Edge.key_incr
+        self.__num: int = None
         self.start = v_start
         self.end = v_end
-        self.nb_members: int = None  #TODO: find how many members there are
-        self.s_born = None
+        self.nb_members = nb_members
+        self.s_born = s_born
         self.s_death = None
         Edge.key_incr += 1
 
