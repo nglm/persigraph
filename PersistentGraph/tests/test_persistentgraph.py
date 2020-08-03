@@ -31,10 +31,11 @@ M_v_exp = np.zeros((nb_steps_exp, T_exp, N_exp), dtype=int)
 
 print(members)
 
-myGraph = PersistentGraph(members)
+
 #print("Distance_matrix: ", myGraph.distance_matrix)
 
 def test_init():
+    myGraph = PersistentGraph(members)
     output_int = [
         myGraph.N,
         myGraph.T,
@@ -65,6 +66,22 @@ def test_init():
     for i in range(len(output_it)):
         assert_array_equal(output_it[i], output_it_exp[i])
 
-myGraph.construct_graph()
-print(myGraph.M_v)
-print("steps", myGraph.steps)
+def test_decreasing_distance():
+    myGraph = PersistentGraph(members)
+    myGraph.construct_graph()
+    steps = myGraph.steps
+    dist_matrix = myGraph.distance_matrix
+    nb_steps = len(steps)
+    for k in range(nb_steps):
+        (t_sup,i_sup,j_sup) = steps[k]
+        for l in range(k+1,nb_steps):
+            (t,i,j) = steps[l]
+            assert dist_matrix[t_sup,i_sup,j_sup] >= dist_matrix[t,i,j]
+
+
+
+
+# print(myGraph.M_v)
+# for list_v in myGraph.vertices:
+#     print([v.num for v in list_v])
+# print("steps", myGraph.steps)

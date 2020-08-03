@@ -416,7 +416,11 @@ class PersistentGraph():
             if idx == -1:
                 # Note: idx is then the 'right' index of appended elts
                 rep_visited.append(rep_new)
-                v_to_create.append([rep_new, member])
+
+                if member == rep_new:
+                    v_to_create.append([rep_new])
+                else:
+                    v_to_create.append([rep_new, member])
                 # So far there is no reason to recreate this vertex
                 to_create.append(False)
             # Else idx is then the index of the corresponding vertex
@@ -428,7 +432,24 @@ class PersistentGraph():
             if rep_new != rep_prev:
 
                 v_to_kill.append(v_prev)
+
+                # v associated to rep_new must be (re-)created
                 to_create[idx] = True
+
+                # v associated to rep_prev must be (re-)created
+                [idx_rep_prev] = get_indices_element(
+                    my_list=rep_visited,
+                    my_element=rep_prev,
+                    if_none=[-1]
+                )
+                if idx_rep_prev == -1:
+                    rep_visited.append(rep_prev)
+                    v_to_create.append([rep_prev])
+                    to_create.append(True)
+                # Else idx is then the index of the corresponding vertex
+                else:
+                    to_create[idx_rep_prev] = True
+
 
         # Remove multiple occurences of the same vertex key
         v_to_kill = list(set(v_to_kill))
@@ -536,7 +557,7 @@ class PersistentGraph():
 
             # Iterate algo only if i_s and j_s are in the same vertex
             if (self.__M_v[s, t_s, i_s] == self.__M_v[s, t_s, j_s]):
-                self.__steps.append((i_s, j_s, t_s))
+                self.__steps.append((t_s, i_s, j_s))
                 s += 1
                 # Current distribution (to be updated after each vertex added)
                 self.__M_v[s] = np.copy(self.__M_v[s-1])
@@ -610,7 +631,7 @@ class PersistentGraph():
 
     @property
     def steps(self):
-        """ (i,j,t) of each iterations
+        """ (t,i,j) of each iterations
 
         :rtype: Tuple(int,int,int)
         """
