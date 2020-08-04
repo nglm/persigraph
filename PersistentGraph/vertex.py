@@ -8,12 +8,14 @@ class Vertex():
         s_born: int = None,
         num: int = None,
         value: float = None,
-        std: float = None
+        std: float = None,
+        nb_members: int = None
     ):
         self.__key = int(Vertex.key_incr)
         self.__num = num
         self.__value = value
         self.__std = std
+        self.__nb_members = nb_members
         self.representative = representative
         self.__s_death = None
         self.s_born = s_born
@@ -53,13 +55,12 @@ class Vertex():
         return self.__representative
 
     @property
-    def ratio(self):
-        return self.__ratio
+    def nb_members(self):
+        return self.__nb_members
 
-
-    @ratio.setter
-    def ratio(self, ratio):
-        self.__ratio = ratio
+    @nb_members.setter
+    def nb_members(self, nb_members):
+        self.__nb_members = int(abs(nb_members))
 
     @s_born.setter
     def s_born(self, s_born):

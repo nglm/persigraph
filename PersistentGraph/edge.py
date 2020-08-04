@@ -50,15 +50,6 @@ class Edge():
     def v_end(self):
         return self.__v_end
 
-    @property
-    def ratio(self):
-        return self.__ratio
-
-
-    @ratio.setter
-    def ratio(self, ratio):
-        self.__ratio = ratio
-
     @s_born.setter
     def s_born(self, s_born):
         if s_born is not None:

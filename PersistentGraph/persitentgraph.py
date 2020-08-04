@@ -3,12 +3,8 @@ from sklearn.metrics import pairwise_distances
 from vertex import Vertex
 from edge import Edge
 
-# ------
-# Source
-# https://stackoverflow.com/questions/714063/importing-modules-from-parent-folder
 import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '/home/natacha/Documents/Work/python'))  # to access persistentgraph
-# ------
+sys.path.insert(1, os.path.join(sys.path[0], '/home/natacha/Documents/Work/python'))
 
 from galib.tools.lists import get_indices_element
 
@@ -59,6 +55,7 @@ class PersistentGraph():
                 num=0,
                 value=mean[t],
                 std=std[t],
+                nb_members = self.N,
             )
             self.__vertices.append([v])
             if t>0:
@@ -137,15 +134,6 @@ class PersistentGraph():
 
         return(sort_idx)
 
-    def set_ratio(self, obj):
-        s_born = obj.s_born
-        s_death = obj.s_death
-        obj.ratio = (
-            (self.__distances[s_born] - self.__distances[s_death])
-            / self.__distances[0]
-        )
-
-        return (self)
 
     def __add_vertex(
         self,
@@ -155,6 +143,7 @@ class PersistentGraph():
         value:float = None,
         std: float = None,
         representative: int = None,
+        nb_members:int = None
     ):
         """
         Add a vertex to the current graph
@@ -185,6 +174,7 @@ class PersistentGraph():
             v.value = value
             v.std = std
             v.representative = int(representative)
+            v.nb_members = nb_members
         # Else: compute attributes according to 'members'
         else:
             if representative is None:
@@ -196,6 +186,7 @@ class PersistentGraph():
             )
             v.value = np.mean(members_values, axis=0)
             v.std = np.std(members_values, axis=0)
+            v.nb_members = len(members)
 
         # update the graph with the new vertex
         self.__nb_vertices[t] += 1
@@ -263,7 +254,7 @@ class PersistentGraph():
         else:
             for v in vertices:
                 self.__vertices[t][v].s_death = s
-                self.set_ratio(self.__vertices[t][v])
+                #self.set_ratio(self.__vertices[t][v])
                 edges_to_v, edges_from_v = self.extract_edges_of_vertex(t,v)
                 self.__kill_edges(s, t, edges_to_v,)
                 self.__kill_edges(s, t+1, edges_from_v)
@@ -293,9 +284,9 @@ class PersistentGraph():
         else:
             for e in edges:
                 self.__edges[t][e].s_death = s
-                self.set_ratio(self.__edges[t][e])
+                #self.set_ratio(self.__edges[t][e])
 
-    def extract_alive_vertices(
+    def get_alive_vertices(
         self,
         s:int = None,
         t:int = None,
@@ -318,6 +309,36 @@ class PersistentGraph():
         else:
             v_alive = list(set(self.__M_v[s,t][:]))
         return v_alive
+
+    def get_alive_edges(
+        self,
+        s:int = None,
+        t:int = None,
+    ):
+        """
+        Extract alive edges (their number to be more specific)
+
+        If ``t`` is not specified then returns a nested list of
+        alive edges for each time steps
+
+        :param s: Algorithm step at which edges should be alive
+        :type s: int
+        :param t: Time step at which the edges start
+        :type t: int
+        """
+        e_alive = []
+        if t is None:
+            for t in range (self.T-1):
+                e_t = []
+                for e in self.__edges[t]:
+                    if (e.s_born <= s) and (e.s_death > s):
+                        e_t.append(e)
+                e_alive.append(e_t)
+        else:
+            for e in self.__edges[t]:
+                if (e.s_born <= s) and (e.s_death > s):
+                    e_alive.append(e)
+        return e_alive
 
     def extract_edges_of_vertex(
         self,
@@ -346,7 +367,7 @@ class PersistentGraph():
 
         ``s`` must be > 0
         """
-        v_alive = self.extract_alive_vertices(s,t)
+        v_alive = self.get_alive_vertices(s,t)
         if t is None:
             rep_alive = []
             for t in range(self.T):
