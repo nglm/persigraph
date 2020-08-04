@@ -17,6 +17,7 @@ class Vertex():
         self.representative = representative
         self.__s_death = None
         self.s_born = s_born
+        self.__ratio = None
         Vertex.key_incr += 1
 
     def reset_key_incr(self):
@@ -50,6 +51,15 @@ class Vertex():
     @property
     def representative(self):
         return self.__representative
+
+    @property
+    def ratio(self):
+        return self.__ratio
+
+
+    @ratio.setter
+    def ratio(self, ratio):
+        self.__ratio = ratio
 
     @s_born.setter
     def s_born(self, s_born):

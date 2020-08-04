@@ -67,6 +67,9 @@ def test_init():
         assert_array_equal(output_it[i], output_it_exp[i])
 
 def test_decreasing_distance():
+    """
+    Test that we take the distances in decreasing order
+    """
     myGraph = PersistentGraph(members)
     myGraph.construct_graph()
     steps = myGraph.steps

@@ -41,7 +41,8 @@ class PersistentGraph():
 
         # Total number of iteration required by the algorithm
         self.__nb_steps = int((self.N - 1)*self.T + 1)
-        self.__steps = []        # Nested list of (i,j,t) involved in each step
+        self.__steps = []        # List of (i,j,t) involved in each step
+        self.__distances = []   # List of distance between i-j at each step
         self.__vertices = []     # Nested list of vertices (see Vertex class)
         self.__edges = []        # Nested list of edges (see Edge class)
 
@@ -77,6 +78,8 @@ class PersistentGraph():
         # Distribution of members among vertices
         # All members are associated with the only vertex created for each t
         self.__M_v = np.zeros((self.__nb_steps,self.T,self.N), dtype=int)
+        self.__dist_min = 0
+        self.__dist_max = None
 
 
     def __compute_dist_matrix(
@@ -125,7 +128,24 @@ class PersistentGraph():
         )).squeeze()
         # Keep only the first non-NaN elements
         sort_idx = idx[:int((self.T*self.N*(self.N-1)/2) - nb_zeros)]
+
+        (i_min, j_min, t_min) = sort_idx[0]
+        self.__dist_min = self.__dist_matrix[t_min, i_min, j_min]
+
+        (i_max, j_max, t_max) = sort_idx[-1]
+        self.__dist_max = self.__dist_matrix[t_max, i_max, j_max]
+
         return(sort_idx)
+
+    def set_ratio(self, obj):
+        s_born = obj.s_born
+        s_death = obj.s_death
+        obj.ratio = (
+            (self.__distances[s_born] - self.__distances[s_death])
+            / self.__distances[0]
+        )
+
+        return (self)
 
     def __add_vertex(
         self,
@@ -243,6 +263,7 @@ class PersistentGraph():
         else:
             for v in vertices:
                 self.__vertices[t][v].s_death = s
+                self.set_ratio(self.__vertices[t][v])
                 edges_to_v, edges_from_v = self.extract_edges_of_vertex(t,v)
                 self.__kill_edges(s, t, edges_to_v,)
                 self.__kill_edges(s, t+1, edges_from_v)
@@ -272,6 +293,7 @@ class PersistentGraph():
         else:
             for e in edges:
                 self.__edges[t][e].s_death = s
+                self.set_ratio(self.__edges[t][e])
 
     def extract_alive_vertices(
         self,
@@ -553,21 +575,16 @@ class PersistentGraph():
 
         # Take the 2 farthest members and the corresponding time step
         for (i_s, j_s, t_s) in sort_idx:
-            print(i_s, j_s, t_s)
 
             # Iterate algo only if i_s and j_s are in the same vertex
             if (self.__M_v[s, t_s, i_s] == self.__M_v[s, t_s, j_s]):
                 self.__steps.append((t_s, i_s, j_s))
+                self.__distances.append(self.__dist_matrix[t_s,i_s,j_s])
                 s += 1
                 # Current distribution (to be updated after each vertex added)
                 self.__M_v[s] = np.copy(self.__M_v[s-1])
 
-                representatives = self.__update_representatives(
-                    s=s,
-                    t=t_s,
-                    i=i_s,
-                    j=j_s,
-                )
+                representatives = self.__update_representatives(s,t_s,i_s,j_s)
 
                 prev_nb_vertices = self.__nb_vertices[t_s]
 
@@ -586,9 +603,12 @@ class PersistentGraph():
                     t=t_s,
                     new_vertices=new_vertices,
                 )
+        # update the total number of steps
         self.__nb_steps = s+1
-        print(s+1)
         self.__M_v = self.__M_v[:s+1]
+        self.__distances.append(0.)
+
+        # Compute the ratios for each member and each vertex
 
     @property
     def N(self):
@@ -636,6 +656,15 @@ class PersistentGraph():
         :rtype: Tuple(int,int,int)
         """
         return self.__steps
+
+    @property
+    def distances(self):
+        """ Distance between i-j at t for each iterations
+
+        :rtype: float
+        """
+        return self.__distances
+
 
     @property
     def members(self):
