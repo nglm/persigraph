@@ -17,7 +17,7 @@ class Vertex():
         self.__std = std
         self.__nb_members = nb_members
         self.representative = representative
-        self.__s_death = None
+        self.__s_death = -1
         self.s_born = s_born
         self.__ratio = None
         Vertex.key_incr += 1

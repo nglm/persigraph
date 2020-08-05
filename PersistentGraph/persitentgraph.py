@@ -234,6 +234,7 @@ class PersistentGraph():
         s:int,
         t:int,
         vertices,
+        verbose:bool = False,
     ):
         """
         Kill vertices and all their edges
@@ -251,13 +252,14 @@ class PersistentGraph():
         """
         if not isinstance(vertices, list):
             vertices = [vertices]
-        else:
-            for v in vertices:
-                self.__vertices[t][v].s_death = s
-                #self.set_ratio(self.__vertices[t][v])
-                edges_to_v, edges_from_v = self.extract_edges_of_vertex(t,v)
-                self.__kill_edges(s, t, edges_to_v,)
-                self.__kill_edges(s, t+1, edges_from_v)
+        for v in vertices:
+            self.__vertices[t][v].s_death = s
+            #self.set_ratio(self.__vertices[t][v])
+            edges_to_v, edges_from_v = self.extract_edges_of_vertex(s,t,v)
+            if verbose:
+                print("edges to kill: ", edges_to_v, edges_from_v)
+            self.__kill_edges(s, t-1, edges_to_v)
+            self.__kill_edges(s, t, edges_from_v)
 
     def __kill_edges(
         self,
@@ -281,10 +283,9 @@ class PersistentGraph():
         """
         if not isinstance(edges, list):
             edges = [edges]
-        else:
-            for e in edges:
-                self.__edges[t][e].s_death = s
-                #self.set_ratio(self.__edges[t][e])
+        for e in edges:
+            self.__edges[t][e].s_death = s
+            #self.set_ratio(self.__edges[t][e])
 
     def get_alive_vertices(
         self,
@@ -331,26 +332,47 @@ class PersistentGraph():
             for t in range (self.T-1):
                 e_t = []
                 for e in self.__edges[t]:
-                    if (e.s_born <= s) and (e.s_death > s):
-                        e_t.append(e)
+                    if (e.s_born <= s) and (e.s_death > s or e.s_death == -1):
+                        e_t.append(e.num)
                 e_alive.append(e_t)
         else:
             for e in self.__edges[t]:
-                if (e.s_born <= s) and (e.s_death > s):
-                    e_alive.append(e)
+                if (e.s_born <= s) and (e.s_death > s or e.s_death == -1):
+                    e_alive.append(e.num)
         return e_alive
 
     def extract_edges_of_vertex(
         self,
+        s:int,
         t:int,
         v:int,
     ):
+        """
+        Extract all edges to and from a vertex
+
+        :param t: [description]
+        :type t: int
+        :param v: [description]
+        :type v: int
+        """
         edges_to_v = []
         edges_from_v = []
-        if ( t>0 and t<(self.T-1) ):
-            edges_to_v =  [e.num for e in self.__edges[t] if e.v_end == v]
-        if t<(self.T-2):
-            edges_from_v = [e.num for e in self.__edges[t+1] if e.v_start == v]
+        if (t>0 and t<self.T):
+            for e in self.__edges[t-1]:
+                if (
+                    (e.v_end == v)
+                    and (e.s_born <= s)
+                    and (e.s_death > s or e.s_death == -1)
+                ):
+                    edges_to_v.append(e.num)
+        if t<(self.T-1):
+            for e in self.__edges[t]:
+                if (
+                    (e.v_start == v)
+                    and (e.s_born <= s)
+                    and (e.s_death > s or e.s_death == -1)
+                ):
+                    edges_from_v.append(e.num)
         return(edges_to_v, edges_from_v)
 
 
@@ -392,7 +414,6 @@ class PersistentGraph():
         representatives = self.extract_representatives(s, t)
         representatives.remove(self.__vertices[t][v_to_break].representative)
         representatives += [i,j]
-        print("representatives", representatives)
         return representatives
 
 
@@ -419,6 +440,7 @@ class PersistentGraph():
         s: int,
         t: int,
         representatives,
+        verbose: bool = False,
     ):
 
         # Re-distribute members among updated representatives
@@ -426,7 +448,6 @@ class PersistentGraph():
             t,
             representatives,
         )
-        print("new rep distrib", new_rep_distrib)
 
         # Previous members' distrib  among vertices
         prev_v_distrib = self.__M_v[s-1, t]
@@ -467,7 +488,7 @@ class PersistentGraph():
                 # So far there is no reason to recreate this vertex
                 to_create.append(False)
             # Else idx is then the index of the corresponding vertex
-            else:
+            elif rep_new != member:
                 v_to_create[idx].append(member)
 
             # If its representative has changed then its previous vertex
@@ -496,8 +517,10 @@ class PersistentGraph():
 
         # Remove multiple occurences of the same vertex key
         v_to_kill = list(set(v_to_kill))
+        if verbose:
+            print("Vertices killed: ", v_to_kill)
         # Kill the vertices
-        self.__kill_vertices(s, t, v_to_kill)
+        self.__kill_vertices(s, t, v_to_kill, verbose=verbose)
 
         # Process new vertices
         for i, members in enumerate(v_to_create):
@@ -513,80 +536,81 @@ class PersistentGraph():
         s: int,
         t: int,
         new_vertices,
+        verbose: bool = False,
     ):
         if not isinstance(new_vertices, list):
             new_vertices = [new_vertices]
-        else:
-            for v in new_vertices:
-                # Find all the members in v
-                members_in_v = get_indices_element(
-                    self.__M_v[s,t],
-                    v,
-                    all_indices = True,
-                    if_none = [-1],
+        for v in new_vertices:
+            # Find all the members in v
+            members_in_v = get_indices_element(
+                self.__M_v[s,t],
+                v,
+                all_indices = True,
+                if_none = [-1],
+            )
+            v_ante_visited = []  # list of vertices going to v
+            nb_members_ante = [] # number of members in each v_ante visited
+            v_succ_visited = []  # list of vertices coming from v
+            nb_members_succ = [] # number of members in each v_succ visited
+
+            for m in members_in_v:
+                if (t>0):
+                    v_ante = self.__M_v[s, t-1,m] # Vertex of 'm' at t-1
+
+                    # Check if v_ante has already been visited
+                    [v_ante_idx] = get_indices_element(
+                        v_ante_visited,
+                        v_ante,
+                        all_indices = False,
+                        if_none = [-1],
+                    )
+                    # If it hasn't been visited then append 'v_ante'
+                    if (v_ante_idx == -1):
+                        v_ante_visited.append(v_ante)
+                        nb_members_ante.append(1)
+                    # Else increment 'nb_members_ante'
+                    else:
+                        nb_members_ante[v_ante_idx] += 1
+                else:
+                    v_ante_visited = []
+                # Same with v_succ
+                if t<(self.T-1):
+                    v_succ = self.__M_v[s, t+1,m] # Vertex of 'm' at t+1
+                    [v_succ_idx] = get_indices_element(
+                        v_succ_visited,
+                        v_succ,
+                        all_indices = False,
+                        if_none = [-1],
+                    )
+                    if (v_succ_idx == -1):
+                        v_succ_visited.append(v_succ)
+                        nb_members_succ.append(1)
+                    else:
+                        nb_members_succ[v_succ_idx] += 1
+                else:
+                    v_succ_visited = []
+
+            for i, v_start in enumerate(v_ante_visited):
+                self.__add_edge(
+                    s = s,
+                    t = t-1,
+                    v_start = v_start,
+                    v_end = v,
+                    nb_members = nb_members_ante[i]
                 )
-                v_ante_visited = []  # list of vertices going to v
-                nb_members_ante = [] # number of members in each v_ante visited
-                v_succ_visited = []  # list of vertices coming from v
-                nb_members_succ = [] # number of members in each v_succ visited
-
-                for m in members_in_v:
-                    if (t>0 and t<self.T):
-                        v_ante = self.__M_v[s, t-1,m] # Vertex of 'm' at t-1
-
-                        # Check if v_ante has already been visited
-                        [v_ante_idx] = get_indices_element(
-                            v_ante_visited,
-                            v_ante,
-                            all_indices = False,
-                            if_none = [-1],
-                        )
-                        # If it hasn't been visited then append 'v_ante'
-                        if (v_ante_idx == -1):
-                            v_ante_visited.append(v_ante)
-                            nb_members_ante.append(1)
-                        # Else increment 'nb_members_ante'
-                        else:
-                            nb_members_ante[v_ante_idx] += 1
-                    else:
-                        v_ante = []
-                    # Same with v_succ
-                    if t<(self.T-2):
-                        v_succ = self.__M_v[s, t+1,m] # Vertex of 'm' at t+1
-                        [v_succ_idx] = get_indices_element(
-                            v_succ_visited,
-                            v_succ,
-                            all_indices = False,
-                            if_none = [-1],
-                        )
-                        if (v_succ_idx == -1):
-                            v_succ_visited.append(v_succ)
-                            nb_members_succ.append(1)
-                        else:
-                            nb_members_succ[v_succ_idx] += 1
-                    else:
-                        v_succ = []
-
-                for i, v_start in enumerate(v_ante_visited):
-                    self.__add_edge(
-                        s = s,
-                        t = t-1,
-                        v_start = v_start,
-                        v_end = v,
-                        nb_members = nb_members_ante[i]
-                    )
-                for i, v_end in enumerate(v_succ_visited):
-                    self.__add_edge(
-                        s = s,
-                        t = t,
-                        v_start = v,
-                        v_end = v_end,
-                        nb_members = nb_members_succ[i]
-                    )
+            for i, v_end in enumerate(v_succ_visited):
+                self.__add_edge(
+                    s = s,
+                    t = t,
+                    v_start = v,
+                    v_end = v_end,
+                    nb_members = nb_members_succ[i]
+                )
 
 
     def construct_graph(
         self,
+        verbose=False,
     ):
         # At s=0 the graph is initialized with one vertex per time step
         s=0
@@ -600,12 +624,20 @@ class PersistentGraph():
             # Iterate algo only if i_s and j_s are in the same vertex
             if (self.__M_v[s, t_s, i_s] == self.__M_v[s, t_s, j_s]):
                 self.__steps.append((t_s, i_s, j_s))
+                if verbose:
+                    print(
+                        "==== Step ", str(s+1), "====",
+                        "(t, i, j) = ", (t_s, j_s, i_s),
+                        "distance i-j: ", self.__dist_matrix[t_s,i_s,j_s]
+                    )
                 self.__distances.append(self.__dist_matrix[t_s,i_s,j_s])
                 s += 1
                 # Current distribution (to be updated after each vertex added)
                 self.__M_v[s] = np.copy(self.__M_v[s-1])
 
                 representatives = self.__update_representatives(s,t_s,i_s,j_s)
+                if verbose:
+                    print('new representatives: ', representatives)
 
                 prev_nb_vertices = self.__nb_vertices[t_s]
 
@@ -613,17 +645,30 @@ class PersistentGraph():
                     s=s,
                     t=t_s,
                     representatives=representatives,
+                    verbose=verbose,
                 )
+
 
                 new_vertices = list(
                     range(prev_nb_vertices, self.__nb_vertices[t_s])
                 )
+                if verbose:
+                    print("New vertices created: ", new_vertices)
+
+                if (t_s<self.T-1):
+                    prev_nb_edges = self.__nb_edges[t_s]
 
                 self.__update_edges(
                     s=s,
                     t=t_s,
                     new_vertices=new_vertices,
+                    verbose=verbose,
                 )
+
+                if verbose and (t_s<self.T-1):
+                    print("New edges created: ",
+                          list(range(prev_nb_edges, self.__nb_edges[t_s])))
+
         # update the total number of steps
         self.__nb_steps = s+1
         self.__M_v = self.__M_v[:s+1]

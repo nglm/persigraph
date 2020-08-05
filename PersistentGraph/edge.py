@@ -7,7 +7,7 @@ class Edge():
         v_start:int,
         v_end:int,
         nb_members:int,
-        s_born: int = None,
+        s_born: int = 0,
         num:int = None,
     ):
         self.__key: int = Edge.key_incr
@@ -15,7 +15,7 @@ class Edge():
         self.v_start = v_start
         self.v_end = v_end
         self.nb_members = nb_members
-        self.__s_death = None
+        self.__s_death = -1
         self.s_born = s_born
         self.__ratio = None
         Edge.key_incr += 1
@@ -53,15 +53,11 @@ class Edge():
     @s_born.setter
     def s_born(self, s_born):
         if s_born is not None:
-            if self.__s_death is not None:
-                s_born = min(self.__s_death-1, s_born)
             self.__s_born = int(max(s_born, 0))
 
     @s_death.setter
     def s_death(self, s_death):
         if s_death is not None:
-            if self.__s_born is not None:
-                s_death = max(self.__s_born+1, s_death)
             self.__s_death = int(max(s_death, 1))
 
     @v_start.setter
