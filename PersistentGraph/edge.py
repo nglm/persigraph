@@ -59,44 +59,56 @@ class Edge():
 
     @ratio_members.setter
     def ratio_members(self, ratio_members):
-        ratio_members = min(ratio_members, 1.)
-        ratio_members = max(ratio_members, 0.)
+        if (ratio_members > 1) or (ratio_members < 0):
+            raise ValueError("ratio should be within 0-1 range")
         self.__ratio_members = ratio_members
 
 
     @ratio_life.setter
     def ratio_life(self, ratio_life):
-        ratio_life = min(ratio_life, 1.)
-        ratio_life = max(ratio_life, 0.)
+        if (ratio_life > 1) or (ratio_life < 0):
+            raise ValueError("ratio should be within 0-1 range")
         self.__ratio_life = ratio_life
 
     @s_born.setter
     def s_born(self, s_born):
         if s_born is not None:
+            if (s_born < 0):
+                raise ValueError("s should be > 0")
             self.__s_born = int(max(s_born, 0))
 
     @s_death.setter
     def s_death(self, s_death):
         if s_death is not None:
+            if (s_death < 0):
+                raise ValueError("s should be > 0")
             self.__s_death = int(max(s_death, 1))
 
     @v_start.setter
     def v_start(self, v_start):
         if v_start is not None:
+            if (v_start < 0):
+                raise ValueError("v should be > O")
             self.__v_start = int(abs(v_start))
 
     @v_end.setter
     def v_end(self, v_end):
         if v_end is not None:
+            if (v_end < 0):
+                raise ValueError("v should be > O")
             self.__v_end = int(abs(v_end))
 
     @num.setter
     def num(self, num):
         if num is not None:
+            if (num < 0):
+                raise ValueError("num should be > O")
             self.__num = int(abs(num))
 
     @nb_members.setter
     def nb_members(self, nb_members):
         if nb_members is not None:
+            if (nb_members < 0):
+                raise ValueError("number should be > O")
             self.__nb_members = int(abs(nb_members))
 
