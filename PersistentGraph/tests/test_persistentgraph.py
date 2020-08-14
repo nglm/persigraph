@@ -10,7 +10,7 @@ import os,sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))  # to access persistentgraph
 # ------
 
-from persitentgraph import PersistentGraph
+from persistentgraph import PersistentGraph
 
 members = np.array([
     (0. ,1., 2., 1.,0.),
@@ -81,7 +81,7 @@ def test_decreasing_distance():
             (t,i,j) = steps[l]
             assert dist_matrix[t_sup,i_sup,j_sup] >= dist_matrix[t,i,j]
 
-
+def 
 
 
 # print(myGraph.M_v)

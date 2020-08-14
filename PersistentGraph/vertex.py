@@ -19,7 +19,8 @@ class Vertex():
         self.representative = representative
         self.__s_death = -1
         self.s_born = s_born
-        self.__ratio = None
+        self.__ratio_life = None
+        self.__ratio_members = None
         Vertex.key_incr += 1
 
     def reset_key_incr(self):
@@ -57,6 +58,26 @@ class Vertex():
     @property
     def nb_members(self):
         return self.__nb_members
+
+    @property
+    def ratio_members(self):
+        return self.__ratio_members
+
+    @property
+    def ratio_life(self):
+        return self.__ratio_life
+
+    @ratio_members.setter
+    def ratio_members(self, ratio_members):
+        ratio_members = min(ratio_members, 1.)
+        ratio_members = max(ratio_members, 0.)
+        self.__ratio_members = ratio_members
+
+    @ratio_life.setter
+    def ratio_life(self, ratio_life):
+        ratio_life = min(ratio_life, 1.)
+        ratio_life = max(ratio_life, 0.)
+        self.__ratio_life = ratio_life
 
     @nb_members.setter
     def nb_members(self, nb_members):

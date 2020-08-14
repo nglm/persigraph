@@ -608,6 +608,29 @@ class PersistentGraph():
                 )
 
 
+    def __compute_ratios(self):
+        for t in range(self.T):
+            for v in self.__vertices[t]:
+                s_born = v.s_born
+                s_death = v.s_death
+                v.ratio_life = max(
+                    ((self.__distances[s_born] - self.__distances[s_death])
+                    / self.__distances[0]),
+                    0.01
+                )
+                v.ratio_members = v.nb_members/self.N
+            if t<(self.T - 1):
+                for e in self.__edges[t]:
+                    s_born = e.s_born
+                    s_death = e.s_death
+                    e.ratio_life = max(
+                        ((self.__distances[s_born] - self.__distances[s_death])
+                        / self.__distances[0]),
+                        0.01
+                    )
+                    e.ratio_members = e.nb_members/self.N
+
+
     def construct_graph(
         self,
         verbose=False,
@@ -675,6 +698,7 @@ class PersistentGraph():
         self.__distances.append(0.)
 
         # Compute the ratios for each member and each vertex
+        self.__compute_ratios()
 
     @property
     def N(self):

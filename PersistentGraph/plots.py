@@ -3,6 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from matplotlib.collections import LineCollection
 
 # ------------
 # Source:
@@ -13,6 +14,7 @@ def colorFader(
     c1="#98FB98", # PaleGreen
     c2="#FF4500", # OrangeRed
     mix=0,
+    ctype="hex",
 ):
     """
     Interpolates between 2 colors
@@ -26,8 +28,9 @@ def colorFader(
     :return: [description]
     :rtype: [type]
     """
-    c1=np.array(mpl.colors.to_rgb(c1))
-    c2=np.array(mpl.colors.to_rgb(c2))
+    if ctype == "hex":
+        c1=np.array(mpl.colors.to_rgb(c1))
+        c2=np.array(mpl.colors.to_rgb(c2))
     return mpl.colors.to_hex(mix*c1 + (1-mix)*c2)
 
 def get_edge_lw(
@@ -45,7 +48,7 @@ def get_alpha(g, obj):
     ratio = max(
         ((g.distances[s_born] - g.distances[s_death])
         / g.distances[0]),
-        0.05
+        0.01
     )
 
     return ratio
@@ -55,15 +58,38 @@ def plot_vertices(
     g,
     vertices,
     t,
+    c1 = np.array([255,0,0,0]),
+    c2 = np.array([255,255,0,0]),
 ):
     if not isinstance(vertices, list):
         vertices = [vertices]
-    for v_num in vertices:
-        v = g.vertices[t][v_num]
-        color = colorFader(mix=(v.nb_members/g.N))
-        alpha = get_alpha(g, v)
-        lw = 5
-        ax.scatter([t], [v.value], c=color, alpha=alpha, lw=lw)
+    #vertices = [g.vertices[t][v_num] for v_num in vertices]
+    values = [v.value for v in vertices]
+    # Iterable alpha and colors. Source:
+    # https://stackoverflow.com/questions/24767355/individual-alpha-values-in-scatter-plot
+    alphas = [v.ratio_life for v in vertices]
+    colors = np.asarray([
+        (v.ratio_members*c1 + (1-v.ratio_members)*c2) for v in vertices
+    ])
+    colors[:,3] = alphas
+    lw = 1
+
+
+    # for v_num in vertices:
+    #     v = g.vertices[t][v_num]
+    #     color = colorFader(mix=(v.nb_members/g.N))
+    #     alpha = get_alpha(g, v)
+    #     lw = 1
+    #     values.append[v.value]
+    n = len(values)
+    if n == 1:
+        # To understand the '/255' see source:
+        # https://stackoverflow.com/questions/57113398/matplotlib-scatter-fails-with-error-c-argument-has-n-elements-which-is-not-a
+        ax.scatter(t, values, c=colors/255, lw=lw)
+    else:
+        ax.scatter([t]*len(values), values, c=colors/255, lw=[lw]*len(values))
+    #lines = LineCollection(lines, linewidths=lw)
+    #ax.add_collection(lines)
     return ax
 
 def plot_edges(
@@ -71,47 +97,67 @@ def plot_edges(
     g,
     edges,
     t,
+    c1 = np.array([255,0,0,0]),
+    c2 = np.array([255,255,0,0]),
 ):
     if not isinstance(edges, list):
         edges = [edges]
-    for e_num in edges:
-        e = g.edges[t][e_num]
-        color = colorFader(mix=(e.nb_members/g.N))
-        alpha = get_alpha(g, e)
-        lw = 5
-        v_start = g.vertices[t][e.v_start]
-        v_end = g.vertices[t+1][e.v_end]
-        ax.plot(
-            [t, t+1],
-            [v_start.value, v_end.value],
-            c=color,
-            alpha=alpha,
-            lw=lw)
+    #edges = [g.edges[t][e_num] for e_num in edges]
+    lines = [
+        [
+        (t,   g.vertices[t][e.v_start].value),
+        (t+1, g.vertices[t+1][e.v_end].value)
+        ] for e in edges
+    ]
+    alphas = [e.ratio_life for e in edges]
+    colors = np.asarray([
+        (e.ratio_members*c1 + (1-e.ratio_members)*c2) for e in edges
+    ])
+    colors[:,3] = alphas
+    lw = 1
+    lines = LineCollection(lines, linewidths=[lw]*len(lines))
+    ax.add_collection(lines)
+    # for e_num in edges:
+    #     e = g.edges[t][e_num]
+    #     color = colorFader(mix=(e.nb_members/g.N))
+    #     alpha = get_alpha(g, e)
+    #     lw = 5
+    #     v_start = g.vertices[t][e.v_start]
+    #     v_end = g.vertices[t+1][e.v_end]
+    #     ax.plot(
+    #         [t, t+1],
+    #         [v_start.value, v_end.value],
+    #         c=color,
+    #         alpha=alpha,
+    #         lw=lw)
     return ax
-
 
 def plot_as_graph(
     g,
     s:int = None,
+    show_vertices: bool = True,
+    show_edges: bool = True,
 ):
     fig, ax = plt.subplots()
     ax.set_facecolor("white")
     if s is None:
-        steps = list(range(g.nb_steps))
         title = "All steps"
-    else:
-        steps = [s]
-        title = "step s = " + str(s)
-    for s in steps:
         for t in range(g.T):
-            vertices = g.get_alive_vertices(s, t)
-            ax = plot_vertices(ax, g, vertices, t)
-            if (t < g.T-1):
-                edges = g.get_alive_edges(s, t)
+            if show_edges and (t < g.T-1):
+                ax = plot_edges(ax,g,g.edges[t],t)
+            if show_vertices:
+                ax = plot_vertices(ax,g,g.vertices[t],t)
+    else:
+        title = "step s = " + str(s)
+        for t in range(g.T):
+            if show_vertices:
+                vertices_key = g.get_alive_vertices(s, t)
+                vertices = [g.vertices[t][key] for key in vertices_key]
+                ax = plot_vertices(ax, g, vertices, t)
+            if (t < g.T-1) and show_edges:
+                edges_key = g.get_alive_edges(s, t)
+                edges = [g.edges[t][key] for key in edges_key]
                 ax = plot_edges(ax, g, edges,t)
     ax.set_title(title)
     return fig, ax
-
-    # for each time steps plot vertices at this
-    # for each time steps plots edges
 

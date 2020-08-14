@@ -17,10 +17,9 @@ class Edge():
         self.nb_members = nb_members
         self.__s_death = -1
         self.s_born = s_born
-        self.__ratio = None
+        self.__ratio_life = None
+        self.__ratio_members = None
         Edge.key_incr += 1
-
-
 
     @property
     def s_born(self):
@@ -49,6 +48,27 @@ class Edge():
     @property
     def v_end(self):
         return self.__v_end
+
+    @property
+    def ratio_life(self):
+        return self.__ratio_life
+
+    @property
+    def ratio_members(self):
+        return self.__ratio_members
+
+    @ratio_members.setter
+    def ratio_members(self, ratio_members):
+        ratio_members = min(ratio_members, 1.)
+        ratio_members = max(ratio_members, 0.)
+        self.__ratio_members = ratio_members
+
+
+    @ratio_life.setter
+    def ratio_life(self, ratio_life):
+        ratio_life = min(ratio_life, 1.)
+        ratio_life = max(ratio_life, 0.)
+        self.__ratio_life = ratio_life
 
     @s_born.setter
     def s_born(self, s_born):

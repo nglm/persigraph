@@ -8,7 +8,7 @@ import os,sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))  # to access persistentgraph
 # ------
 
-from persitentgraph import PersistentGraph
+from persistentgraph import PersistentGraph
 from plots import *
 
 
@@ -28,8 +28,8 @@ g.construct_graph(verbose=True)
 #     for e in g.edges[t]:
 #         print("born: ", e.s_born, "death: ", e.s_death)
 
-# for s in range(g.nb_steps):
-#     fig, ax = plot_as_graph(g,s)
+for s in range(g.nb_steps):
+    fig, ax = plot_as_graph(g,s)
 
 fig, ax = plot_as_graph(g)
 plt.show()
