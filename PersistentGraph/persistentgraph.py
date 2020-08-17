@@ -613,20 +613,18 @@ class PersistentGraph():
             for v in self.__vertices[t]:
                 s_born = v.s_born
                 s_death = v.s_death
-                v.ratio_life = max(
-                    ((self.__distances[s_born] - self.__distances[s_death])
-                    / self.__distances[0]),
-                    0.01
+                v.ratio_life = (
+                    (self.__distances[s_born] - self.__distances[s_death])
+                    / self.__distances[0]
                 )
                 v.ratio_members = v.nb_members/self.N
             if t<(self.T - 1):
                 for e in self.__edges[t]:
                     s_born = e.s_born
                     s_death = e.s_death
-                    e.ratio_life = max(
-                        ((self.__distances[s_born] - self.__distances[s_death])
-                        / self.__distances[0]),
-                        0.01
+                    e.ratio_life = (
+                        (self.__distances[s_born] - self.__distances[s_death])
+                        / self.__distances[0]
                     )
                     e.ratio_members = e.nb_members/self.N
 

@@ -29,8 +29,8 @@ g.construct_graph(verbose=True)
 #         print("born: ", e.s_born, "death: ", e.s_death)
 
 for s in range(g.nb_steps):
-    fig, ax = plot_as_graph(g,s)
+    fig, ax = plot_as_graph(g,s, show_vertices=False)
 
-fig, ax = plot_as_graph(g)
+fig, ax = plot_as_graph(g, show_vertices=False)
 plt.show()
 

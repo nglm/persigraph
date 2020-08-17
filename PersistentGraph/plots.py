@@ -58,8 +58,8 @@ def plot_vertices(
     g,
     vertices,
     t,
-    c1 = np.array([255,0,0,0]),
-    c2 = np.array([255,255,0,0]),
+    c1 = np.array([254,0,0,0]),
+    c2 = np.array([254,254,0,0]),
 ):
     if not isinstance(vertices, list):
         vertices = [vertices]
@@ -71,10 +71,15 @@ def plot_vertices(
     colors = np.asarray([
         (v.ratio_members*c1 + (1-v.ratio_members)*c2) for v in vertices
     ])
+    # To understand the '/255' see source:
+    # https://stackoverflow.com/questions/57113398/matplotlib-scatter-fails-with-error-c-argument-has-n-elements-which-is-not-a
+    colors /=255.
     colors[:,3] = alphas
     lw = 1
-
-
+    condition = (colors < 0) | (colors > 1)
+    if np.any(condition):
+        print(colors)
+        print(np.ma.masked_where(condition, colors))
     # for v_num in vertices:
     #     v = g.vertices[t][v_num]
     #     color = colorFader(mix=(v.nb_members/g.N))
@@ -83,11 +88,9 @@ def plot_vertices(
     #     values.append[v.value]
     n = len(values)
     if n == 1:
-        # To understand the '/255' see source:
-        # https://stackoverflow.com/questions/57113398/matplotlib-scatter-fails-with-error-c-argument-has-n-elements-which-is-not-a
-        ax.scatter(t, values, c=colors/255, lw=lw)
+        ax.scatter(t, values, c=colors, lw=lw)
     else:
-        ax.scatter([t]*len(values), values, c=colors/255, lw=[lw]*len(values))
+        ax.scatter([t]*len(values), values, c=colors, lw=[lw]*len(values))
     #lines = LineCollection(lines, linewidths=lw)
     #ax.add_collection(lines)
     return ax
@@ -97,39 +100,27 @@ def plot_edges(
     g,
     edges,
     t,
-    c1 = np.array([255,0,0,0]),
-    c2 = np.array([255,255,0,0]),
+    c1 = np.array([254,0,0,0]),
+    c2 = np.array([254,254,0,0]),
 ):
     if not isinstance(edges, list):
         edges = [edges]
-    #edges = [g.edges[t][e_num] for e_num in edges]
-    lines = [
-        [
-        (t,   g.vertices[t][e.v_start].value),
-        (t+1, g.vertices[t+1][e.v_end].value)
-        ] for e in edges
-    ]
     alphas = [e.ratio_life for e in edges]
     colors = np.asarray([
         (e.ratio_members*c1 + (1-e.ratio_members)*c2) for e in edges
     ])
+    colors /= 255
     colors[:,3] = alphas
     lw = 1
-    lines = LineCollection(lines, linewidths=[lw]*len(lines))
+    lines = [
+        (
+        (t,   g.vertices[t][e.v_start].value),
+        (t+1, g.vertices[t+1][e.v_end].value)
+        ) for e in edges
+    ]
+
+    lines = LineCollection(lines,colors=colors, linewidths=[lw]*len(lines))
     ax.add_collection(lines)
-    # for e_num in edges:
-    #     e = g.edges[t][e_num]
-    #     color = colorFader(mix=(e.nb_members/g.N))
-    #     alpha = get_alpha(g, e)
-    #     lw = 5
-    #     v_start = g.vertices[t][e.v_start]
-    #     v_end = g.vertices[t+1][e.v_end]
-    #     ax.plot(
-    #         [t, t+1],
-    #         [v_start.value, v_end.value],
-    #         c=color,
-    #         alpha=alpha,
-    #         lw=lw)
     return ax
 
 def plot_as_graph(
@@ -143,10 +134,10 @@ def plot_as_graph(
     if s is None:
         title = "All steps"
         for t in range(g.T):
-            if show_edges and (t < g.T-1):
-                ax = plot_edges(ax,g,g.edges[t],t)
             if show_vertices:
                 ax = plot_vertices(ax,g,g.vertices[t],t)
+            if show_edges and (t < g.T-1):
+                ax = plot_edges(ax,g,g.edges[t],t)
     else:
         title = "step s = " + str(s)
         for t in range(g.T):
@@ -158,6 +149,7 @@ def plot_as_graph(
                 edges_key = g.get_alive_edges(s, t)
                 edges = [g.edges[t][key] for key in edges_key]
                 ax = plot_edges(ax, g, edges,t)
+    ax.autoscale()
     ax.set_title(title)
     return fig, ax
 
