@@ -1,5 +1,3 @@
-# from persisentgraph import PersistentGraph
-# from vertex import Vertex
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -129,7 +127,7 @@ def plot_as_graph(
     show_vertices: bool = True,
     show_edges: bool = True,
 ):
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10,10))
     ax.set_facecolor("white")
     if s is None:
         title = "All steps"

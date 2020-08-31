@@ -81,7 +81,6 @@ def test_decreasing_distance():
             (t,i,j) = steps[l]
             assert dist_matrix[t_sup,i_sup,j_sup] >= dist_matrix[t,i,j]
 
-test
 
 # print(myGraph.M_v)
 # for list_v in myGraph.vertices:
