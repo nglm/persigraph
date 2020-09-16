@@ -55,18 +55,20 @@ def plot_vertices(
     ax,
     g,
     vertices,
-    t,
+    t: int,
     c1 = np.array([254,0,0,0]),
     c2 = np.array([254,254,0,0]),
+    threshold: int = 1,
 ):
     if not isinstance(vertices, list):
         vertices = [vertices]
-    values = [v.value for v in vertices]
+    values = [v.value for v in vertices if v.nb_members >= threshold]
     # Iterable alpha and colors. Source:
     # https://stackoverflow.com/questions/24767355/individual-alpha-values-in-scatter-plot
-    alphas = [v.ratio_life for v in vertices]
+    alphas = [v.ratio_life for v in vertices if v.nb_members >= threshold]
     colors = np.asarray([
-        (v.ratio_members*c1 + (1-v.ratio_members)*c2) for v in vertices
+        (v.ratio_members*c1 + (1-v.ratio_members)*c2)
+        for v in vertices if v.nb_members >= threshold
     ])
     # To understand the '/255' see source:
     # https://stackoverflow.com/questions/57113398/matplotlib-scatter-fails-with-error-c-argument-has-n-elements-which-is-not-a
@@ -88,12 +90,14 @@ def plot_edges(
     t,
     c1 = np.array([254,0,0,1]),
     c2 = np.array([254,254,0,1]),
+    threshold = 1,
 ):
     if not isinstance(edges, list):
         edges = [edges]
-    alphas = [e.ratio_life for e in edges]
+    alphas = [e.ratio_life for e in edges if e.nb_members >= threshold]
     colors = np.asarray([
-        (e.ratio_members*c1 + (1-e.ratio_members)*c2) for e in edges
+        (e.ratio_members*c1 + (1-e.ratio_members)*c2)
+        for e in edges if e.nb_members >= threshold
     ])
     colors /= 255
     colors[:,3] = alphas
@@ -102,7 +106,7 @@ def plot_edges(
         (
         (t,   g.vertices[t][e.v_start].value),
         (t+1, g.vertices[t+1][e.v_end].value)
-        ) for e in edges
+        ) for e in edges if e.nb_members >= threshold
     ]
 
     lines = LineCollection(lines,colors=colors, linewidths=[lw]*len(lines))
@@ -114,6 +118,7 @@ def plot_as_graph(
     s:int = None,
     show_vertices: bool = True,
     show_edges: bool = True,
+    threshold:int = 1,
 ):
     fig, ax = plt.subplots(figsize=(10,10))
     ax.set_facecolor("white")
@@ -121,20 +126,20 @@ def plot_as_graph(
         title = "All steps"
         for t in range(g.T):
             if show_vertices:
-                ax = plot_vertices(ax,g,g.vertices[t],t)
+                ax = plot_vertices(ax,g,g.vertices[t],t, threshold=threshold)
             if show_edges and (t < g.T-1):
-                ax = plot_edges(ax,g,g.edges[t],t)
+                ax = plot_edges(ax,g,g.edges[t],t, threshold=threshold)
     else:
         title = "step s = " + str(s)
         for t in range(g.T):
             if show_vertices:
                 vertices_key = g.get_alive_vertices(s, t)
                 vertices = [g.vertices[t][key] for key in vertices_key]
-                ax = plot_vertices(ax, g, vertices, t)
+                ax = plot_vertices(ax, g, vertices, t, threshold=threshold)
             if (t < g.T-1) and show_edges:
                 edges_key = g.get_alive_edges(s, t)
                 edges = [g.edges[t][key] for key in edges_key]
-                ax = plot_edges(ax, g, edges,t)
+                ax = plot_edges(ax, g, edges,t, threshold=threshold)
     ax.autoscale()
     ax.set_xlabel("Time")
     ax.set_ylabel("Temperature")

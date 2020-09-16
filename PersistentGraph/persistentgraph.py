@@ -635,12 +635,17 @@ class PersistentGraph():
     def construct_graph(
         self,
         verbose=False,
+        descending_order = True,
     ):
         # At s=0 the graph is initialized with one vertex per time step
         s=0
 
-        # reverse argsort of the pairwise distance matrix
-        sort_idx = self.__sort_dist_matrix()[::-1]
+        sort_idx = self.__sort_dist_matrix()
+        # If descending order
+        # Then: reverse argsort of the pairwise distance matrix
+        if descending_order:
+            sort_idx = sort_idx[::-1]
+
 
         # Take the 2 farthest members and the corresponding time step
         for (t_s, i_s, j_s) in sort_idx:

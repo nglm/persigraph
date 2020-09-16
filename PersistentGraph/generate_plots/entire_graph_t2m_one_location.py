@@ -59,6 +59,9 @@ ind_long=[0]
 # type: ndarray(int)
 ind_lat=[0]
 
+# Choose nb members threshold
+threshold = 2
+
 # Choose which files should be used
 list_filenames = listdir(path_data)
 list_filenames = [fname for fname in list_filenames if fname.startswith("ec.ens.") and  fname.endswith(".nc")]
@@ -92,7 +95,7 @@ for weights in [True, False]:
             t2m = np.transpose(list_var[0]).squeeze()
             if weights:
                 weights_file = (
-                    "/home/natacha/Documents/tmp/figs/global_variation_t2m/weights_"
+                    "/home/natacha/Documents/tmp/figs/global_variation_t2m/all_forecasts_"
                     + op
                     + ".txt"
                 )
@@ -101,7 +104,7 @@ for weights in [True, False]:
                 weights_values = None
             g = PersistentGraph(members=t2m, weights=weights_values)
             g.construct_graph()
-            fig, ax = plot_as_graph(g)
+            fig, ax = plot_as_graph(g, threshold=threshold)
 
 
             if weights:
