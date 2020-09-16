@@ -42,6 +42,15 @@ class Component():
 
     @property
     def ratio_life(self):
+        """
+        (distances[s_born] - distances[s_death])/distances[0]
+
+        with distances[-1] = 0.
+        (associated to the graph representing members)
+
+        :return: [description]
+        :rtype: [type]
+        """
         return self.__ratio_life
 
     @property

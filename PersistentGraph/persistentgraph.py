@@ -16,6 +16,7 @@ class PersistentGraph():
     def __init__(
         self,
         members,
+        weights=None,
     ):
         """
         Initialize the graph with the mean
@@ -33,6 +34,9 @@ class PersistentGraph():
         self.__T = shape[-1]           # Length of the time series
         self.__members = np.copy(members)   # Initial physical values
         self.__dist_matrix = None           # Distance between each members
+        if weights is None:
+            weights = np.ones((self.T,1))
+        self.__dist_weights = weights       # Dist weights at each time step
         self.__compute_dist_matrix()
 
         # Total number of iteration required by the algorithm
@@ -96,8 +100,7 @@ class PersistentGraph():
                 dist_t = pairwise_distances(self.__members[:,t].reshape(-1, 1))
             else:
                 dist_t = pairwise_distances(self.__members[:,t])
-            #np.fill_diagonal(dist_t, np.nan)
-            dist.append(dist_t)
+            dist.append(dist_t/self.__dist_weights[t])
         self.__dist_matrix = np.asarray(dist)
 
     def __sort_dist_matrix(
@@ -126,10 +129,10 @@ class PersistentGraph():
         # Keep only the first non-NaN elements
         sort_idx = idx[:int((self.T*self.N*(self.N-1)/2) - nb_zeros)]
 
-        (i_min, j_min, t_min) = sort_idx[0]
+        (t_min, i_min, j_min) = sort_idx[0]
         self.__dist_min = self.__dist_matrix[t_min, i_min, j_min]
 
-        (i_max, j_max, t_max) = sort_idx[-1]
+        (t_max, i_max, j_max) = sort_idx[-1]
         self.__dist_max = self.__dist_matrix[t_max, i_max, j_max]
 
         return(sort_idx)
@@ -637,10 +640,10 @@ class PersistentGraph():
         s=0
 
         # reverse argsort of the pairwise distance matrix
-        sort_idx = np.flip(self.__sort_dist_matrix())
+        sort_idx = self.__sort_dist_matrix()[::-1]
 
         # Take the 2 farthest members and the corresponding time step
-        for (i_s, j_s, t_s) in sort_idx:
+        for (t_s, i_s, j_s) in sort_idx:
 
             # Iterate algo only if i_s and j_s are in the same vertex
             if (self.__M_v[s, t_s, i_s] == self.__M_v[s, t_s, j_s]):
@@ -693,9 +696,9 @@ class PersistentGraph():
         # update the total number of steps
         self.__nb_steps = s+1
         self.__M_v = self.__M_v[:s+1]
-        self.__distances.append(0.)
 
         # Compute the ratios for each member and each vertex
+        self.__distances.append(0.)
         self.__compute_ratios()
 
     @property
@@ -741,6 +744,7 @@ class PersistentGraph():
     def steps(self):
         """ (t,i,j) of each iterations
 
+
         :rtype: Tuple(int,int,int)
         """
         return self.__steps
@@ -748,6 +752,10 @@ class PersistentGraph():
     @property
     def distances(self):
         """ Distance between i-j at t for each iterations
+
+        .. note::
+          distances[-1] is set to ``0.``
+          (associated to the graph representing members)
 
         :rtype: float
         """
@@ -803,6 +811,15 @@ class PersistentGraph():
         :rtype: np.ndarray((T))
         """
         return np.copy(self.__nb_vertices)
+
+    @property
+    def nb_vertices_max(self):
+        """
+        Max number of vertices created at each time step
+
+        :rtype: int
+        """
+        return int(self.N*(self.N+1)/2)
 
     @property
     def nb_edges(self):

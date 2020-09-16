@@ -61,7 +61,6 @@ def plot_vertices(
 ):
     if not isinstance(vertices, list):
         vertices = [vertices]
-    #vertices = [g.vertices[t][v_num] for v_num in vertices]
     values = [v.value for v in vertices]
     # Iterable alpha and colors. Source:
     # https://stackoverflow.com/questions/24767355/individual-alpha-values-in-scatter-plot
@@ -75,22 +74,11 @@ def plot_vertices(
     colors[:,3] = alphas
     lw = 1
     condition = (colors < 0) | (colors > 1)
-    if np.any(condition):
-        print(colors)
-        print(np.ma.masked_where(condition, colors))
-    # for v_num in vertices:
-    #     v = g.vertices[t][v_num]
-    #     color = colorFader(mix=(v.nb_members/g.N))
-    #     alpha = get_alpha(g, v)
-    #     lw = 1
-    #     values.append[v.value]
     n = len(values)
     if n == 1:
         ax.scatter(t, values, c=colors, lw=lw)
     else:
         ax.scatter([t]*len(values), values, c=colors, lw=[lw]*len(values))
-    #lines = LineCollection(lines, linewidths=lw)
-    #ax.add_collection(lines)
     return ax
 
 def plot_edges(
@@ -98,8 +86,8 @@ def plot_edges(
     g,
     edges,
     t,
-    c1 = np.array([254,0,0,0]),
-    c2 = np.array([254,254,0,0]),
+    c1 = np.array([254,0,0,1]),
+    c2 = np.array([254,254,0,1]),
 ):
     if not isinstance(edges, list):
         edges = [edges]
@@ -148,6 +136,46 @@ def plot_as_graph(
                 edges = [g.edges[t][key] for key in edges_key]
                 ax = plot_edges(ax, g, edges,t)
     ax.autoscale()
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Temperature")
     ax.set_title(title)
     return fig, ax
 
+def plot_barcodes(
+    barcodes,
+    c1 = np.array([254.,0.,0.,1.]),
+    c2 = np.array([254.,254.,0.,1.]),
+):
+    if not isinstance(barcodes[0], list):
+        barcodes = [barcodes]
+    for t in range(len(barcodes)):
+        fig, ax = plt.subplots(figsize=(10,10))
+        colors = []
+        lines = []
+        c = np.zeros_like(c1, dtype=float)
+        for i, (start, end, r_members) in enumerate(barcodes[t]):
+            c[:3] = (r_members*c1[:3] + (1-r_members)*c2[:3])/255.
+            c[-1] = 1.
+            lines.append(((i, start),(i, end)))
+            colors.append(c)
+        lines = LineCollection(lines,colors=np.asarray(colors))
+        ax.add_collection(lines)
+        ax.autoscale()
+        ax.set_xlabel("Components")
+        ax.set_ylabel("Life span")
+        plt.show()
+
+def plot_bottleneck_distances(
+    bn_distances,
+    c1 = np.array([254.,0.,0.,1.]),
+    c2 = np.array([254.,254.,0.,1.]),
+):
+    if isinstance(bn_distances[0], list):
+        bn_distances = [bn_distances]
+    fig, ax = plt.subplots(figsize=(10,10))
+    ax.plot(bn_distances)
+    ax.autoscale()
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Bottleneck distance")
+    plt.show()
+    return fig, ax
