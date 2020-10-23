@@ -1,4 +1,5 @@
 import numpy as np
+from math import isnan
 from sklearn.metrics import pairwise_distances
 from vertex import Vertex
 from edge import Edge
@@ -16,6 +17,7 @@ class PersistentGraph():
     def __init__(
         self,
         members,
+        time_axis=None,
         weights=None,
     ):
         """
@@ -33,16 +35,21 @@ class PersistentGraph():
         self.__N = shape[-2]           # Number of members (time series)
         self.__T = shape[-1]           # Length of the time series
         self.__members = np.copy(members)   # Initial physical values
+        if time_axis is None:
+            self.__time_axis = np.arange(self.T)
+        else:
+            self.__time_axis = time_axis
         self.__dist_matrix = None           # Distance between each members
         if weights is None:
             weights = np.ones((self.T,1))
         self.__dist_weights = weights       # Dist weights at each time step
+        self.__nb_zeros = 0
         self.__compute_dist_matrix()
 
         # Total number of iteration required by the algorithm
         self.__nb_steps = int((self.N - 1)*self.T + 1)
         self.__steps = []        # List of (i,j,t) involved in each step
-        self.__distances = []   # List of distance between i-j at each step
+        self.__distances = []    # List of distance between i-j at each step
         self.__vertices = []     # Nested list of vertices (see Vertex class)
         self.__edges = []        # Nested list of edges (see Edge class)
 
@@ -56,19 +63,21 @@ class PersistentGraph():
             v = Vertex(
                 representative=0,
                 s_born=0,
+                t=t,
                 num=0,
                 value=mean[t],
                 std=std[t],
                 nb_members = self.N,
             )
             self.__vertices.append([v])
-            if t>0:
+            if t<(self.T-1):
                 e = Edge(
                     v_start=0,
                     v_end=0,
                     nb_members = self.N,
                     s_born=0,
-                    num=0
+                    t=t,
+                    num=0,
                 )
                 self.__edges.append([e])
 
@@ -111,23 +120,32 @@ class PersistentGraph():
         """
         # Add NaN to avoid redundancy
         dist_matrix = np.copy(self.__dist_matrix)
-        nb_zeros = 0
         for t in range(self.T):
             for i in range(self.N):
                 dist_matrix[t,i,i:] = np.nan
                 for j in range(i):
-                    # If the distance is equal
+                    #If the distance is null
                     if dist_matrix[t,i,j] == 0:
                         dist_matrix[t,i,j] = np.nan
-                        nb_zeros += 1
+                        self.__nb_zeros += 1
         # Sort the matrix (NaN should be at the end)
         #idx = np.argsort(dist_matrix, axis=-1)
         # Source https://stackoverflow.com/questions/30577375/have-numpy-argsort-return-an-array-of-2d-indices
+        # list_argmin = []
+        # for t in range(self.T):
+        #     list_argmin.append(np.ar)
         idx = np.dstack(np.unravel_index(
             np.argsort(dist_matrix.ravel()), (self.T, self.N, self.N)
         )).squeeze()
         # Keep only the first non-NaN elements
-        sort_idx = idx[:int((self.T*self.N*(self.N-1)/2) - nb_zeros)]
+        for k, (t,i,j) in enumerate(idx):
+            if isnan(dist_matrix[t,i,j]):
+                idx_first_nan = k
+                break
+
+        #sort_idx = idx[:int((self.T*self.N*(self.N-1)/2))]
+
+        sort_idx = idx[:idx_first_nan]
 
         (t_min, i_min, j_min) = sort_idx[0]
         self.__dist_min = self.__dist_matrix[t_min, i_min, j_min]
@@ -170,7 +188,7 @@ class PersistentGraph():
         :type representative: int, optional
         """
         # creating the vertex
-        v = Vertex(s_born=s)
+        v = Vertex(s_born=s, t=t)
         v.num = self.__nb_vertices[t]
         # In this case 'value', 'std' and 'representative' have to be specified
         if members is None:
@@ -224,7 +242,8 @@ class PersistentGraph():
             v_end=v_end,
             nb_members = nb_members,
             s_born = s,
-            num = self.__nb_edges[t]
+            t=t,
+            num = self.__nb_edges[t],
         )
 
         # update the graph with the new edge
@@ -308,7 +327,7 @@ class PersistentGraph():
         """
         if t is None:
             v_alive = []
-            for t in range (self.T):
+            for t in range(self.T):
                 v_alive.append(list(set(self.__M_v[s,t])))
         else:
             v_alive = list(set(self.__M_v[s,t][:]))
@@ -332,15 +351,15 @@ class PersistentGraph():
         """
         e_alive = []
         if t is None:
-            for t in range (self.T-1):
+            for t in range(self.T-1):
                 e_t = []
                 for e in self.__edges[t]:
-                    if (e.s_born <= s) and (e.s_death > s or e.s_death == -1):
+                    if (e.s_born <= s) and (e.s_death >= s or e.s_death == -1):
                         e_t.append(e.num)
                 e_alive.append(e_t)
         else:
             for e in self.__edges[t]:
-                if (e.s_born <= s) and (e.s_death > s or e.s_death == -1):
+                if (e.s_born <= s) and (e.s_death >= s or e.s_death == -1):
                     e_alive.append(e.num)
         return e_alive
 
@@ -365,7 +384,7 @@ class PersistentGraph():
                 if (
                     (e.v_end == v)
                     and (e.s_born <= s)
-                    and (e.s_death > s or e.s_death == -1)
+                    and (e.s_death >= s or e.s_death == -1)
                 ):
                     edges_to_v.append(e.num)
         if t<(self.T-1):
@@ -373,7 +392,7 @@ class PersistentGraph():
                 if (
                     (e.v_start == v)
                     and (e.s_born <= s)
-                    and (e.s_death > s or e.s_death == -1)
+                    and (e.s_death >= s or e.s_death == -1)
                 ):
                     edges_from_v.append(e.num)
         return(edges_to_v, edges_from_v)
@@ -453,7 +472,7 @@ class PersistentGraph():
         )
 
         # Previous members' distrib  among vertices
-        prev_v_distrib = self.__M_v[s-1, t]
+        prev_v_distrib = self.__M_v[s, t]
         v_to_kill = []      # List of vertices that must be killed
         rep_visited = []    # List of visited representatives
         # v_to_create is a nested list.
@@ -612,24 +631,13 @@ class PersistentGraph():
 
 
     def __compute_ratios(self):
-        for t in range(self.T):
-            for v in self.__vertices[t]:
-                s_born = v.s_born
-                s_death = v.s_death
-                v.ratio_life = (
-                    (self.__distances[s_born] - self.__distances[s_death])
-                    / self.__distances[0]
-                )
-                v.ratio_members = v.nb_members/self.N
-            if t<(self.T - 1):
-                for e in self.__edges[t]:
-                    s_born = e.s_born
-                    s_death = e.s_death
-                    e.ratio_life = (
-                        (self.__distances[s_born] - self.__distances[s_death])
-                        / self.__distances[0]
-                    )
-                    e.ratio_members = e.nb_members/self.N
+        # Concatenate all the components
+        components = [
+            self.__vertices[t] + self.__edges[t] for t in range(self.T-1)
+        ] + [self.__vertices[-1]]
+        for cmpts_t in components:
+            for cmpt in cmpts_t:
+                cmpt.update_life_info(self.__distances, self.N, self.nb_steps)
 
 
     def construct_graph(
@@ -641,6 +649,11 @@ class PersistentGraph():
         s=0
 
         sort_idx = self.__sort_dist_matrix()
+        # This doesn't work if equal members stay together until the end...
+        #if self.__nb_zeros > 0:
+            #self.__nb_steps -= self.__nb_zeros
+            #self.__M_v = self.__M_v[:self.__nb_steps]
+
         # If descending order
         # Then: reverse argsort of the pairwise distance matrix
         if descending_order:
@@ -651,18 +664,16 @@ class PersistentGraph():
         for (t_s, i_s, j_s) in sort_idx:
 
             # Iterate algo only if i_s and j_s are in the same vertex
-            if (self.__M_v[s, t_s, i_s] == self.__M_v[s, t_s, j_s]):
-                self.__steps.append((t_s, i_s, j_s))
+            if ((self.__M_v[s, t_s, i_s] == self.__M_v[s, t_s, j_s])
+            and (self.__dist_matrix[t_s,i_s,j_s] > 0)):
                 if verbose:
                     print(
-                        "==== Step ", str(s+1), "====",
+                        "==== Step ", str(s), "====",
                         "(t, i, j) = ", (t_s, j_s, i_s),
                         "distance i-j: ", self.__dist_matrix[t_s,i_s,j_s]
                     )
+                self.__steps.append((t_s, i_s, j_s))
                 self.__distances.append(self.__dist_matrix[t_s,i_s,j_s])
-                s += 1
-                # Current distribution (to be updated after each vertex added)
-                self.__M_v[s] = np.copy(self.__M_v[s-1])
 
                 representatives = self.__update_representatives(s,t_s,i_s,j_s)
                 if verbose:
@@ -698,13 +709,26 @@ class PersistentGraph():
                     print("New edges created: ",
                           list(range(prev_nb_edges, self.__nb_edges[t_s])))
 
+                s += 1
+
+                #Current distribution (to be updated after each vertex added)
+                self.__M_v[s] = np.copy(self.__M_v[s-1])
+
         # update the total number of steps
-        self.__nb_steps = s+1
-        self.__M_v = self.__M_v[:s+1]
+        if self.__nb_steps != s-1:
+            self.__nb_steps = s-1
+
+
+        self.__M_v = self.__M_v[:self.__nb_steps]
 
         # Compute the ratios for each member and each vertex
         self.__distances.append(0.)
         self.__compute_ratios()
+
+    @property
+    def nb_zeros(self):
+        return self.__nb_zeros
+
 
     @property
     def N(self):
@@ -774,6 +798,11 @@ class PersistentGraph():
         :rtype: np.ndarray((N,T,d))
         """
         return np.copy(self.__members)
+
+    @property
+    def time_axis(self):
+        return self.__time_axis
+
 
     @property
     def edges(self):

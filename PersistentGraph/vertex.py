@@ -8,10 +8,16 @@ class Vertex(Component):
         value: float = None,
         std: float = None,
         s_born: int = None,
+        t:int = None,
         num: int = None,
         nb_members: int = None
     ):
-        super().__init__(s_born, num, nb_members)
+        super().__init__(
+            s_born=s_born,
+            t=t,
+            num=num,
+            nb_members=nb_members,
+        )
         self.__value = value
         self.__std = std
         self.representative = representative

@@ -21,6 +21,8 @@ members = np.array([
 
 g = PersistentGraph(members)
 g.construct_graph(verbose=True)
+print(g.nb_zeros)
+
 
 # print(g.M_v)
 # for t in range(g.T-1):

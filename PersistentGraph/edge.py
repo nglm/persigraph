@@ -6,10 +6,16 @@ class Edge(Component):
         v_start:int,
         v_end:int,
         s_born: int = 0,
+        t:int = None,
         num:int = None,
         nb_members:int = None,
     ):
-        super().__init__(s_born, num, nb_members)
+        super().__init__(
+            s_born=s_born,
+            t=t,
+            num=num,
+            nb_members=nb_members,
+        )
         self.v_start = v_start
         self.v_end = v_end
 

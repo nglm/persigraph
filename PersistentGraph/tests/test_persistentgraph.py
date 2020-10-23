@@ -82,7 +82,7 @@ def test_decreasing_distance():
     steps = g.steps
     dist_matrix = g.distance_matrix
     nb_steps = len(steps)
-    for k in range(nb_steps):
+    for k in range(0,nb_steps):  #First step is (-1, -1, -1)
         (t_sup,i_sup,j_sup) = steps[k]
         for l in range(k+1,nb_steps):
             (t,i,j) = steps[l]
@@ -115,6 +115,17 @@ def test_consistent_values():
             assert np.amin(values) == np.amin(g.members[:,t])
             assert np.amax(values) == np.amax(g.members[:,t])
 
+def test_increment_nb_vertex():
+    g = PersistentGraph(members)
+    g.construct_graph()
+    M_v = g.M_v
+    for s in range(1,g.nb_steps):
+        (t,i,j) = g.steps[s]
+        assert len(np.unique(M_v[s-1,t])) < len(np.unique(M_v[s,t]))
+
+# def test_one_vertex_per_member_last_step():
+
+# def test_one_edge_per_member_last_step():
 # print(myGraph.M_v)
 # for list_v in myGraph.vertices:
 #     print([v.num for v in list_v])
