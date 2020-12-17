@@ -1,4 +1,4 @@
-from component import Component
+from PersistentGraph.component import Component
 
 class Vertex(Component):
 
@@ -7,13 +7,13 @@ class Vertex(Component):
         representative: int = None,
         value: float = None,
         std: float = None,
-        s_born: int = None,
+        s_birth: int = None,
         t:int = None,
         num: int = None,
         nb_members: int = None
     ):
         super().__init__(
-            s_born=s_born,
+            s_birth=s_birth,
             t=t,
             num=num,
             nb_members=nb_members,

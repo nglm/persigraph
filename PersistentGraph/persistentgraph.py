@@ -1,18 +1,12 @@
 import numpy as np
 from math import isnan
 from sklearn.metrics import pairwise_distances
-from vertex import Vertex
-from edge import Edge
-
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '/home/natacha/Documents/Work/python'))
-
-from galib.tools.lists import get_indices_element
+from PersistentGraph.vertex import Vertex
+from PersistentGraph.edge import Edge
+from typing import List, Tuple
+from utils.lists import get_indices_element
 
 class PersistentGraph():
-    #TODO: function to plot the graph
-    #TODO: function to plot the distribution
-
 
     def __init__(
         self,
@@ -39,6 +33,10 @@ class PersistentGraph():
             self.__time_axis = np.arange(self.T)
         else:
             self.__time_axis = time_axis
+        self.__min_value = self.__members.min()
+        self.__max_value = self.__members.max()
+        self.__min_time_step = self.__time_axis.min()
+        self.__max_time_step = self.__time_axis.max()
         self.__dist_matrix = None           # Distance between each members
         if weights is None:
             weights = np.ones((self.T,1))
@@ -47,7 +45,7 @@ class PersistentGraph():
         self.__compute_dist_matrix()
 
         # Total number of iteration required by the algorithm
-        self.__nb_steps = int((self.N - 1)*self.T + 1)
+        self.__nb_steps = int((self.N - 1)*self.T + 1 + 1)
         self.__steps = []        # List of (i,j,t) involved in each step
         self.__distances = []    # List of distance between i-j at each step
         self.__vertices = []     # Nested list of vertices (see Vertex class)
@@ -62,7 +60,7 @@ class PersistentGraph():
             # TODO: add a more relevant reprensentative here...
             v = Vertex(
                 representative=0,
-                s_born=0,
+                s_birth=0,
                 t=t,
                 num=0,
                 value=mean[t],
@@ -75,7 +73,7 @@ class PersistentGraph():
                     v_start=0,
                     v_end=0,
                     nb_members = self.N,
-                    s_born=0,
+                    s_birth=0,
                     t=t,
                     num=0,
                 )
@@ -86,8 +84,8 @@ class PersistentGraph():
         # Total number of edges created for each time step
         self.__nb_edges = np.ones((self.T-1), dtype=int)
         # Distribution of members among vertices
-        # All members are associated with the only vertex created for each t
-        self.__M_v = np.zeros((self.__nb_steps,self.T,self.N), dtype=int)
+        # Initialy, at each t, all members belong to the only vertex created
+        self.__M_v = [np.zeros((self.T,self.N), dtype=int)]
         self.__dist_min = 0
         self.__dist_max = None
 
@@ -99,6 +97,7 @@ class PersistentGraph():
         Compute the pairwise distance matrix for each time step
 
         .. warning::
+
           Distance to self is set to 0
         """
         dist = []
@@ -116,7 +115,7 @@ class PersistentGraph():
         self,
     ):
         """
-        Gives a vector of indices to sort distance_matrix
+        Return a vector of indices to sort distance_matrix
         """
         # Add NaN to avoid redundancy
         dist_matrix = np.copy(self.__dist_matrix)
@@ -129,27 +128,23 @@ class PersistentGraph():
                         dist_matrix[t,i,j] = np.nan
                         self.__nb_zeros += 1
         # Sort the matrix (NaN should be at the end)
-        #idx = np.argsort(dist_matrix, axis=-1)
-        # Source https://stackoverflow.com/questions/30577375/have-numpy-argsort-return-an-array-of-2d-indices
-        # list_argmin = []
-        # for t in range(self.T):
-        #     list_argmin.append(np.ar)
+        # Source:
+        # https://stackoverflow.com/questions/30577375/have-numpy-argsort-return-an-array-of-2d-indices
         idx = np.dstack(np.unravel_index(
             np.argsort(dist_matrix.ravel()), (self.T, self.N, self.N)
         )).squeeze()
+
         # Keep only the first non-NaN elements
         for k, (t,i,j) in enumerate(idx):
             if isnan(dist_matrix[t,i,j]):
                 idx_first_nan = k
                 break
 
-        #sort_idx = idx[:int((self.T*self.N*(self.N-1)/2))]
-
         sort_idx = idx[:idx_first_nan]
 
+        # Store min and max distances
         (t_min, i_min, j_min) = sort_idx[0]
         self.__dist_min = self.__dist_matrix[t_min, i_min, j_min]
-
         (t_max, i_max, j_max) = sort_idx[-1]
         self.__dist_max = self.__dist_matrix[t_max, i_max, j_max]
 
@@ -159,22 +154,22 @@ class PersistentGraph():
     def __add_vertex(
         self,
         s: int,
-        t:int,
+        t: int,
         members=None,
-        value:float = None,
+        value: float = None,
         std: float = None,
         representative: int = None,
-        nb_members:int = None
+        nb_members: int = None
     ):
         """
         Add a vertex to the current graph
 
         If ``members`̀  is not None then ``value`` and ``std``
         will be ignored and computed according to ``members``
-        In this case and if ``representative`` is not specified then the first
-        element of ``member`` is considered as the representative
+        In this case and if ``representative`` is not specified then the
+        first element of ``member`` is considered as the representative
 
-        :param s: Current algorithm step, used to set ``Vertex.s_born``
+        :param s: Current algorithm step, used to set ``Vertex.s_birth``
         :type s: int
         :param t: Time step at which the vertex should be added
         :type t: int
@@ -188,7 +183,7 @@ class PersistentGraph():
         :type representative: int, optional
         """
         # creating the vertex
-        v = Vertex(s_born=s, t=t)
+        v = Vertex(s_birth=s, t=t)
         v.num = self.__nb_vertices[t]
         # In this case 'value', 'std' and 'representative' have to be specified
         if members is None:
@@ -212,6 +207,7 @@ class PersistentGraph():
         # update the graph with the new vertex
         self.__nb_vertices[t] += 1
         self.__vertices[t].append(v)
+        return v
 
     def __add_edge(
         self,
@@ -225,9 +221,9 @@ class PersistentGraph():
         """
         Add an adge to the current graph
 
-        :param s: Current algorithm step, used to set ``Edge.s_born``
+        :param s: Current algorithm step, used to set ``Edge.s_birth``
         :type s: int
-        :param t: Time step at which the edge should be added
+        :param t: Time step at which the edge starts
         :type t: int
         :param v_start: [description]
         :type v_start: int
@@ -241,7 +237,7 @@ class PersistentGraph():
             v_start=v_start,
             v_end=v_end,
             nb_members = nb_members,
-            s_born = s,
+            s_birth = s,
             t=t,
             num = self.__nb_edges[t],
         )
@@ -249,6 +245,7 @@ class PersistentGraph():
         # update the graph with the new edge
         self.__nb_edges[t] += 1
         self.__edges[t].append(e)
+        return e
 
 
     def __kill_vertices(
@@ -262,8 +259,8 @@ class PersistentGraph():
         Kill vertices and all their edges
 
         .. note::
-          the date of death is defined as the step 's' at which the vertex is
-          unused for the first time
+          the date of death is defined as the step 's' at which the
+          vertex is unused for the first time
 
         :param s: Current algorithm step, used to set ``s_death``
         :type s: int
@@ -293,8 +290,8 @@ class PersistentGraph():
         Kill the given edges
 
         .. note::
-          the date of death is defined as the step 's' at which the edge is
-          unused for the first time
+          the date of death is defined as the step 's' at which the edge
+          is unused for the first time
 
         :param s: Current algorithm step, used to set ``s_death``
         :type s: int
@@ -328,9 +325,9 @@ class PersistentGraph():
         if t is None:
             v_alive = []
             for t in range(self.T):
-                v_alive.append(list(set(self.__M_v[s,t])))
+                v_alive.append(list(set(self.__M_v[s][t])))
         else:
-            v_alive = list(set(self.__M_v[s,t][:]))
+            v_alive = list(set(self.__M_v[s][t][:]))
         return v_alive
 
     def get_alive_edges(
@@ -354,12 +351,12 @@ class PersistentGraph():
             for t in range(self.T-1):
                 e_t = []
                 for e in self.__edges[t]:
-                    if (e.s_born <= s) and (e.s_death >= s or e.s_death == -1):
+                    if (e.s_birth <= s) and (e.s_death > s or e.s_death == -1):
                         e_t.append(e.num)
                 e_alive.append(e_t)
         else:
             for e in self.__edges[t]:
-                if (e.s_born <= s) and (e.s_death >= s or e.s_death == -1):
+                if (e.s_birth <= s) and (e.s_death > s or e.s_death == -1):
                     e_alive.append(e.num)
         return e_alive
 
@@ -370,29 +367,33 @@ class PersistentGraph():
         v:int,
     ):
         """
-        Extract all edges to and from a vertex
+        Extract all edges going to and from a vertex
 
-        :param t: [description]
+        :param t: Time step at which the vertex is
         :type t: int
-        :param v: [description]
+        :param v: Vertex (its number more specifically) from which we
+        want to extract edges
         :type v: int
         """
         edges_to_v = []
         edges_from_v = []
+        # get edges TO v
         if (t>0 and t<self.T):
             for e in self.__edges[t-1]:
                 if (
                     (e.v_end == v)
-                    and (e.s_born <= s)
-                    and (e.s_death >= s or e.s_death == -1)
+                    and (e.s_birth <= s)
+                    and (e.s_death > s or e.s_death == -1)
                 ):
                     edges_to_v.append(e.num)
+
+        # get edges FROM v
         if t<(self.T-1):
             for e in self.__edges[t]:
                 if (
                     (e.v_start == v)
-                    and (e.s_born <= s)
-                    and (e.s_death >= s or e.s_death == -1)
+                    and (e.s_birth <= s)
+                    and (e.s_death > s or e.s_death == -1)
                 ):
                     edges_from_v.append(e.num)
         return(edges_to_v, edges_from_v)
@@ -400,11 +401,12 @@ class PersistentGraph():
 
     def extract_representatives(
         self,
-        s:int = None,
-        t:int = None,
+        s: int = None,
+        t: int = None,
+        duplicate: bool = False,
     ):
         """
-        Extract representatives alive at the time step t
+        Extract alive representatives (their number) at the time step t
 
         If ``t`` is not specified then returns a nested list of
         representatives for each time steps
@@ -420,6 +422,9 @@ class PersistentGraph():
                 )
         else:
             rep_alive = [self.__vertices[t][v].representative for v in v_alive]
+        # Remove duplicates
+        if not duplicate:
+            rep_alive = list(set(rep_alive))
         return rep_alive
 
 
@@ -429,23 +434,53 @@ class PersistentGraph():
         t:int,
         i:int,
         j:int,
-    ):
+        verbose: bool = False,
+    ) -> List[int]:
+        """
+        Add i and j to the list of representatives and remove rep[i] (=rep[j])
+
+        CALLED ONLY IN ``construct_graph``
+
+        :param s: Algo step at which vertices should be updated
+        :type s: int
+        :param t: time step at which vertices should be updated
+        :type t: int
+        :param i: One of the 2 new representatives
+        :type i: int
+        :param j: One of the 2 new representatives
+        :type j: int
+        :param verbose: defaults to False
+        :type verbose: bool, optional
+        :return: List of members considered as the representatives of vertices
+        :rtype: List[int]
+        """
         # Break the vertex v into 2 vertices represented by i and j
-        v_to_break = self.__M_v[s, t, i]
+        v_to_break = self.__M_v[s][ t, i]
 
         representatives = self.extract_representatives(s, t)
         representatives.remove(self.__vertices[t][v_to_break].representative)
         representatives += [i,j]
+        if verbose:
+            print('new representatives: ', representatives)
         return representatives
 
 
     def __associate_with_representatives(
         self,
         t:int,
-        representatives,
+        representatives: List[int],
     ):
         """
-        For each member, find the corresponding representative
+        Associate each member with one and only one of the representatives
+
+        CALLED ONLY IN ``construct_graph``
+
+        :param t: time step at which vertices should be updated
+        :type t: int
+        :param representatives: Updated set of representatives
+        :type representatives: List[int]
+        :return: For each member, its representative
+        :rtype: List[int]
         """
         # extract distance to representatives
         dist = []
@@ -461,9 +496,28 @@ class PersistentGraph():
         self,
         s: int,
         t: int,
-        representatives,
+        representatives: List[int],
         verbose: bool = False,
     ):
+        """
+        Update vertices
+
+        CALLED ONLY IN ``construct_graph``
+
+        1. Re-distribute members among updated representatives
+        2. Kill unused vertices and their associated edges
+        3. Create new vertices
+        4. Update self.__M_v (members distribution among alive vertices)
+
+        :param s: Algo step at which vertices should be updated
+        :type s: int
+        :param t: time step at which vertices should be updated
+        :type t: int
+        :param representatives: Updated set of representatives
+        :type representatives: List[int]
+        :param verbose: defaults to False
+        :type verbose: bool, optional
+        """
 
         # Re-distribute members among updated representatives
         new_rep_distrib = self.__associate_with_representatives(
@@ -472,22 +526,22 @@ class PersistentGraph():
         )
 
         # Previous members' distrib  among vertices
-        prev_v_distrib = self.__M_v[s, t]
-        v_to_kill = []      # List of vertices that must be killed
-        rep_visited = []    # List of visited representatives
+        prev_v_distrib = self.__M_v[s][ t]
         # v_to_create is a nested list.
-        # each 1st sublists' elt is the representative of a vertex to create.
-        # Other elts are the members associated with it
+        # each 1st sublists' elt is the representative of a vertex
+        # to create. Other elts are the members associated with it
         v_to_create = []
         to_create = []    # boolean specifying potential vertex creation
+        v_to_kill = []    # List of vertices that must be killed
+        rep_visited = []  # List of visited representatives
 
         # Check which members have changed their representative
         for member in range(self.N):
 
             # Previous vertex to which 'member' was associated
             v_prev = prev_v_distrib[member]
-            # Get representative of this vertex
-            rep_prev = self.__vertices[t][v_prev].representative
+            # Get the previous representative of this vertex
+            rep_prev = self.vertices[t][v_prev].representative
             # Get the new representative of this member
             rep_new = new_rep_distrib[member]
 
@@ -498,7 +552,9 @@ class PersistentGraph():
                 if_none=[-1]
             )
 
-            # If rep_new has never been visited and should be added
+            # IF rep_new has never been visited
+            # THEN it should be added to 'rep_visited'
+            # and a *potential* vertex to create must be added
             if idx == -1:
                 # Note: idx is then the 'right' index of appended elts
                 rep_visited.append(rep_new)
@@ -509,7 +565,9 @@ class PersistentGraph():
                     v_to_create.append([rep_new, member])
                 # So far there is no reason to recreate this vertex
                 to_create.append(False)
-            # Else idx is then the index of the corresponding vertex
+            # Else add 'member' to 'v_to_create[idx]'
+            # only if rep_new != member since otherwise it has already
+            # been added by one of its current or previous members
             elif rep_new != member:
                 v_to_create[idx].append(member)
 
@@ -545,13 +603,18 @@ class PersistentGraph():
         self.__kill_vertices(s, t, v_to_kill, verbose=verbose)
 
         # Process new vertices
+        # Keep only vertices that really need to be created
+        v_to_create = [v for i, v in enumerate(v_to_create) if to_create[i]]
+        v_created = []
         for i, members in enumerate(v_to_create):
-            if to_create[i]:
-                # Add vertex to the graph
-                self.__add_vertex(s,t, members=members)
-                # Update M_v with the new vertex
-                for m in members:
-                    self.__M_v[s,t,m] = self.__nb_vertices[t]-1
+            # Add vertex to the graph and return it
+            v_new = self.__add_vertex(s,t, members=members)
+            v_created.append(v_new.num)
+            # Update M_v with the new vertex
+            for m in members:
+                self.__M_v[s][t,m] = v_new.num
+        if verbose:
+            print("Vertices created: ", v_created)
 
     def __update_edges(
         self,
@@ -560,12 +623,31 @@ class PersistentGraph():
         new_vertices,
         verbose: bool = False,
     ):
+        """
+        Update edges
+
+        CALLED ONLY IN ``update_vertices`` (itself called only in
+        ``construct_graph``)
+
+        1. Find edges associated to ``new_vertices``
+        2. Kill unused edges
+        3. Create new edges
+
+        :param s: Algo step at which edges should be updated
+        :type s: int
+        :param t: time step at which edges should be updated
+        :type t: int
+        :param new_vertices: New vertices created at step ``s``
+        :type new_vertices: [type]
+        :param verbose: defaults to False
+        :type verbose: bool, optional
+        """
         if not isinstance(new_vertices, list):
             new_vertices = [new_vertices]
         for v in new_vertices:
             # Find all the members in v
             members_in_v = get_indices_element(
-                self.__M_v[s,t],
+                self.__M_v[s][ t],
                 v,
                 all_indices = True,
                 if_none = [-1],
@@ -576,8 +658,9 @@ class PersistentGraph():
             nb_members_succ = [] # number of members in each v_succ visited
 
             for m in members_in_v:
+                # Find vertices from which members of v come from
                 if (t>0):
-                    v_ante = self.__M_v[s, t-1,m] # Vertex of 'm' at t-1
+                    v_ante = self.__M_v[s][ t-1, m] # Vertex of 'm' at t-1
 
                     # Check if v_ante has already been visited
                     [v_ante_idx] = get_indices_element(
@@ -595,9 +678,10 @@ class PersistentGraph():
                         nb_members_ante[v_ante_idx] += 1
                 else:
                     v_ante_visited = []
-                # Same with v_succ
+
+                # Find vertices to which members of v go
                 if t<(self.T-1):
-                    v_succ = self.__M_v[s, t+1,m] # Vertex of 'm' at t+1
+                    v_succ = self.__M_v[s][ t+1, m] # Vertex of 'm' at t+1
                     [v_succ_idx] = get_indices_element(
                         v_succ_visited,
                         v_succ,
@@ -612,26 +696,40 @@ class PersistentGraph():
                 else:
                     v_succ_visited = []
 
+            # Add edges between vertices at t-1 and v
+            e_ante_created = []
             for i, v_start in enumerate(v_ante_visited):
-                self.__add_edge(
+                e_new = self.__add_edge(
                     s = s,
                     t = t-1,
                     v_start = v_start,
                     v_end = v,
                     nb_members = nb_members_ante[i]
                 )
+                e_ante_created.append(e_new.num)
+
+            # Add edges between v and vertices at t+1
+            e_succ_created = []
             for i, v_end in enumerate(v_succ_visited):
-                self.__add_edge(
+                e_new = self.__add_edge(
                     s = s,
                     t = t,
                     v_start = v,
                     v_end = v_end,
                     nb_members = nb_members_succ[i]
                 )
+                e_succ_created.append(e_new.num)
+            if verbose:
+                print("New edges created going to t_s : ", e_ante_created)
+                print("New edges created coming from t_s : ", e_succ_created)
+
 
 
     def __compute_ratios(self):
-        # Concatenate all the components
+        """
+        CALLED ONLY IN ``construct_graph``
+        """
+        # Concatenate vertices and edges
         components = [
             self.__vertices[t] + self.__edges[t] for t in range(self.T-1)
         ] + [self.__vertices[-1]]
@@ -645,42 +743,47 @@ class PersistentGraph():
         verbose=False,
         descending_order = True,
     ):
-        # At s=0 the graph is initialized with one vertex per time step
+        # Before s=0 the graph is initialized with one vertex per time
+        # step. s=0 will be the graph state AFTER the first split!
         s=0
-
         sort_idx = self.__sort_dist_matrix()
-        # This doesn't work if equal members stay together until the end...
-        #if self.__nb_zeros > 0:
-            #self.__nb_steps -= self.__nb_zeros
-            #self.__M_v = self.__M_v[:self.__nb_steps]
 
         # If descending order
         # Then: reverse argsort of the pairwise distance matrix
+        # NOTE: the ascending order is not implemented yet....
         if descending_order:
             sort_idx = sort_idx[::-1]
-
 
         # Take the 2 farthest members and the corresponding time step
         for (t_s, i_s, j_s) in sort_idx:
 
             # Iterate algo only if i_s and j_s are in the same vertex
-            if ((self.__M_v[s, t_s, i_s] == self.__M_v[s, t_s, j_s])
-            and (self.__dist_matrix[t_s,i_s,j_s] > 0)):
+            if (self.__M_v[s][t_s, i_s] == self.__M_v[s][t_s, j_s]):
+
+                # End algo if the 2 farthest apart members are equal
+                if self.__dist_matrix[t_s, i_s, j_s] == 0:
+                    break
+
                 if verbose:
                     print(
                         "==== Step ", str(s), "====",
                         "(t, i, j) = ", (t_s, j_s, i_s),
-                        "distance i-j: ", self.__dist_matrix[t_s,i_s,j_s]
+                        "distance i-j: ", self.__dist_matrix[t_s, i_s, j_s]
                     )
                 self.__steps.append((t_s, i_s, j_s))
-                self.__distances.append(self.__dist_matrix[t_s,i_s,j_s])
+                self.__distances.append(self.__dist_matrix[t_s, i_s, j_s])
 
-                representatives = self.__update_representatives(s,t_s,i_s,j_s)
-                if verbose:
-                    print('new representatives: ', representatives)
+                # List of new representatives
+                representatives = self.__update_representatives(
+                    s=s,
+                    t=t_s,
+                    i=i_s,
+                    j=j_s,
+                    verbose=verbose,
+                )
 
+                # Update (i.e kill and create) vertices at t_s
                 prev_nb_vertices = self.__nb_vertices[t_s]
-
                 self.__update_vertices(
                     s=s,
                     t=t_s,
@@ -688,16 +791,10 @@ class PersistentGraph():
                     verbose=verbose,
                 )
 
-
+                # Update (kill and create) edges going to and from t_s
                 new_vertices = list(
                     range(prev_nb_vertices, self.__nb_vertices[t_s])
                 )
-                if verbose:
-                    print("New vertices created: ", new_vertices)
-
-                if (t_s<self.T-1):
-                    prev_nb_edges = self.__nb_edges[t_s]
-
                 self.__update_edges(
                     s=s,
                     t=t_s,
@@ -705,21 +802,15 @@ class PersistentGraph():
                     verbose=verbose,
                 )
 
-                if verbose and (t_s<self.T-1):
-                    print("New edges created: ",
-                          list(range(prev_nb_edges, self.__nb_edges[t_s])))
+                #Next distribution initialized with a COPY of the current one
+                self.__M_v.append(np.copy(self.__M_v[s]))
 
                 s += 1
 
-                #Current distribution (to be updated after each vertex added)
-                self.__M_v[s] = np.copy(self.__M_v[s-1])
-
-        # update the total number of steps
+        # Update the total number of steps
         if self.__nb_steps != s-1:
             self.__nb_steps = s-1
-
-
-        self.__M_v = self.__M_v[:self.__nb_steps]
+        self.__M_v = np.array(self.__M_v[:self.__nb_steps])
 
         # Compute the ratios for each member and each vertex
         self.__distances.append(0.)
@@ -748,7 +839,7 @@ class PersistentGraph():
 
     @property
     def d(self):
-        """Dimension of the variable studied
+        """Number of variables studied
         :rtype: int
         """
         return self.__d
@@ -774,7 +865,7 @@ class PersistentGraph():
         """ (t,i,j) of each iterations
 
 
-        :rtype: Tuple(int,int,int)
+        :rtype: Tuple[int,int,int]
         """
         return self.__steps
 
@@ -801,30 +892,50 @@ class PersistentGraph():
 
     @property
     def time_axis(self):
+        """
+        Time axis, mostly used for plotting
+
+        :rtype: [type]
+        """
         return self.__time_axis
 
+    @property
+    def min_value(self):
+        return self.__min_value
 
     @property
-    def edges(self):
+    def max_value(self):
+        return self.__max_value
+
+    @property
+    def min_time_step(self):
+        return self.__min_time_step
+
+    @property
+    def max_time_step(self):
+        return self.__max_time_step
+
+    @property
+    def edges(self) -> List[List[Edge]]:
         """
-        Nested list of edges of the graph (time, nb_edges[t])
+        Nested list of edges of the graph (T-1, nb_edges[t])
 
         .. note::
           This includes dead and alive vertices
 
-        :rtype: List
+        :rtype: List[List[Edge]]
         """
         return self.__edges
 
     @property
-    def vertices(self):
+    def vertices(self) -> List[List[Vertex]]:
         """
-        Nested list of vertices of the graph (t, nb_vertices[t])
+        Nested list of vertices of the graph (T, nb_vertices[t])
 
         .. note::
           This includes dead and alive vertices
 
-        :rtype: List
+        :rtype: List[List[Vertex]]
         """
         return self.__vertices
 
@@ -861,8 +972,8 @@ class PersistentGraph():
         Total number of edges created at each time step (T-1)
 
         ..note::
-          ``nb_edges[t]`` are the edges going from vertices at ``t-1`` to
-          vertices at ``t``
+          ``nb_edges[t]`` are the edges going from vertices at ``t`` to
+          vertices at ``t+1``
 
         :rtype: np.ndarray((T-1))
         """

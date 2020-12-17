@@ -6,16 +6,14 @@ import numpy as np
 from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
-sys.path.append("/home/natacha/Documents/Work/python/")  # to import galib
 sys.path.insert(1, os.path.join(sys.path[0], '..'))  #to use PG submodules
 sys.path.insert(1, os.path.join(sys.path[0], '../..'))  #to use DA submodules
 
-from DataAnalysis.statistics import extract_variables, standardize, get_list_std, get_list_average_values
-from galib.tools.lists import get_indices_element
-from galib.tools.plt import from_list_to_subplots
+from DataAnalysis.statistics import extract_variables
+from utils.lists import get_indices_element
 from persistentgraph import PersistentGraph
-from plots import plot_as_graph, plot_barcodes, plot_edges
-from analysis import sort_by_ratio_life, get_contemporaries
+from plots import plot_as_graph, plot_edges
+from analysis import sort_components_by, get_contemporaries
 
 
 
@@ -121,7 +119,7 @@ for weights in [True, False]:
             # Plot entire graph
             # ---------------------------
             fig, ax = plot_as_graph(
-                g, show_vertices=False, show_edges=True,
+                g, show_vertices=True, show_edges=True,
                 threshold_m=threshold_m, threshold_l=threshold_l,
             )
 
@@ -148,57 +146,58 @@ for weights in [True, False]:
             else:
                 name_fig = path_fig + filename[:-3] + ".png"
             makedirs(path_fig, exist_ok = True)
-            plt.savefig(name_fig)
+            
+            fig.savefig(name_fig)
             plt.close()
 
             # ---------------------------
             # Plot only older edges and contemporaries
             # ---------------------------
 
-            sorted_edges = sort_by_ratio_life(g.edges)
-            older_edges = [e_t[0] for e_t in sorted_edges]
-            contemporaries_older_edges = [
-                get_contemporaries(g, e) for e in older_edges
-            ]
-            plt.figure(figsize=(10,10))
-            ax = plt.gca()
-            for t in range(len(contemporaries_older_edges)):
-                ax = plot_edges(
-                    g, contemporaries_older_edges[t], t, ax=ax,
-                    threshold_m=threshold_m,
-                    threshold_l=threshold_l,
-                )
-            if weights:
-                fig_suptitle = (
-                    filename
-                    + "\nOlder edges and contemporaries. for variable t2m \n"
-                    + "Type of weights: " + op
-                )
-            else:
-                fig_suptitle = (
-                    filename
-                    + "\nOlder edges and contemporaries. for variable t2m \n"
-                    + "distance not weighted"
-                )
+            # sorted_edges = sort_by_ratio_life(g.edges)
+            # older_edges = [e_t[0] for e_t in sorted_edges]
+            # contemporaries_older_edges = [
+            #     get_contemporaries(g, e) for e in older_edges
+            # ]
+            # plt.figure(figsize=(10,10))
+            # ax = plt.gca()
+            # for t in range(len(contemporaries_older_edges)):
+            #     ax = plot_edges(
+            #         g, contemporaries_older_edges[t], t, ax=ax,
+            #         threshold_m=threshold_m,
+            #         threshold_l=threshold_l,
+            #     )
+            # if weights:
+            #     fig_suptitle = (
+            #         filename
+            #         + "\nOlder edges and contemporaries. for variable t2m \n"
+            #         + "Type of weights: " + op
+            #     )
+            # else:
+            #     fig_suptitle = (
+            #         filename
+            #         + "\nOlder edges and contemporaries. for variable t2m \n"
+            #         + "distance not weighted"
+            #     )
 
-            ax.set_title(fig_suptitle)
-            ax.set_xlabel("Time (h)")
-            ax.set_ylabel("Temperature (°C)")
-            ax.autoscale()
-            path_fig = path_fig_parent + "older_edges_and_comtemp/"
+            # ax.set_title(fig_suptitle)
+            # ax.set_xlabel("Time (h)")
+            # ax.set_ylabel("Temperature (°C)")
+            # ax.autoscale()
+            # path_fig = path_fig_parent + "older_edges_and_comtemp/"
 
-            if weights:
-                name_fig = (
-                    path_fig
-                    + op
-                    +"_"+ filename[:-3] + ".png"
-                )
-            else:
-                name_fig = (
-                    path_fig
-                    + filename[:-3] + ".png"
-                )
-            makedirs(path_fig, exist_ok = True)
+            # if weights:
+            #     name_fig = (
+            #         path_fig
+            #         + op
+            #         +"_"+ filename[:-3] + ".png"
+            #     )
+            # else:
+            #     name_fig = (
+            #         path_fig
+            #         + filename[:-3] + ".png"
+            #     )
+            # makedirs(path_fig, exist_ok = True)
 
-            plt.savefig(name_fig)
-            plt.close()
+            # plt.savefig(name_fig)
+            # plt.close()

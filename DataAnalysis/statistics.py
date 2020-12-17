@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # 20x20° area around and upstream of Bergen
 # (50-70°N, 10°W-10°E) every 12 hours
 # i.e 12 hours between each file
@@ -23,8 +21,9 @@ from netCDF4 import Dataset
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
 from scipy.stats import norm, kurtosis
-from galib.tools.plt import get_nrows_ncols_from_nplots, get_subplot_indices
-from galib.tools.npy import running_mean
+from utils.plt import get_nrows_ncols_from_nplots, get_subplot_indices
+from utils.npy import running_mean
+from utils.lists import get_indices_element
 
 
 def moving_average(
@@ -67,13 +66,45 @@ def moving_average(
         # return  # List(List(ndarray(n_time, n_members [, n_long, n_lat])))
     return(list_list_var_mov_avg)
 
-# =================================================
-# Raw statistics on the data:
-# - dimension
-# - distribution
-# =================================================
 
-
+def standardize(
+    list_var,  # List[ndarray(n_time, n_members, n_long, n_lat)]
+    each_loc: bool = False, # if true return List[ndarray(n_long, n_lat)] else return List[Scaler]
+):
+    list_scalers = []
+    list_stand_var = []
+    for var in list_var:
+        if len(var.shape) > 2:
+            (n_time, n_members, n_long, n_lat) = var.shape
+        else:
+            (n_time, n_members) = var.shape
+            each_loc = False
+        if each_loc:
+            scalers = np.empty((n_long, n_lat))
+            stand_var = np.zeros_like(var)
+            for i in range(n_long):
+                for j in range(n_lat):
+                    values_i_j = var[:,:,i,j].flatten()
+                    scaler_i_j = StandardScaler()
+                    scaler_i_j.fit(values_i_j)
+                    scalers[i,j] = scaler_i_j
+                    stand_var[:,:,i,j] = scaler_i_j.transform(var[:,:,i,j])
+            list_scalers.append(scalers)
+            list_stand_var.append(stand_var)
+        # else:
+        #     values = np.transpose(var.reshape((-1,1)))
+        #     scaler =  StandardScaler()
+        #     scaler.fit(values)
+        #     list_scalers.append(scaler)
+        #     stand_var = np.zeros_like(var)
+        #     if len(var.shape) > 2:
+        #         for i in range(n_long):
+        #             for j in range(n_lat):
+        #                 stand_var[:,:,i,j] = scaler.transform(var[:,:,i,j])
+        #     else:
+        #         stand_var = scaler.transform(var)
+        #     list_stand_var.append(stand_var)
+    return (list_scalers, list_stand_var)
 
 def extract_variables(
     nc,
@@ -134,6 +165,56 @@ def extract_variables(
             print("Variable: ", var_names[i], "Dimensions:", list_var[i].shape)
     return(list_var, var_names)
 # (list_var, var_names) = extract_variables(nc)
+
+
+def preprocess_data(
+    filename,
+    path_data='',
+    var_names=['t2m'],
+    ind_time=None,
+    ind_members=None,
+    ind_long=[0],
+    ind_lat=[0],
+    standardize = False,
+    ):
+
+    print(filename)
+    f = path_data + filename
+    nc = Dataset(f,'r')
+
+    (list_var, list_names) = extract_variables(
+        nc=nc,
+        var_names=var_names,
+        ind_time=ind_time,
+        ind_members=ind_members,
+        ind_long=ind_long,
+        ind_lat=ind_lat,
+    )
+
+    # Take the log for the tcwv variable
+    idx = get_indices_element(
+        my_list=list_names,
+        my_element="tcwv",
+    )
+    if idx != -1:
+        for i in idx:
+            list_var[i] = np.log(list_var[i])
+
+    if standardize:
+        (list_scalers, list_var) = standardize(
+            list_var = list_var,
+            each_loc = False,
+        )
+
+    list_var = [np.transpose(var).squeeze() for var in list_var]
+
+    # Set the initial conditions at time +0h
+    time = np.array(nc.variables["time"])
+    time -= time[0]
+    if standardize:
+        return list_var, list_names, time, list_scalers
+    return list_var, list_names, time
+
 
 # Extract each variable to study its dimension, distribution; etc
 def extract_var_distrib(
@@ -208,8 +289,6 @@ def plot_violinplots(
     if list_names is None:
         list_names = np.array(["var_"+str(i) for i in range(d)])
 
-    # Ploting violin plots, Source: Matplotlib examples
-    # https://matplotlib.org/gallery/statistics/boxplot_vs_violin.html#sphx-glr-gallery-statistics-boxplot-vs-violin-py
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=(36, 20))
     for i in range(d):
         idx = get_subplot_indices(i, ncols)
@@ -221,11 +300,7 @@ def plot_violinplots(
 # plot_violinplots(var_distrib, list_names=var_names, nrows=2, ncols=3)
 
 
-# Sur ot
-
-
 # For the entire grid, plot the value of one variable at a given instant
-
 def pair_plots(
     var_distrib,
     same_fig:bool = True,
@@ -272,7 +347,6 @@ def pair_plots(
 # nrows=2
 # ncols=3
 
-
 # pair_plots()
 
 
@@ -310,7 +384,6 @@ def plot_members_one_location(
             time = np.arange(n_time)
         if same_fig:
             if ncols == 1 or nrows == 1 :
-                # len(axs.shape)=1 if ncols=1
                 idx = i
             else:
                 idx = (int(i/ncols), i % ncols)
@@ -441,100 +514,7 @@ def plot_spread_one_location(
     return fig, axs
 
 
-# =========================================================
-# Standardize the data (after using log)
-# =========================================================
 
-
-def standardize(
-    list_var,  # List[ndarray(n_time, n_members, n_long, n_lat)]
-    each_loc: bool = False, # if true return List[ndarray(n_long, n_lat)] else return List[Scaler]
-):
-    list_scalers = []
-    list_stand_var = []
-    for var in list_var:
-        if len(var.shape) > 2:
-            (n_time, n_members, n_long, n_lat) = var.shape
-        else:
-            (n_time, n_members) = var.shape
-            each_loc = False
-        if each_loc:
-            scalers = np.empty((n_long, n_lat))
-            stand_var = np.zeros_like(var)
-            for i in range(n_long):
-                for j in range(n_lat):
-                    values_i_j = var[:,:,i,j].flatten()
-                    scaler_i_j = StandardScaler()
-                    scaler_i_j.fit(values_i_j)
-                    scalers[i,j] = scaler_i_j
-                    stand_var[:,:,i,j] = scaler_i_j.transform(var[:,:,i,j])
-            list_scalers.append(scalers)
-            list_stand_var.append(stand_var)
-        else:
-            values = np.transpose(var.reshape((1,-1)))
-            scaler =  StandardScaler()
-            scaler.fit(values)
-            list_scalers.append(scaler)
-            stand_var = np.zeros_like(var)
-            if len(var.shape) > 2:
-                for i in range(n_long):
-                    for j in range(n_lat):
-                        stand_var[:,:,i,j] = scaler.transform(var[:,:,i,j])
-            else:
-                stand_var = scaler.transform(var)
-            list_stand_var.append(stand_var)
-    return (list_scalers, list_stand_var)
-
-# =========================================================
-# Plot spread one location
-# (again but with log and standardisation)
-# =========================================================
-
-# (list_var,list_names) = extract_variables(
-#     nc,
-#     var_names=None,
-#     ind_time=None,
-#     ind_members=None,
-#     ind_long=np.array([0]),
-#     ind_lat=np.array([0]),
-#     descr=True
-# )
-
-# list_var[5] = np.log(list_var[5])
-# list_var
-
-# for var in list_var:
-#     print(var.shape)
-#     print(np.squeeze(var).shape)
-
-# (list_scalers, list_stand_var) = standardize(
-#     list_var = list_var,
-#     each_loc = False,
-# )
-
-# list_stand_var = [np.transpose(var) for var in list_stand_var]
-# time = np.array(nc.variables["time"])
-# time -= time[0]
-
-# for var in list_stand_var:
-#     print(var.shape)
-
-# plot_members_one_location(
-#     list_var=np.squeeze(list_stand_var),
-#     list_names=list_names,
-#     time=time,
-#     same_fig=True
-# )
-
-# list_spread = get_list_spread(
-#     list_var=np.squeeze(list_stand_var),
-# )
-
-# plot_spread_one_location(
-#     list_spread=list_spread,
-#     list_names=list_names,
-#     time=time,
-# )
 
 # =========================================================
 # Plot the average spread across location

@@ -1,17 +1,17 @@
-from component import Component
+from PersistentGraph.component import Component
 class Edge(Component):
 
     def __init__(
         self,
         v_start:int,
         v_end:int,
-        s_born: int = 0,
+        s_birth: int = 0,
         t:int = None,
         num:int = None,
         nb_members:int = None,
     ):
         super().__init__(
-            s_born=s_born,
+            s_birth=s_birth,
             t=t,
             num=num,
             nb_members=nb_members,

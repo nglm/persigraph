@@ -1,9 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from matplotlib.collections import LineCollection
+from matplotlib.collections import LineCollection, PathCollection
+from matplotlib.path import Path
+from matplotlib.animation import FuncAnimation, PillowWriter
+import time
+
 from math import exp
-from analysis import sort_by_ratio_life
+from PersistentGraph.analysis import sort_components_by
 
 # ------------
 # Source:
@@ -33,71 +37,6 @@ def colorFader(
         c2=np.array(mpl.colors.to_rgb(c2))
     return mpl.colors.to_hex(mix*c1 + (1-mix)*c2)
 
-# def get_edge_lw(
-#     g,
-#     e,
-#     lw_max = 5,
-#     lw_min = 1
-# ):
-#     return (e.nb_members/g.N)*(lw_max-lw_min) + lw_min
-
-
-# def get_alpha(g, obj):
-#     s_born = obj.s_born
-#     s_death = obj.s_death
-#     ratio = max(
-#         ((g.distances[s_born] - g.distances[s_death])
-#         / g.distances[0]),
-#         0.01
-#     )
-
-#     return ratio
-
-def plot_vertices(
-    g,
-    vertices,
-    t: int,
-    c1 = np.array([254,0,0,0]),
-    c2 = np.array([254,254,0,0]),
-    threshold_m: int = 1,
-    threshold_l: float = 0.00,
-    ax=None,
-):
-    if ax is None:
-        ax = plt.gca()
-    if not isinstance(vertices, list):
-        vertices = [vertices]
-    # sort by ratio life so that the older components are easier to see
-    vertices = sort_by_ratio_life(vertices, descending=False)[0]
-    values = [
-        v.value
-        for v in vertices
-        if v.nb_members >= threshold_m and v.ratio_life >= threshold_l
-    ]
-    # Iterable alpha and colors. Source:
-    # https://stackoverflow.com/questions/24767355/individual-alpha-values-in-scatter-plot
-    alphas = [
-        v.ratio_life
-        for v in vertices
-        if v.nb_members >= threshold_m and v.ratio_life >= threshold_l
-    ]
-    colors = np.asarray([
-        (v.ratio_members*c1 + (1-v.ratio_members)*c2)
-        for v in vertices
-        if v.nb_members >= threshold_m and v.ratio_life >= threshold_l
-    ])
-    # To understand the '/255' see source:
-    # https://stackoverflow.com/questions/57113398/matplotlib-scatter-fails-with-error-c-argument-has-n-elements-which-is-not-a
-    colors /=255.
-    colors[:,3] = alphas
-    lw = 1
-    n = len(values)
-    if n == 1:
-        ax.scatter(g.time_axis[t], values, c=colors, lw=lw)
-    else:
-        ax.scatter([g.time_axis[t]]*n, values, c=colors, lw=[lw]*n)
-    return ax
-
 def sigmoid(
     x,
     range0_1 = True,
@@ -110,9 +49,60 @@ def sigmoid(
     res = 1/(1+exp(-(a*x-shift))) + (2*x-1)/(1+exp(shift))
     # Use min and max because of precision error
     res = min(max(0, res), 1)
+    # Here we will get f(0) = f0 and f(1) = f1
     if not range0_1:
         res = f1*res + f0*(1-x)
     return res
+
+def plot_vertices(
+    g,
+    vertices,
+    t: int,
+    c1 = np.array([254,0,0,0]),
+    c2 = np.array([254,254,0,0]),
+    threshold_m: int = 1,
+    threshold_l: float = 0.00,
+    lw_min=0.5,
+    lw_max=20,
+    f=sigmoid,
+    ax=None,
+):
+    if ax is None:
+        ax = plt.gca()
+    if not isinstance(vertices, list):
+        vertices = [vertices]
+    # sort by ratio life so that the older components are easier to see
+    vertices = sort_components_by(
+        vertices, criteron='ratio_life', descending=False
+    )[0]
+    # Keep only the vertices respecting the thresholds
+    vertices = [
+        v for v in vertices
+        if v.nb_members >= threshold_m and v.ratio_life >= threshold_l
+    ]
+    values = [v.value for v in vertices]
+    alphas = [f(v.ratio_life) for v in vertices]
+
+    colors = np.asarray(
+        [(f(v.ratio_life)*c1 + (1-f(v.ratio_life))*c2) for v in vertices]
+    ).reshape((-1, 4)) / 255
+
+    colors[:,3] = alphas
+
+    lw = np.asarray([
+        f(v.ratio_members, range0_1=False, f0=lw_min, f1=lw_max)
+        for v in vertices
+    ])
+    n = len(values)
+    if n == 1:
+        col = ax.scatter(g.time_axis[t], values, c=colors, s=lw**2)
+    else:
+        col = ax.scatter([g.time_axis[t]]*n, values, c=colors, s=lw**2)
+
+    #ax.add_artist(col)
+    return ax
+
+
 
 def plot_edges(
     g,
@@ -122,8 +112,8 @@ def plot_edges(
     c2 = np.array([254,254,0,1]),
     threshold_m: int = 1,
     threshold_l: float = 0.00,
-    lw_min=1,
-    lw_max=7,
+    lw_min=0.3,
+    lw_max=20,
     f=sigmoid,
     ax=None,
 ):
@@ -132,46 +122,35 @@ def plot_edges(
     if not isinstance(edges, list):
         edges = [edges]
     # sort by ratio life so that the older components are easier to see
-    edges = sort_by_ratio_life(edges, descending=False)[0]
-    f0 = sigmoid(0)
-    alphas = [
-        f(e.ratio_life)
-        for e in edges
+    edges = sort_components_by(
+        edges, criteron='ratio_life', descending=False
+    )[0]
+    # Keep only edges respecting the thresholds
+    edges = [
+        e for e in edges
         if e.nb_members >= threshold_m and e.ratio_life >= threshold_l
     ]
-    # colors = np.asarray([
-    #     (e.ratio_members*c1 + (1-e.ratio_members)*c2)
-    #     for e in edges
-    #     if e.nb_members >= threshold_m and e.ratio_life >= threshold_l
-    # ]).reshape((-1, 4))
+    alphas = [f(e.ratio_life) for e in edges]
 
-    colors = np.asarray([
-        (f(e.ratio_members)*c1 + (1-f(e.ratio_members))*c2)
-        for e in edges
-        if e.nb_members >= threshold_m and e.ratio_life >= threshold_l
-    ]).reshape((-1, 4))
-    colors = colors / 255
+    colors = np.asarray(
+        [(f(e.ratio_life)*c1 + (1-f(e.ratio_life))*c2)
+        for e in edges]
+    ).reshape((-1, 4)) / 255
     colors[:,3] = alphas
-    # lw = np.asarray([
-    #     (e.ratio_members*(lw_max-lw_min) + lw_min)
-    #     for e in edges
-    #     if e.nb_members >= threshold_m and e.ratio_life >= threshold_l
-    # ])
+
     lw = np.asarray([
         f(e.ratio_members, range0_1=False, f0=lw_min, f1=lw_max)
         for e in edges
-        if e.nb_members >= threshold_m and e.ratio_life >= threshold_l
     ])
     lines = [
         (
         (g.time_axis[t],   g.vertices[t][e.v_start].value),
         (g.time_axis[t+1], g.vertices[t+1][e.v_end].value)
         ) for e in edges
-        if e.nb_members >= threshold_m and e.ratio_life >= threshold_l
     ]
 
     lines = LineCollection(lines,colors=colors, linewidths=lw)
-    ax.add_collection(lines)
+    ax.add_artist(lines)
     return ax
 
 def plot_as_graph(
@@ -181,10 +160,20 @@ def plot_as_graph(
     show_edges: bool = True,
     threshold_m:int = 1,
     threshold_l:float = 0.00,
-    fig_kw: dict = {"figsize" : (24,12)}
+    ax = None,
+    fig = None,
+    fig_kw: dict = {"figsize" : (24,12)},
+    ax_kw: dict = {'xlabel' : "Time (h)",
+                   'ylabel' : "Temperature (°C)"}
 ):
-    fig, ax = plt.subplots(**fig_kw)
-    ax.set_facecolor("white")
+    if ax is None:
+        fig, ax = plt.subplots(**fig_kw)
+        ax.autoscale()
+        ax.set_xlabel(ax_kw['xlabel'])
+        ax.set_ylabel(ax_kw['ylabel'])
+        ax.set_facecolor("whitesmoke")
+        #ax.set_title(title)
+    ax.set_facecolor("whitesmoke")
     if s is None:
         title = "All steps"
         for t in range(g.T):
@@ -204,7 +193,7 @@ def plot_as_graph(
         title = "step s = " + str(s)
         for t in range(g.T):
             if show_vertices:
-                vertices_key = g.get_alive_vertices(s, t)
+                vertices_key = g.get_alive_vertices(s = s, t = t)
                 vertices = [g.vertices[t][key] for key in vertices_key]
                 ax = plot_vertices(
                     g, vertices, t,
@@ -212,18 +201,99 @@ def plot_as_graph(
                     ax=ax,
                 )
             if (t < g.T-1) and show_edges:
-                edges_key = g.get_alive_edges(s, t)
+                edges_key = g.get_alive_edges(s = s, t = t)
                 edges = [g.edges[t][key] for key in edges_key]
                 ax = plot_edges(
-                    g, edges,t,
+                    g, edges, t,
                     threshold_m=threshold_m, threshold_l=threshold_l,
                     ax=ax,
                 )
-    ax.autoscale()
-    ax.set_xlabel("Time (h)")
-    ax.set_ylabel("Temperature (°C)")
-    ax.set_title(title)
+        ax.set_title(title)
+
     return fig, ax
+
+
+def __init_make_gif():
+
+    return None
+
+def __update_make_gif(
+    s,
+    g,
+    show_vertices: bool = True,
+    show_edges: bool = True,
+    threshold_m:int = 1,
+    threshold_l:float = 0.00,
+    cumulative=True,
+    ax = None,
+    verbose = False,
+):
+    if not cumulative:
+        ax.collections = []
+        ax.artists = []
+        # ax.set_xlim(g.min_time_step, g.max_time_step)
+        # ax.set_ylim(g.min_value-1, g.max_value+1)
+    if verbose:
+        print(s)
+    fig, ax = plot_as_graph(
+        g,
+        s = s,
+        show_vertices = show_vertices,
+        show_edges = show_edges,
+        threshold_m = threshold_m,
+        threshold_l = threshold_l,
+        ax = ax,
+    )
+
+def make_gif(
+    g,
+    show_vertices: bool = True,
+    show_edges: bool = True,
+    threshold_m:int = 1,
+    threshold_l:float = 0.01,
+    cumulative=True,
+    ax = None,
+    fig = None,
+    fig_kw: dict = {"figsize" : (5,5)},
+    ax_kw: dict = {'xlabel' : "Time (h)",
+                   'ylabel' : "Temperature (°C)"},
+    verbose=False,
+    max_iter=None,
+):
+
+    fig, ax = plt.subplots(**fig_kw)
+    ax.set_xlim(g.min_time_step, g.max_time_step)
+    ax.set_ylim(g.min_value-1, g.max_value+1)
+
+    if max_iter is None:
+        max_iter = g.nb_steps
+
+    fargs = (
+        g,
+        show_vertices,
+        show_edges,
+        threshold_m,
+        threshold_l,
+        cumulative,
+        ax,
+        verbose
+    )
+
+    ani = FuncAnimation(
+        fig,
+        func = __update_make_gif,
+        fargs = fargs,
+        frames = max_iter,
+        init_func = None,
+    )
+    t_end = time.time()
+    return ani
+
+
+
+    # Update drawing the next step
+    # If cumulative, simply 'add' the current step to the previous ones
+    # If not, the current frame is composed of the current step only
 
 def plot_barcodes(
     barcodes,

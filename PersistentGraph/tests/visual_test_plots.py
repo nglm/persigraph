@@ -1,12 +1,10 @@
 import numpy as np
-
-
-# ------
-# Source
-# https://stackoverflow.com/questions/714063/importing-modules-from-parent-folder
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation, PillowWriter
 import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))  # to access persistentgraph
-# ------
+sys.path.insert(1, os.path.join(sys.path[0], '../..'))  # to access TopEns
+sys.path.insert(1, os.path.join(sys.path[0], '..'))  # to access TopEns
+
 
 from persistentgraph import PersistentGraph
 from plots import *
@@ -28,11 +26,21 @@ print(g.nb_zeros)
 # for t in range(g.T-1):
 #     print("===============", t)
 #     for e in g.edges[t]:
-#         print("born: ", e.s_born, "death: ", e.s_death)
+#         print("birth: ", e.s_birth, "death: ", e.s_death)
+#     plt.show()
 
-for s in range(g.nb_steps):
-    fig, ax = plot_as_graph(g,s, show_vertices=False)
+# for s in range(g.nb_steps):
+#     fig, ax = plot_as_graph(g,s, show_vertices=True)
+# plt.show()
 
-fig, ax = plot_as_graph(g, show_vertices=False)
-plt.show()
+# # fig, ax = plot_as_graph(g, show_vertices=True)
+# plt.show()
+# print(ax.collections)
 
+# ax.collections = []
+# print(ax.collections)
+# print(ax.artists)
+
+ani = make_gif(g, show_vertices=True, cumulative=False)
+writer = PillowWriter(fps=2)
+ani.save('test_gif.gif', writer=writer)

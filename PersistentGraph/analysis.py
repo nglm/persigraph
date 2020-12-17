@@ -1,11 +1,33 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from galib.tools.lists import flatten
+from utils.lists import flatten
 from gudhi import bottleneck_distance
-from vertex import Vertex
-from edge import Edge
+from PersistentGraph.vertex import Vertex
+from PersistentGraph.edge import Edge
+from PersistentGraph.component import Component
+from typing import List, Dict, Tuple
 
-def basic_stats(components):
+def stats(components: List[List[Component]]) -> Dict[str, float]:
+    """
+    Compute basic statitistics on ``components``
+
+    Statistics available:
+
+      - 'mean_ratio_life'
+      - 'std_ratio_life'
+      - 'min_ratio_life'
+      - 'max_ratio_life'
+      - 'mean_ratio_members'
+      - 'std_ratio_members'
+      - 'min_ratio_members'
+      - 'max_ratio_members'
+
+    :param components: List of graph components (vertices or edges)
+    :type components: List[List[Component]]
+    :return: A dictionary containing basic statitistics
+    :rtype: Dict[str, float]
+    """
+    # Flatten the list, the time step information is not necessary here
     flat_cmpts = flatten(components)
     ratio_life = np.array([c.ratio_life for c in flat_cmpts])
     ratio_members = np.array([c.ratio_members for c in flat_cmpts])
@@ -21,17 +43,33 @@ def basic_stats(components):
     return stats
 
 def compute_barcodes(
-    components,
-    distances,
-    as_matrix=False,
-):
+    components: List[List[Component]],
+) -> List[List[Tuple[float]]]:
+    """
+    Compute a list of (sort of) barcodes for each time step
+
+    What we call a barcode here is simply a list of tuple
+    ``(r_birth, r_born, ratio_members)``.
+
+    - ``r_birth`` defines where the bar starts
+    - ``r_death`` defines where the bar dies
+    - ``ratio_members`` is additional information
+
+    They are not really barcodes as defined in the persistent homology
+    method because we do not build simplices.
+
+    :param components: List of graph components (vertices or edges)
+    :type components: List[List[Component]]
+    :return: A list of (sort of) barcodes for each time step
+    :rtype: List[List[Tuple[float]]]
+    """
     if not isinstance(components[0], list):
         components = [components]
     barcodes = []
     for t in range(len(components)):
         bc_t = []
         for c in components[t]:
-            bc_t.append((c.r_born, c.r_death, c.ratio_members))
+            bc_t.append((c.r_birth, c.r_death, c.ratio_members))
         barcodes.append(bc_t)
     return barcodes
 
@@ -46,13 +84,19 @@ def compute_bottleneck_distances(barcodes):
         bn_dist = bn_dist[0]
     return bn_dist
 
-def sort_by_ratio_life(components, descending=True):
+def sort_components_by(components, criteron="ratio_life", descending=True):
     # components must be a nested list
     if not isinstance(components[0], list):
         components = [components]
     sorted_components = []
     def get_ratio_life(component):
         return component.ratio_life
+    def get_ratio_members(component):
+        return component.ratio_members
+    if criteron=="ratio_members":
+        key_func = get_ratio_members
+    else:
+        key_func = get_ratio_life
     for cmpts_t in components:
         sort_t = cmpts_t.copy()
         sort_t.sort(reverse=descending, key=get_ratio_life)
@@ -62,7 +106,7 @@ def sort_by_ratio_life(components, descending=True):
 def get_contemporaries(g, cmpt):
     t = cmpt.time_step
     contemporaries = []
-    for s in range(cmpt.s_born, cmpt.s_death):
+    for s in range(cmpt.s_birth, cmpt.s_death):
         c_alive_s = []
         if isinstance(cmpt, Vertex):
             c_alive_s = g.get_alive_vertices(s=s, t=t)
