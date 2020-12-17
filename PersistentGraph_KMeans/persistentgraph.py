@@ -263,9 +263,8 @@ class PersistentGraph():
                 list_info.append({
                     'type' : 'KMeans',
                     'params' : [
-                        #float(model.cluster_centers_[label_i]),
-                        float(np.mean(X[members])),
-                        float(model.cluster_centers_[label_i])
+                        float(model.cluster_centers_[label_i]),
+                        float(np.std(X[members])),
                         ],
                     'brotherhood_size' : n_components
                 })
@@ -1285,6 +1284,9 @@ class PersistentGraph():
                 print("nb new edges going TO t: ", nb_new_edges_to)
 
     def prune(self):
+        """
+        FIXME: Outdated
+        """
         tot_count = 0
         for t in range(self.T):
             count = 0

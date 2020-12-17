@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection, PathCollection, PolyCollectionEllipseCollection
+from matplotlib.collections import LineCollection, PathCollection, PolyCollection, EllipseCollection
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.path import Path
 import random

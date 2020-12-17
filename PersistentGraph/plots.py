@@ -9,33 +9,7 @@ import time
 from math import exp
 from PersistentGraph.analysis import sort_components_by
 
-# ------------
-# Source:
-# https://stackoverflow.com/questions/25668828/how-to-create-colour-gradient-in-python
-# ------------
 
-def colorFader(
-    c1="#98FB98", # PaleGreen
-    c2="#FF4500", # OrangeRed
-    mix=0,
-    ctype="hex",
-):
-    """
-    Interpolates between 2 colors
-
-    0 <= mix <= 1
-    mix=0: Darkred
-    mix=1: Yellow
-
-    :param c1: [description], defaults to "#8b0000"
-    :type c1: str, optional
-    :return: [description]
-    :rtype: [type]
-    """
-    if ctype == "hex":
-        c1=np.array(mpl.colors.to_rgb(c1))
-        c2=np.array(mpl.colors.to_rgb(c2))
-    return mpl.colors.to_hex(mix*c1 + (1-mix)*c2)
 
 def sigmoid(
     x,
