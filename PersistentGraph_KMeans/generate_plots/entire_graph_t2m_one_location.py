@@ -24,6 +24,9 @@ else:
 # Parameters
 # ---------------------------------------------------------
 
+score_type = 'min_variance'
+zero_type = 'uniform'
+
 # Absolute path to the files
 # type: str
 PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
@@ -33,7 +36,7 @@ PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
 PATH_FIG_PARENT = (
     "/home/natacha/Documents/tmp/figs/PG/"
     + TYPE_PG
-    + "/t2m/entire_graph/"
+    + "/t2m/entire_graph/" + score_type + "/"
 )
 
 # Choose which files should be used
@@ -43,8 +46,7 @@ LIST_FILENAMES = [
     if fname.startswith("ec.ens.") and  fname.endswith(".nc")
 ]
 
-score_type = 'min_variance'
-zero_type = 'uniform'
+
 
 
 # ---------------------------------------------------------
@@ -62,7 +64,7 @@ def main():
             ind_members=None,
             ind_long=[0],
             ind_lat=[0],
-            standardize = False,
+            to_standardize = False,
             )
 
         t2m = list_var[0]
