@@ -3,7 +3,6 @@ import sys
 import os
 from os import listdir, makedirs
 import numpy as np
-from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
@@ -11,13 +10,6 @@ sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 
 from statistics import preprocess_data
 from utils.plt import from_list_to_subplots
-
-
-
-# =========================================================
-# Plot members one location
-# with log and standardisation)
-# =========================================================
 
 # ---------------------------------------------------------
 # Parameters:

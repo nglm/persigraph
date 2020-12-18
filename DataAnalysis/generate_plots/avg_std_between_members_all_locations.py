@@ -1,24 +1,20 @@
 #!/usr/bin/env python3
+
+#FIXME: 2020/12 Make sure it is still working after the clean-up
+
 import sys
 import os
 from os import listdir, makedirs
 import numpy as np
-from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
-sys.path.append("/home/natacha/Documents/Work/python/")  # to import galib
-sys.path.insert(1, os.path.join(sys.path[0], '..'))  #to use DataAnalysis submodules
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 
-from statistics import extract_variables, standardize, get_list_std, get_list_average_values
-from galib.tools.lists import get_indices_element
-from galib.tools.plt import from_list_to_subplots
+from statistics import preprocess_data, get_list_std, get_list_average_values
+from utils.lists import get_indices_element
+from utils.plt import from_list_to_subplots
 
-
-
-# =========================================================
-# Plot members one location
-# with log and standardisation)
-# =========================================================
 
 # ---------------------------------------------------------
 # Parameters:
@@ -26,11 +22,11 @@ from galib.tools.plt import from_list_to_subplots
 
 # Absolute path to the files
 # type: str
-path_data = "/home/natacha/Documents/Work/Data/Bergen/"
+PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
 
 # Choose the path where the figs will be saved
 # type: str
-path_fig = "/home/natacha/Documents/tmp/figs/avg_std_between_members_all_locations/"
+PATH_FIG = "/home/natacha/Documents/tmp/figs/avg_std_between_members_all_locations/"
 
 # Choose which variables should be ploted
 # type: List(str)
@@ -55,54 +51,29 @@ ind_long=None
 # type: ndarray(int)
 ind_lat=None
 
-# Choose which files should be used
-list_filenames = listdir(path_data)
-list_filenames = [fname for fname in list_filenames if fname.startswith("ec.ens.") and  fname.endswith(".nc")]
-
-# Allow print
-descr = False
-
 # ---------------------------------------------------------
 # script:
 # ---------------------------------------------------------
-makedirs(path_fig, exist_ok = True)
-for filename in list_filenames:
+to_standardize = True
 
-    print(filename)
-    f = path_data + filename
-    nc = Dataset(f,'r')
+# Choose which files should be used
+LIST_FILENAMES = listdir(PATH_DATA)
+LIST_FILENAMES = [
+    fname for fname in LIST_FILENAMES
+    if fname.startswith("ec.ens.") and  fname.endswith(".nc")
+]
+for filename in LIST_FILENAMES:
 
-    # Extract the data, by default:
-    # - All variables
-    # - Entire time series
-    # - All members
-    # - One location
-    (list_var,list_names) = extract_variables(
-        nc=nc,
-        var_names=var_names,
-        ind_time=ind_time,
-        ind_members=ind_members,
-        ind_long=ind_long,
-        ind_lat=ind_lat,
-        descr=descr
-    )
-
-    # Take the log for the tcwv variable
-    idx = get_indices_element(
-        my_list=list_names,
-        my_element="tcwv",
-    )
-    if idx != -1:
-        for i in idx:
-            list_var[i] = np.log(list_var[i])
-
-    (list_scalers, list_var) = standardize(
-        list_var = list_var,
-        each_loc = False,
-    )
-
-    list_var = [np.swapaxes(var, 0,1) for var in list_var]
-    list_var = [np.squeeze(var) for var in list_var]
+    list_var, list_names, time = preprocess_data(
+        filename = filename,
+        path_data = PATH_DATA,
+        var_names = var_names,
+        ind_time = ind_time,
+        ind_members = ind_members,
+        ind_long = ind_long,
+        ind_lat = ind_lat,
+        to_standardize = to_standardize,
+        )
 
     list_std = get_list_std(
         list_var=list_var,
@@ -112,35 +83,32 @@ for filename in list_filenames:
         list_values=list_std,
     )
 
-    # Set the initial conditions at time +0h
-    time = np.array(nc.variables["time"])
-    time -= time[0]
-
     fig_suptitle = (
         "Bergen Forecast: "
         + filename[:-3]
         + "\n Standard deviation between all members - averaged over all locations"
     )
     list_ax_titles = ["Variable: " + name for name in list_names]
-    # if we used log on tcwv:
-    for i in idx:
-        list_ax_titles[i] = "Variable: log(tcwv)"
+
     xlabel = "Time (h)"
     ylabel = "Standard deviation (on standardized values (1))"
     list_list_legend = [list_names]
+
+    dict_kwargs = {
+            "fig_suptitle" : fig_suptitle,
+            "list_ax_titles" : list_ax_titles,
+            "list_xlabels" : xlabel,
+            "list_ylabels" : ylabel,
+        }
 
     fig, axs = from_list_to_subplots(
         list_yvalues=np.array(list_std),  # List[ndarray([n_lines, ] n_values )]
         list_xvalues=time, #ndarray(n_values)
         plt_type = "plot",
-        fig_suptitle = fig_suptitle,
-        list_ax_titles = list_ax_titles,
-        list_xlabels = xlabel,
-        list_ylabels = ylabel,
-        list_list_legends=list_list_legend,
+        dict_kwargs = dict_kwargs,
         show=False,
         )
 
-    name_fig = path_fig + filename[:-3] + ".png"
+    name_fig = PATH_FIG + filename[:-3] + ".png"
     plt.savefig(name_fig)
     plt.close()

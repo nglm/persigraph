@@ -5,13 +5,13 @@
 
 
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 import sys
-sys.path.append("/home/natacha/Documents/Work/python")  # to import galib
-from galib.toyExamples.generate_data import generate_members,generate_params, get_param_values, generate_centers, linear, triangle, cosine
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+sys.path.insert(1, os.path.join(sys.path[0], '../..'))
+from ToyExample.generate_data import generate_members,generate_params, get_param_values, generate_centers, linear, triangle, cosine
 from os import makedirs
-
-
 
 
 # In[ ]:

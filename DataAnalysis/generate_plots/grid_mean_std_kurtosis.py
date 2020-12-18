@@ -1,3 +1,5 @@
+#FIXME: 2020/12 Make sure it is still working after the clean-up
+
 import sys
 import os
 from os import listdir, makedirs
@@ -6,25 +8,15 @@ from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 from scipy.stats import kurtosis
 
-sys.path.append("/home/natacha/Documents/Work/python/")  # to import galib
-sys.path.insert(1, os.path.join(sys.path[0], '..'))  #to use DataAnalysis submodules
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 
-from statistics import extract_variables, standardize
-from galib.tools.lists import get_indices_element
-from galib.tools.plt import pretty_subplots
+from statistics import preprocess_data
+from utils.lists import get_indices_element
+from utils.plt import pretty_subplots
 
 import cartopy.crs as ccrs
 import cartopy
-# from matplotlib.colors import BoundaryNorm
-# from matplotlib.ticker import MaxNLocator
-# from matplotlib.widgets import Slider
-
-
-
-# =========================================================
-# Plot members one location
-# with log and standardisation)
-# =========================================================
 
 # ---------------------------------------------------------
 # Parameters:
@@ -79,9 +71,6 @@ list_filenames = [
     "ec.ens.2020021012.sfc.meteogram.nc",
 ]
 
-# Allow print
-descr = False
-
 # ---------------------------------------------------------
 # script:
 # ---------------------------------------------------------
@@ -94,24 +83,19 @@ for use_log_tcwv in [False]:
                 path_fig = path_fig_parent + type_plot + "/"
                 makedirs(path_fig, exist_ok = True)
 
-                print(filename)
                 f = path_data + filename
                 nc = Dataset(f,'r')
 
-                # Extract the data, by default:
-                # - All variables
-                # - Entire time series
-                # - All members
-                # - One location
-                (list_var,list_names) = extract_variables(
-                    nc=nc,
-                    var_names=var_names,
-                    ind_time=ind_time,
-                    ind_members=ind_members,
-                    ind_long=ind_long,
-                    ind_lat=ind_lat,
-                    descr=descr
-                )
+                list_var, list_names, time = preprocess_data(
+                    filename = filename,
+                    path_data = path_data,
+                    var_names = var_names,
+                    ind_time = ind_time,
+                    ind_members = ind_members,
+                    ind_long = ind_long,
+                    ind_lat = ind_lat,
+                    to_standardize = use_standardise,
+                    )
 
                 lon = np.flip(np.array(nc.variables["longitude"]))
                 lat = np.flip(np.array(nc.variables["latitude"]))
@@ -134,22 +118,6 @@ for use_log_tcwv in [False]:
                     #for j, lat_j in enumerate(lat):
                         trans_lon[i,j], trans_lat[i,j] = nsp_trans.transform_point(lon_i, lat_j, geodetic)
 
-                if use_log_tcwv:
-                    # Take the log for the tcwv variable
-                    idx = get_indices_element(
-                        my_list=list_names,
-                        my_element="tcwv",
-                    )
-                    if idx != -1:
-                        for i in idx:
-                            list_var[i] = np.log(list_var[i])
-
-                if use_standardise:
-                    (list_scalers, list_var) = standardize(
-                        list_var = list_var,
-                        each_loc = False,
-                    )
-
                 list_ax_titles = [type_plot + ", variable: " + name for name in list_names]
 
                 if use_standardise:
@@ -162,13 +130,6 @@ for use_log_tcwv in [False]:
                         + nc.variables[name].__dict__["units"]
                         +")" for name in list_names
                     ]
-
-                # if we used log on tcwv:
-                if use_log_tcwv:
-                    for i in idx:
-                        list_ax_titles[i] = "Variable: log(tcwv)"
-                        if not use_standardise:
-                            list_xlabels[i] = "Values (log("+nc.variables["tcwv"].__dict__["units"] +"))"
 
                 if type_plot == "mean":
                     var = np.mean(list_var[0], axis = 1)

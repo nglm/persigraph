@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+#FIXME: 2020/12 Make sure it is still working after the clean-up
 import sys
 import os
 from os import listdir, makedirs
@@ -6,19 +8,14 @@ import numpy as np
 from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
-sys.path.append("/home/natacha/Documents/Work/python/")  # to import galib
-sys.path.insert(1, os.path.join(sys.path[0], '..'))  #to use DataAnalysis submodules
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 
 from statistics import extract_variables, standardize, get_list_std, get_list_average_values
-from galib.tools.lists import get_indices_element
-from galib.tools.plt import from_list_to_subplots
+from utils.lists import get_indices_element
+from utils.plt import from_list_to_subplots
 
 
-
-# =========================================================
-# Plot members one location
-# with log and standardisation)
-# =========================================================
 
 # ---------------------------------------------------------
 # Parameters:
@@ -59,9 +56,6 @@ ind_lat=np.arange(21)
 list_filenames = listdir(path_data)
 list_filenames = [fname for fname in list_filenames if fname.startswith("ec.ens.") and  fname.endswith(".nc")]
 
-# Allow print
-descr = False
-
 # ---------------------------------------------------------
 # script:
 # ---------------------------------------------------------
@@ -89,7 +83,6 @@ for op in type_op:
             ind_members=ind_members,
             ind_long=ind_long,
             ind_lat=ind_lat,
-            descr=descr
         )
 
         list_var = [np.swapaxes(var, 0,1) for var in list_var]

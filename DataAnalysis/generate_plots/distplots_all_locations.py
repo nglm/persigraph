@@ -1,24 +1,19 @@
 #!/usr/bin/env python3
+
+#FIXME: 2020/12 Make sure it is still working after the clean-up
+
 import sys
 import os
 from os import listdir, makedirs
 import numpy as np
-from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
-sys.path.append("/home/natacha/Documents/Work/python/")  # to import galib
-sys.path.insert(1, os.path.join(sys.path[0], '..'))  #to use DataAnalysis submodules
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 
-from statistics import extract_variables, standardize
-from galib.tools.lists import get_indices_element
-from galib.tools.plt import from_list_to_subplots
-
-
-
-# =========================================================
-# Plot members one location
-# with log and standardisation)
-# =========================================================
+from statistics import preprocess_data
+from utils.lists import get_indices_element
+from utils.plt import from_list_to_subplots
 
 # ---------------------------------------------------------
 # Parameters:
@@ -26,11 +21,11 @@ from galib.tools.plt import from_list_to_subplots
 
 # Absolute path to the files
 # type: str
-path_data = "/home/natacha/Documents/Work/Data/Bergen/"
+PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
 
 # Choose the path where the figs will be saved
 # type: str
-path_fig = "/home/natacha/Documents/tmp/figs/distplots_all_locations/"
+PATH_FIG = "/home/natacha/Documents/tmp/figs/distplots_all_locations/"
 
 # Choose which variables should be ploted
 # type: List(str)
@@ -56,60 +51,30 @@ ind_long=None
 ind_lat=None
 
 # Choose which files should be used
-list_filenames = listdir(path_data)
-list_filenames = [fname for fname in list_filenames if fname.startswith("ec.ens.") and  fname.endswith(".nc")]
-list_filenames = [list_filenames[0]]
+LIST_FILENAMES = listdir(PATH_DATA)
+LIST_FILENAMES = [
+    fname for fname in LIST_FILENAMES
+    if fname.startswith("ec.ens.") and  fname.endswith(".nc")
+]
+LIST_FILENAMES = [LIST_FILENAMES[0]]
 
-# Allow print
-descr = False
 
-# ---------------------------------------------------------
-# script:
-# ---------------------------------------------------------
-makedirs(path_fig, exist_ok = True)
-for use_log_tcwv in [True, False]:
-    for use_standardise in [True, False]:
-        for filename in list_filenames:
+for use_log_tcwv in [False, False]:
+    for to_standardize in [True, False]:
+        for filename in LIST_FILENAMES:
 
-            print(filename)
-            f = path_data + filename
-            nc = Dataset(f,'r')
-
-            # Extract the data, by default:
-            # - All variables
-            # - Entire time series
-            # - All members
-            # - One location
-            (list_var,list_names) = extract_variables(
-                nc=nc,
-                var_names=var_names,
-                ind_time=ind_time,
-                ind_members=ind_members,
-                ind_long=ind_long,
-                ind_lat=ind_lat,
-                descr=descr
-            )
-
-            if use_log_tcwv:
-                # Take the log for the tcwv variable
-                idx = get_indices_element(
-                    my_list=list_names,
-                    my_element="tcwv",
-                )
-                if idx != -1:
-                    for i in idx:
-                        list_var[i] = np.log(list_var[i])
-
-            if use_standardise:
-                (list_scalers, list_var) = standardize(
-                    list_var = list_var,
-                    each_loc = False,
+            list_var, list_names, time = preprocess_data(
+                filename = filename,
+                path_data = PATH_DATA,
+                var_names = var_names,
+                ind_time = ind_time,
+                ind_members = ind_members,
+                ind_long = ind_long,
+                ind_lat = ind_lat,
+                to_standardize = to_standardize,
                 )
 
-            list_var = [np.swapaxes(var, 0,1) for var in list_var]
-            list_var = [var.flatten() for var in list_var]
-
-            if use_standardise:
+            if to_standardize:
                 fig_suptitle = (
                     "Bergen Forecast: "
                     + filename[:-3]
@@ -125,48 +90,37 @@ for use_log_tcwv in [True, False]:
 
             list_ax_titles = ["Variable: " + name for name in list_names]
 
-            if use_standardise:
+            if to_standardize:
                 list_xlabels = [
                     "Standardized values (1)" for name in list_names
                 ]
             else:
-                list_xlabels = [
-                    "Values ("
-                    + nc.variables[name].__dict__["units"]
-                    +")" for name in list_names
-                ]
-
-            # if we used log on tcwv:
-            if use_log_tcwv:
-                for i in idx:
-                    list_ax_titles[i] = "Variable: log(tcwv)"
-                    if not use_standardise:
-                        list_xlabels[i] = "Values (log("+nc.variables["tcwv"].__dict__["units"] +"))"
+                list_xlabels = [""]
 
             kwargs = {
                 "sharex" : False,
                 "sharey" : False,
                 "list_xlabels" : list_xlabels,
+                "fig_suptitle" : fig_suptitle,
+                "list_ax_titles" : list_ax_titles,
             }
 
-            if use_standardise:
+            if to_standardize:
                 kwargs['fit_show_mean'] = False
                 kwargs['fit_show_std'] = False
 
             fig, axs = from_list_to_subplots(
                 list_yvalues=list_var,  # List[ndarray([n_lines, ] n_values )]
                 plt_type = "distplot",
-                fig_suptitle = fig_suptitle,
-                list_ax_titles = list_ax_titles,
                 show=False,
                 **kwargs,
                 )
             suffix = ""
             if use_log_tcwv:
                 suffix += "_with_log"
-            if use_standardise:
+            if to_standardize:
                 suffix += "_std"
 
-            name_fig = path_fig + filename[:-3] + suffix + ".png"
+            name_fig = PATH_FIG + filename[:-3] + suffix + ".png"
             plt.savefig(name_fig)
             plt.close()

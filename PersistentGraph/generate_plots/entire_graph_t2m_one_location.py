@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
+
+
+#FIXME: 2020/12 Make sure it is still working after the clean-up
 import sys
 import os
 from os import listdir, makedirs
 import numpy as np
-from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))  #to use PG submodules
 sys.path.insert(1, os.path.join(sys.path[0], '../..'))  #to use DA submodules
 
-from DataAnalysis.statistics import extract_variables
+from DataAnalysis.statistics import preprocess_data
 from utils.lists import get_indices_element
 from persistentgraph import PersistentGraph
 from plots import plot_as_graph, plot_edges
@@ -17,23 +19,17 @@ from analysis import sort_components_by, get_contemporaries
 
 
 
-
-# =========================================================
-# Plot members one location
-# with log and standardisation)
-# =========================================================
-
 # ---------------------------------------------------------
 # Parameters:
 # ---------------------------------------------------------
 
 # Absolute path to the files
 # type: str
-path_data = "/home/natacha/Documents/Work/Data/Bergen/"
+PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
 
 # Choose the path where the figs will be saved
 # type: str
-path_fig_parent = "/home/natacha/Documents/tmp/figs/PG/t2m/"
+PATH_FIG_PARENT = "/home/natacha/Documents/tmp/figs/PG/t2m/"
 #path_fig = "/home/natacha/Documents/tmp/figs/PG/t2m/entire_graph/"
 
 # Choose which variables should be ploted
@@ -66,40 +62,33 @@ threshold_m = 0
 # Choose nb members threshold
 threshold_l = 0
 
+to_standardize = False
+
 # Choose which files should be used
-list_filenames = listdir(path_data)
+list_filenames = listdir(PATH_DATA)
 list_filenames = [fname for fname in list_filenames if fname.startswith("ec.ens.") and  fname.endswith(".nc")]
 
-# Allow print
-descr = False
 
 # ---------------------------------------------------------
 # script:
 # ---------------------------------------------------------
-makedirs(path_fig_parent, exist_ok = True)
 
 type_op = ["max_distance"]
 for weights in [True, False]:
     for op in type_op:
         for filename in list_filenames:
-            print(filename)
-            f = path_data + filename
-            nc = Dataset(f,'r')
 
-            (list_var,list_names) = extract_variables(
-                nc=nc,
-                var_names=var_names,
-                ind_time=ind_time,
-                ind_members=ind_members,
-                ind_long=ind_long,
-                ind_lat=ind_lat,
-                descr=descr
-            )
-
-            t2m = np.transpose(list_var[0]).squeeze()-273.15
-            # Set the initial conditions at time +0h
-            time = np.array(nc.variables["time"])
-            time -= time[0]
+            list_var, list_names, time = preprocess_data(
+                filename = filename,
+                path_data = PATH_DATA,
+                var_names = var_names,
+                ind_time = ind_time,
+                ind_members = ind_members,
+                ind_long = ind_long,
+                ind_lat = ind_lat,
+                to_standardize = to_standardize,
+                )
+            t2m = list_var[0]
 
             if weights:
                 weights_file = (
@@ -137,7 +126,7 @@ for weights in [True, False]:
                 )
 
             ax.set_title(fig_suptitle)
-            path_fig = path_fig_parent + "entire_graph/"
+            path_fig = PATH_FIG_PARENT + "entire_graph/"
 
             if weights:
                 name_fig = (
@@ -146,7 +135,7 @@ for weights in [True, False]:
             else:
                 name_fig = path_fig + filename[:-3] + ".png"
             makedirs(path_fig, exist_ok = True)
-            
+
             fig.savefig(name_fig)
             plt.close()
 
@@ -184,7 +173,7 @@ for weights in [True, False]:
             # ax.set_xlabel("Time (h)")
             # ax.set_ylabel("Temperature (°C)")
             # ax.autoscale()
-            # path_fig = path_fig_parent + "older_edges_and_comtemp/"
+            # path_fig = PATH_FIG_PARENT + "older_edges_and_comtemp/"
 
             # if weights:
             #     name_fig = (

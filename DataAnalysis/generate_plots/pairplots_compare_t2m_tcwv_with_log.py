@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+#FIXME: 2020/12 Make sure it is still working after the clean-up
 import sys
 import os
 from os import listdir, makedirs
@@ -6,19 +8,13 @@ import numpy as np
 from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
-sys.path.append("/home/natacha/Documents/Work/python/")  # to import galib
-sys.path.insert(1, os.path.join(sys.path[0], '..'))  #to use DataAnalysis submodules
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 
-from statistics import extract_variables, standardize
-from galib.tools.lists import get_indices_element
-from galib.tools.plt import from_list_to_pairplots
+from statistics import preprocess_data
+from utils.lists import get_indices_element
+from utils.plt import from_list_to_pairplots
 
-
-
-# =========================================================
-# Plot members one location
-# with log and standardisation)
-# =========================================================
 
 # ---------------------------------------------------------
 # Parameters:
@@ -66,8 +62,6 @@ use_log_tcwv = True
 # Use standardise
 use_standardise = True
 
-# Allow print
-descr = False
 
 # ---------------------------------------------------------
 # script:
@@ -75,44 +69,19 @@ descr = False
 makedirs(path_fig, exist_ok = True)
 for filename in list_filenames:
 
-    print(filename)
     f = path_data + filename
     nc = Dataset(f,'r')
 
-    # Extract the data, by default:
-    # - All variables
-    # - Entire time series
-    # - All members
-    # - One location
-    (list_var,list_names) = extract_variables(
-        nc=nc,
-        var_names=var_names,
-        ind_time=ind_time,
-        ind_members=ind_members,
-        ind_long=ind_long,
-        ind_lat=ind_lat,
-        descr=descr
-    )
-
-    if use_log_tcwv:
-        # Take the log for the tcwv variable
-        idx = get_indices_element(
-            my_list=list_names,
-            my_element="tcwv",
+    list_var, list_names, time = preprocess_data(
+        filename = filename,
+        path_data = path_data,
+        var_names = var_names,
+        ind_time = ind_time,
+        ind_members = ind_members,
+        ind_long = ind_long,
+        ind_lat = ind_lat,
+        to_standardize = use_standardise,
         )
-        if idx != -1:
-            for i in idx:
-                list_var.append(np.log(list_var[i]))
-                list_names.append("log(tcwv)")
-
-    if use_standardise:
-        (list_scalers, list_var) = standardize(
-            list_var = list_var,
-            each_loc = False,
-        )
-
-    list_var = [np.swapaxes(var, 0,1) for var in list_var]
-    list_var = [var.flatten() for var in list_var]
 
     if use_standardise:
         fig_suptitle = (
