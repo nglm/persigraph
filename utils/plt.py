@@ -201,12 +201,12 @@ def get_nrows_ncols_from_nplots(
         ncols = 1
         nrows = 1
     if (nrows is None) and (ncols is None):
-        ncols = ceil(sqrt(nplots))
-        nrows = ceil(nplots/ncols)
+        ncols = max(ceil(sqrt(nplots)), 1)
+        nrows = max(ceil(nplots/ncols), 1)
     elif nrows is None:
-        nrows = ceil(nplots/ncols)
+        nrows = max(ceil(nplots/ncols), 1)
     else:
-        ncols = ceil(nplots/nrows)
+        ncols = max(ceil(nplots/nrows), 1)
     return(nrows,ncols)
 
 def get_subplot_indices(
@@ -237,7 +237,7 @@ def pretty_subplots(
     sharey = fig_kw.pop("sharey", True)
     squeeze = fig_kw.pop("squeeze", False)
     dpi = fig_kw.pop("dpi", 100)
-    figsize = fig_kw.pop("figsize", (15,10))
+    figsize = fig_kw.pop("figsize", (32,15))
 
     nrows, ncols = get_nrows_ncols_from_nplots(
         nplots = nplots,
@@ -255,7 +255,7 @@ def pretty_subplots(
         figsize=figsize,
         **fig_kw,
         )
-    fig.tight_layout()
+    #fig.tight_layout()
     fig, axs = set_text(
         axs,
         fig=fig,

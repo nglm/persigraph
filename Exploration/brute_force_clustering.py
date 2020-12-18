@@ -169,7 +169,7 @@ def main():
             ind_members=None,
             ind_long=[0],
             ind_lat=[0],
-            standardize = False,
+            to_standardize = False,
             )
 
         t2m = list_var[0]

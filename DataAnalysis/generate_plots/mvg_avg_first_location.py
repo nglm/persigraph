@@ -6,12 +6,11 @@ import numpy as np
 from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
-sys.path.append("/home/natacha/Documents/Work/python/")  # to import galib
-sys.path.insert(1, os.path.join(sys.path[0], '..'))  #to use DataAnalysis submodules
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 
-from statistics import extract_variables, standardize, moving_average
-from galib.tools.lists import get_indices_element
-from galib.tools.plt import from_list_to_subplots
+from statistics import preprocess_data, moving_average
+from utils.plt import from_list_to_subplots
 
 
 
@@ -26,11 +25,11 @@ from galib.tools.plt import from_list_to_subplots
 
 # Absolute path to the files
 # type: str
-path_data = "/home/natacha/Documents/Work/Data/Bergen/"
+PATH_DATA= "/home/natacha/Documents/Work/Data/Bergen/"
 
 # Choose the path where the figs will be saved
 # type: str
-path_fig = "/home/natacha/Documents/tmp/figs/moving_avg_first_location/"
+PATH_FIG= "/home/natacha/Documents/tmp/figs/moving_avg_first_location/"
 
 # Choose which variables should be ploted
 # type: List(str)
@@ -41,7 +40,7 @@ path_fig = "/home/natacha/Documents/tmp/figs/moving_avg_first_location/"
 # --- 10m-winds in East and North direction (“u10”, “v10”)
 # --- total water vapour in the entire column above the grid point (“tcwv”)
 # if None: var_names = ["t2m","d2m","msl","u10","v10","tcwv"]
-var_names=None
+var_names=['t2m']
 # Choose which instants should be ploted
 # type: ndarray(int)
 ind_time=None
@@ -58,62 +57,34 @@ ind_lat=np.array([0])
 # Choose which time window should be applied
 list_windows = [1, 4 , 6, 8, 10, 12]
 
+to_standardize = True
+
 # Choose which files should be used
-list_filenames = listdir(path_data)
-list_filenames = [fname for fname in list_filenames if fname.startswith("ec.ens.") and  fname.endswith(".nc")]
-
-# Allow print
-descr = False
-
-# ---------------------------------------------------------
-# script:
-# ---------------------------------------------------------
-for filename in list_filenames:
-
-    print(filename)
-    f = path_data + filename
-    nc = Dataset(f,'r')
-
-    # Extract the data, by default:
-    # - All variables
-    # - Entire time series
-    # - All members
-    # - One location
-    (list_var,list_names) = extract_variables(
-        nc=nc,
-        var_names=var_names,
-        ind_time=ind_time,
-        ind_members=ind_members,
-        ind_long=ind_long,
-        ind_lat=ind_lat,
-        descr=descr
-    )
-
-    # Take the log for the tcwv variable
-    idx = get_indices_element(
-        my_list=list_names,
-        my_element="tcwv",
-    )
-    if idx != -1:
-        for i in idx:
-            list_var[i] = np.log(list_var[i])
+LIST_FILENAMES = listdir(PATH_DATA)
+LIST_FILENAMES = [
+    fname for fname in LIST_FILENAMES
+    if fname.startswith("ec.ens.") and  fname.endswith(".nc")
+]
 
 
-    (list_scalers, list_stand_var) = standardize(
-        list_var = list_var,
-        each_loc = False,
-    )
+for filename in LIST_FILENAMES:
 
-    #list_stand_var = [np.swapaxes(var, 0,1) for var in list_stand_var]
-    list_stand_var = [np.squeeze(var) for var in list_stand_var]
+    list_var, list_names, time = preprocess_data(
+        filename = filename,
+        path_data = PATH_DATA,
+        var_names = var_names,
+        ind_time = ind_time,
+        ind_members = ind_members,
+        ind_long = ind_long,
+        ind_lat = ind_lat,
+        to_standardize = to_standardize,
+        )
 
-    # Set the initial conditions at time +0h
-    time = np.array(nc.variables["time"])
-    time -= time[0]
+
 
     list_list_avg_var = moving_average(
-        list_var=list_stand_var,   # List(ndarray(n_time, n_members [, n_long, n_lat])
-        list_windows= list_windows,
+        list_var = list_var,   # List(ndarray(n_time, n_members [, n_long, n_lat])
+        list_windows = list_windows,
     )
 
     # One variable at a time
@@ -122,28 +93,33 @@ for filename in list_filenames:
         fig_suptitle = (
             "Bergen Forecast: " + filename[:-3]
             + "\n Variable: " + list_names[i]
-            + "\n First grid point, All members"
+            + " First grid point, All members"
             )
         list_ax_titles = [
             "Moving average \n time_window = "
             + str(t) +" times steps ie " + str(t*6) + "h" for t in list_windows]
         xlabel = "Time (h)"
-        ylabel = "Standardized values (1)"
+        if to_standardize:
+            ylabel = "Standardized values (1)"
+        else:
+            ylabel = ""
 
-        list_avg_var = [np.swapaxes(var, 0,1) for var in list_avg_var]
+        dict_kwargs = {
+            "fig_suptitle" : fig_suptitle,
+            "list_ax_titles" : list_ax_titles,
+            "list_xlabels" : xlabel,
+            "list_ylabels" : ylabel,
+        }
 
         fig, axs = from_list_to_subplots(
             list_yvalues=list_avg_var,  # List[ndarray([n_lines, ] n_values )]
             list_xvalues=time, #ndarray(n_values)
             plt_type = "plot",
-            fig_suptitle = fig_suptitle,
-            list_ax_titles = list_ax_titles,
-            list_xlabels = xlabel,
-            list_ylabels = ylabel,
+            dict_kwargs = dict_kwargs,
             show=False,
         )
 
-        path_fig_tmp = path_fig + list_names[i] +"/"
+        path_fig_tmp = PATH_FIG+ list_names[i] +"/"
         makedirs(path_fig_tmp, exist_ok = True)
         name_fig = path_fig_tmp + filename[:-3] + ".png"
         plt.savefig(name_fig)

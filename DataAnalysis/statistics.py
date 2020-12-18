@@ -68,42 +68,27 @@ def moving_average(
 
 
 def standardize(
-    list_var,  # List[ndarray(n_time, n_members, n_long, n_lat)]
+    list_var,  # List[ndarray(n_members, n_time, n_long, n_lat)]
     each_loc: bool = False, # if true return List[ndarray(n_long, n_lat)] else return List[Scaler]
 ):
     list_scalers = []
     list_stand_var = []
     for var in list_var:
         if len(var.shape) > 2:
-            (n_time, n_members, n_long, n_lat) = var.shape
+            (n_members, n_time, n_long, n_lat) = var.shape
         else:
-            (n_time, n_members) = var.shape
+            (n_members, n_time) = var.shape
             each_loc = False
         if each_loc:
-            scalers = np.empty((n_long, n_lat))
-            stand_var = np.zeros_like(var)
-            for i in range(n_long):
-                for j in range(n_lat):
-                    values_i_j = var[:,:,i,j].flatten()
-                    scaler_i_j = StandardScaler()
-                    scaler_i_j.fit(values_i_j)
-                    scalers[i,j] = scaler_i_j
-                    stand_var[:,:,i,j] = scaler_i_j.transform(var[:,:,i,j])
-            list_scalers.append(scalers)
-            list_stand_var.append(stand_var)
-        # else:
-        #     values = np.transpose(var.reshape((-1,1)))
-        #     scaler =  StandardScaler()
-        #     scaler.fit(values)
-        #     list_scalers.append(scaler)
-        #     stand_var = np.zeros_like(var)
-        #     if len(var.shape) > 2:
-        #         for i in range(n_long):
-        #             for j in range(n_lat):
-        #                 stand_var[:,:,i,j] = scaler.transform(var[:,:,i,j])
-        #     else:
-        #         stand_var = scaler.transform(var)
-        #     list_stand_var.append(stand_var)
+            print("Not implemented yet")
+        else:
+            if len(var.shape) > 2:
+                print("Not implemented yet")
+            else:
+                mean = np.mean(var)
+                std = np.std(var)
+                list_stand_var.append((var - mean) / std)
+                list_scalers.append([mean, std])
     return (list_scalers, list_stand_var)
 
 def extract_variables(
@@ -175,7 +160,8 @@ def preprocess_data(
     ind_members=None,
     ind_long=[0],
     ind_lat=[0],
-    standardize = False,
+    to_standardize = False,
+    return_scalers = False,
     ):
 
     print(filename)
@@ -200,18 +186,28 @@ def preprocess_data(
         for i in idx:
             list_var[i] = np.log(list_var[i])
 
-    if standardize:
+    # Take Celsius instead of Kelvin
+    if not to_standardize:
+        idx = get_indices_element(
+            my_list=list_names,
+            my_element="t2m",
+        )
+        if idx != -1:
+            for i in idx:
+                list_var[i] = list_var[i] - 273.15
+
+    list_var = [np.swapaxes(var, 0, 1).squeeze() for var in list_var]
+
+    if to_standardize:
         (list_scalers, list_var) = standardize(
             list_var = list_var,
             each_loc = False,
         )
 
-    list_var = [np.transpose(var).squeeze() for var in list_var]
-
     # Set the initial conditions at time +0h
     time = np.array(nc.variables["time"])
     time -= time[0]
-    if standardize:
+    if to_standardize and return_scalers:
         return list_var, list_names, time, list_scalers
     return list_var, list_names, time
 

@@ -33,7 +33,7 @@ PATH_DISTRIB = ["2/gaussian/", "3/gaussian/", "N/gaussian/", "2/uniform/"]
 FIG_SIZE = (5,5)
 FIG_SIZE2 = (14,8)
 
-score_types = ['max_variance']
+score_types = ['min_inertia']
 
 best_2_gaussian = [
     "std_1-1_peak_0_const_0",
@@ -162,11 +162,11 @@ def re_plot_saved_graph():
                 source_name_graph = source_name_parent + "graphs/"
 
                 # Load data
-                file_name = source_name + "_members.npy"
+                file_name = source_name_parent + "_members.npy"
                 members = np.load(file_name)
-                file_name = source_name + "_xvalues.npy"
+                file_name = source_name_parent + "_xvalues.npy"
                 xvalues = np.load(file_name)
-                file_name = source_name + "_weights.npy"
+                file_name = source_name_parent + "_weights.npy"
                 if isfile(file_name):
                     weights = np.load(file_name)
                 else:
@@ -242,7 +242,7 @@ def main():
                     xvalues = xvalues,
                     members = members,
                     score_type = score_type,
-                    weights = weighs)
+                    weights = weights)
                     fig.savefig(dest_name_fig + name_fig +"_with_weights.png")
                     g.save(dest_name_graph + name_fig +"_with_weights")
 
