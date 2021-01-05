@@ -24,7 +24,7 @@ else:
 # Parameters
 # ---------------------------------------------------------
 
-score_type = 'min_variance'
+score_type = 'variance'
 zero_type = 'uniform'
 
 # Absolute path to the files

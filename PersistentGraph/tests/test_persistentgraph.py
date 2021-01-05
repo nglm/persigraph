@@ -3,13 +3,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 from netCDF4 import Dataset
 
-
-# ------
-# Source
-# https://stackoverflow.com/questions/714063/importing-modules-from-parent-folder
 import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))  # to access persistentgraph
-# ------
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 sys.path.insert(1, os.path.join(sys.path[0], '../../'))
 
 from persistentgraph import PersistentGraph
