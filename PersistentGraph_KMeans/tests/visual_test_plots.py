@@ -24,7 +24,6 @@ members = np.array([
 g = PersistentGraph(
     members,
     time_axis = np.arange(5),
-    maximize=False,
     score_type = 'max_variance',
     zero_type = 'uniform',
     )

@@ -72,7 +72,6 @@ def main():
         g = PersistentGraph(
                 time_axis = time,
                 members = t2m,
-                maximize = False,
                 score_is_improving = False,
                 score_type = score_type,
                 zero_type = zero_type,

@@ -95,7 +95,6 @@ def plot_pg_mean_std(
             g = PersistentGraph(
                 time_axis = xvalues,
                 members = members,
-                maximize = False,
                 score_is_improving = False,
                 score_type = score_type,
                 zero_type = 'uniform',

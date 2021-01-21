@@ -12,13 +12,23 @@ import pickle
 
 
 class PersistentGraph():
+    __SCORES_TO_MINIMIZE = [
+        'inertia',
+        'max_inertia',
+        'min_inertia',
+        'variance',
+        'min_variance',
+        'max_variance',
+        ]
+
+    __SCORES_TO_MAXIMIZE = []
+
 
     def __init__(
         self,
         members: np.ndarray,
         time_axis: np.ndarray = None,
         weights: np.ndarray = None,
-        maximize: bool = False,
         score_is_improving: bool = False,
         precision: int = 13,
         score_type: str = 'inertia',
@@ -43,13 +53,10 @@ class PersistentGraph():
         version, defaults to None
         :type weights: np.ndarray, optional
 
-        :param maximize: Is the score supposed to be maximzed or minimized?,
-        defaults to False
-        :type maximize: bool, optional
-
         :param score_is_improving: Is the score improving throughout the
         algorithm steps? (Is, ``score_birth`` 'worse' than ``score_death``),
         defaults to False
+        FIXME: OUTDATED IMPLEMENTATION
         :type score_is_improving: bool, optional
 
         :param precision: Score precision, defaults to 13
@@ -137,12 +144,10 @@ class PersistentGraph():
         # True if we should remove vertices with short life span
         self.__post_prune = False
         self.__post_prune_threshold = 0
-        # True if the higher the score, the better
-        self.__maximize = maximize
         # True if the score is improving with respect to the algo step
         self.__score_is_improving = score_is_improving
         # Score type, determines how to measure how good a model is
-        self.__score_type = score_type
+        self.__set_score_type(score_type)
         # Determines how to measure the score of the 0th component
         self.__zero_type = zero_type
         # Total number of iteration of the algorithm
@@ -224,6 +229,19 @@ class PersistentGraph():
         self.__norm_bounds = None
         self.__verbose = False
 
+    def __set_score_type(self, score_type):
+        if score_type in self.__SCORES_TO_MAXIMIZE:
+            self.__maximize = True
+        elif score_type in self.__SCORES_TO_MINIMIZE:
+            self.__maximize = False
+        else:
+            raise ValueError(
+                "Choose an available score_type"
+                + str(self.__SCORES_TO_MAXIMIZE + self.__SCORES_TO_MINIMIZE)
+                )
+        self.__score_type = score_type
+
+
 
     def __clustering_model(
         self,
@@ -238,9 +256,9 @@ class PersistentGraph():
             max_iter = model_kw.pop('max_iter', 200)
             n_init = model_kw.pop('n_init', 10)
             tol = model_kw.pop('tol', 1e-3)
-            n_components = model_kw.pop('n_clusters')
+            n_clusters = model_kw.pop('n_clusters')
             model = kmeans_custom(
-                n_clusters = n_components,
+                n_clusters = n_clusters,
                 max_iter = max_iter,
                 tol = tol,
                 n_init = n_init,
@@ -250,30 +268,30 @@ class PersistentGraph():
             labels = model.fit_predict(copy_X, **fit_predict_kw)
             if model.n_iter_ == max_iter:
                 raise ValueError('Kmeans did not converge')
-            list_info = []
-            list_members = []
-            for label_i in range(n_components):
+            list_cluster_info = []
+            clusters = []
+            for label_i in range(n_clusters):
                 # Members belonging to that clusters
                 members = [m for m in range(self.N) if labels[m] == label_i]
-                list_members.append(members)
+                clusters.append(members)
                 if members == []:
                     print("No members in cluster")
                     raise ValueError('No members in cluster')
                 # Info related to this specific vertex
-                list_info.append({
+                clusters_info.append({
                     'type' : 'KMeans',
                     'params' : [
                         float(model.cluster_centers_[label_i]),
                         float(np.std(X[members])),
                         ],
-                    'brotherhood_size' : n_components
+                    'brotherhood_size' : n_clusters
                 })
             score = self.__compute_score(
                 model = model,
                 X = X,
-                list_members = list_members
+                clusters = clusters
             )
-        return score, list_info, list_members
+        return score, clusters, clusters_info
 
     def __is_relevant_score(
         self,
@@ -299,12 +317,12 @@ class PersistentGraph():
         return res
 
 
-    def __compute_score(self, model=None, X=None, list_members=None):
+    def __compute_score(self, model=None, X=None, clusters=None):
         if self.__score_type == 'inertia':
             return np.around(model.inertia_, self.__precision)
         elif self.__score_type == 'max_inertia':
             score = 0
-            for i_cmpt, members in enumerate(list_members):
+            for i_cluster, members in enumerate(clusters):
                 score = max(
                     score,
                     np.sum(cdist(
@@ -316,7 +334,7 @@ class PersistentGraph():
                 return np.around(score, self.__precision)
         elif self.__score_type == 'min_inertia':
             score = np.inf
-            for i_cmpt, members in enumerate(list_members):
+            for i_cluster, members in enumerate(clusters):
                 score = min(
                     score,
                     np.sum(cdist(
@@ -328,17 +346,17 @@ class PersistentGraph():
                 return np.around(score, self.__precision)
         elif self.__score_type == 'variance':
             score = 0
-            for i_cmpt, members in enumerate(list_members):
+            for i_cluster, members in enumerate(clusters):
                 score += len(members)/self.N * np.var(X[members])
             return np.around(score, self.__precision)
         elif self.__score_type == 'max_variance':
             score = 0
-            for i_cmpt, members in enumerate(list_members):
+            for i_cluster, members in enumerate(clusters):
                 score = max(np.var(X[members]), score)
             return np.around(score, self.__precision)
         elif self.__score_type == 'min_variance':
             score = np.inf
-            for i_cmpt, members in enumerate(list_members):
+            for i_cluster, members in enumerate(clusters):
                 score = min(np.var(X[members]), score)
             return np.around(score, self.__precision)
 
@@ -845,72 +863,9 @@ class PersistentGraph():
             if self.__verbose:
                 print(" ========= ", t, " ========= ")
                 print(
-                    "n_components: ", 0,
+                    "n_clusters: ", 0,
                     "   score: ", 0
                 )
-
-
-    # def __zero_component(
-    #     self,
-    #     t = None,
-    #     ):
-    #     """
-    #     Add a step to the graph with zero component
-
-    #     """
-    #     if t is None:
-    #         t_range = range(self.T)
-    #     else:
-    #         t_range = [t]
-    #     mins = np.amin(self.__members, axis = 0)
-    #     maxs = np.amax(self.__members, axis = 0)
-    #     members = [ i for i in range(self.N)]
-    #     # At each time step: create a vertex representing all members
-    #     for t in t_range:
-    #         # Kill all vertices
-    #         self.__kill_vertices(
-    #             t = t,
-    #             vertices=self.__v_at_step[t]['v'][-1],
-    #             score_death = self.__zero_scores[t],
-    #             verbose = verbose,
-    #         )
-
-    #         # Initialize new step
-    #         self.__members_v_distrib[t].append(np.zeros(self.N, dtype = int))
-    #         self.__v_at_step[t]['v'].append([])
-    #         self.__v_at_step[t]['global_step_nums'].append(None)
-    #         self.__nb_steps += 1
-    #         self.__nb_local_steps[t] += 1
-
-
-    #         # Create Vertex
-    #         info = {
-    #             'type' : 'uniform',
-    #             'params' : [mins[t], maxs[t]],
-    #             'brotherhood_size' : 0,
-    #         }
-    #         v = self.__add_vertex(
-    #             info = info,
-    #             t = t,
-    #             members = members,
-    #             scores = [self.__zero_scores[t], None],
-    #             local_step = self.__nb_local_steps[t]-1
-    #         )
-
-
-
-    #         # Finalize step
-    #         self.__local_steps[t].append({
-    #             'param' : {"n_clusters" : 0},
-    #             'score' : self.__zero_scores[t],
-    #         })
-
-    #         if self.__verbose:
-    #             print(
-    #                 "n_components: ", 0,
-    #                 "   score: ", self.__zero_scores[t],
-    #                 '\nworst score: ', self.__worst_scores[t]
-    #             )
 
     def __compute_extremum_scores(self):
         inertia_scores = ['inertia', 'max_inertia', 'min_inertia']
@@ -964,19 +919,25 @@ class PersistentGraph():
     def __construct_vertices(self):
 
         for t in range(self.T):
+            if self.__verbose:
+                print(" ========= ", t, " ========= ")
+            # The same N datapoints X are use for all n_clusters values
+            # Furthermore the clustering method might want to copy X
+            # Each time it is called and compute pairwise distances
+            # We avoid doing that more than once
+            # using copy_X and row_norms_X
             X = self.__members[:, t].reshape(-1,1)
             copy_X = np.copy(X)
             row_norms_X = row_norms(copy_X, squared=True)
+
             local_step = 0
-            if self.__verbose:
-                print(" ========= ", t, " ========= ")
-            for n_components in range(self.N-1, 0,-1):
+            for n_clusters in range(self.N-1, 0,-1):
 
                 # Fit & predict using the clustering model
-                model_kw = {'n_clusters' : n_components}
+                model_kw = {'n_clusters' : n_clusters}
                 fit_predict_kw = {"x_squared_norms" : row_norms_X}
                 try :
-                    score, list_info, list_members = self.__clustering_model(
+                    score, clusters, clusters_info = self.__clustering_model(
                         X,
                         copy_X,
                         model_type = 'KMeans',
@@ -986,6 +947,7 @@ class PersistentGraph():
                 except ValueError:
                     print('Step ignored: one cluster without member')
                     continue
+
                 # If the score is worse than the 0th component, stop there
                 if self.better_score(self.__zero_scores[t], score):
                     if self.__verbose:
@@ -993,24 +955,22 @@ class PersistentGraph():
                             "Score worse than 0 component: ",
                             self.__zero_scores[t]," VS ", score
                         )
-                    #self.__zero_component(t = t, verbose = verbose)
                     break
 
                 # Consider this step only if it improves the score
                 previous_score = self.__local_steps[t][local_step]['score']
                 if self.__is_relevant_score(score, previous_score):
 
-
                     # -------------- New step ---------------
                     local_step += 1
                     if self.__verbose:
                         print(
-                            "n_components: ", n_components,
+                            "n_clusters: ", n_clusters,
                             "   score: ", score
                         )
 
                     self.__local_steps[t].append({
-                        'param' : {"n_components" : n_components},
+                        'param' : {"n_clusters" : n_clusters},
                         'score' : score,
                     })
                     self.__members_v_distrib[t].append(
@@ -1029,12 +989,12 @@ class PersistentGraph():
                     alive_vertices = self.__v_at_step[t]['v'][local_step-1][:]
                     v_to_kill = []
                     nb_v_created = 0
-                    for i_cmpt in range(n_components):
+                    for i_cluster in range(n_clusters):
 
                         to_create = True
-                        members = list_members[i_cmpt]
+                        members = clusters[i_cluster]
 
-                        # IF i_cmpt already exists in alive_vertices
+                        # IF i_cluster already exists in alive_vertices
                         # THEN 'to_create' is then 'False'
                         # And update 'v_at_step' and 'members_v_distrib'
                         # ELSE, kill the former vertex of each of its members
@@ -1067,10 +1027,10 @@ class PersistentGraph():
                                 )
 
                             # --- Creating a new vertex ----
-                            # NOTE: score_death will be set at the step at
-                            # which v dies
+                            # NOTE: score_death is not set yet
+                            # it will be set at the step at which v dies
                             v = self.__add_vertex(
-                                info = list_info[i_cmpt],
+                                info = clusters_info[i_cluster],
                                 t = t,
                                 members = members,
                                 scores = [score, None],
@@ -1088,7 +1048,7 @@ class PersistentGraph():
                               v_to_kill, ' killed')
 
                 elif self.__verbose:
-                    print("n_components: ", n_components,
+                    print("n_clusters: ", n_clusters,
                           "Score not good enough:", score,
                           "VS", previous_score)
 
@@ -1363,6 +1323,8 @@ class PersistentGraph():
     def load(self, filename, path=''):
         with open(path + filename, 'rb') as f:
             self = pickle.load(f)
+
+
 
     @property
     def N(self) -> int :
