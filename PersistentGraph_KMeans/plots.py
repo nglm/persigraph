@@ -72,13 +72,26 @@ from PersistentGraph_KMeans.vertex import Vertex
 # -------------------------------------------------------------------------
 #
 
+# See https://colorbrewer2.org/#type=qualitative&scheme=Set1&n=8
+COLOR_BREWER = [
+    "#377eb8",
+    "#4daf4a",
+    "#984ea3",
+    "#ff7f00",
+    "#ffff33",
+    "#a65628",
+    "#f781bf",
+    "#e41a1c",
+]
+
 def get_list_colors(
     N,
     seed: int = 22
 ):
-    cm = plt.get_cmap('tab10', lut=N)
-    list_colors = [cm(i) for i in range(N)]
-    random.Random(seed).shuffle(list_colors)
+    # cm = plt.get_cmap('tab10', lut=N)
+    # list_colors = [cm(i) for i in range(N)]
+    # random.Random(seed).shuffle(list_colors)
+    list_colors = []
     return list_colors
 
 def sigmoid(
