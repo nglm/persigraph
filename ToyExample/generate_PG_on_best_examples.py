@@ -33,7 +33,12 @@ PATH_DISTRIB = ["2/gaussian/", "3/gaussian/", "N/gaussian/", "2/uniform/"]
 FIG_SIZE = (5,5)
 FIG_SIZE2 = (14,8)
 
-score_types = ['min_inertia']
+score_types = [
+    'max_inertia',
+    'max_variance',
+    'min_inertia',
+    'min_variance',
+    ] # put [''] if naive method
 
 best_2_gaussian = [
     "std_1-1_peak_0_const_0",
@@ -130,18 +135,43 @@ def rename_best():
     for i_type_best in range(len(best)):
         count = 0
         for name_fig in best[i_type_best]:
-            #for i_plot, plot_dir in enumerate(SUB_DIRS):
-            source_name = PATH_BEST + PATH_DISTRIB[i_type_best] + PATH_OUTPUTS + name_fig
-            dest_path = PATH_BEST + "renamed/" + PATH_OUTPUTS
-            makedirs(dest_path, exist_ok = True)
-            # Copy figs
-            file_name = source_name + ".png"
-            copy2(file_name, dest_path+str(count)+".png")
+            for score in score_types:
+                for subfold in ['plots/', 'graphs/']:
+                    #for i_plot, plot_dir in enumerate(SUB_DIRS):
+                    source_name = (
+                        PATH_BEST
+                        + PATH_DISTRIB[i_type_best] # 2/gaussian etc.
+                        + PATH_OUTPUTS              # TYPE_PG-mean_std
+                        + score + "/"               # max_inertia etc or ''
+                        + subfold                   # 'plots/','graphs/' or ['']
+                        + name_fig                  # std_1-1_slope_1.0 etc
+                    )
 
+                    dest_path = (
+                        PATH_BEST
+                        + "renamed/"
+                        + PATH_OUTPUTS
+                        + score + '/'
+                        + subfold
+                    )
 
-            file_name = source_name + "_with_weights.png"
-            if isfile(file_name):
-                copy2(file_name, dest_path+str(count)+"_with_weights.png")
+                    makedirs(dest_path, exist_ok = True)
+
+                    # Copy file
+                    if subfold == 'plots/':
+                        extension = ".png"
+                    else:
+                        extension = ""
+                    file_name = source_name + extension
+                    copy2(file_name, dest_path+str(count)+extension)
+
+                    # Copy files in case of weights version available
+                    file_name = source_name + "_with_weights" + extension
+                    if isfile(file_name):
+                        copy2(
+                            file_name,
+                            dest_path+str(count)+"_with_weights"+extension
+                            )
             count += 1
 
 def re_plot_saved_graph():
@@ -303,6 +333,6 @@ def make_gif_best():
                 # Save
                 ani.save(dest_name + name_fig +"_with_weights.gif", writer=writer)
 
-main()
-#rename_best()
+#main()
+rename_best()
 #make_gif_best()
