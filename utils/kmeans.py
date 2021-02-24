@@ -1,10 +1,57 @@
-
 from sklearn.cluster import KMeans
-from sklearn.cluster._kmeans import *
-from sklearn.cluster._kmeans import _tolerance, _validate_center_shape, _init_centroids, _labels_inertia, _kmeans_single_lloyd, _kmeans_single_elkan
-from sklearn.utils.extmath import row_norms
-from sklearn.utils.validation import _deprecate_positional_args
+from sklearn.cluster._kmeans import _validate_center_shape, _kmeans_single_lloyd
+import numpy as np
+import sklearn
 
+print(sklearn.__version__)
+
+# See sklearn.utils.extmath.row_norms
+def row_norms(X, squared=False):
+    """Row-wise (squared) Euclidean norm of X.
+    Equivalent to np.sqrt((X * X).sum(axis=1)), but also supports sparse
+    matrices and does not create an X.shape-sized temporary.
+    Performs no input validation.
+    Parameters
+    ----------
+    X : array-like
+        The input array.
+    squared : bool, default=False
+        If True, return squared norms.
+    Returns
+    -------
+    array-like
+        The row-wise (squared) Euclidean norm of X.
+    """
+    # if sparse.issparse(X):
+    #     if not isinstance(X, sparse.csr_matrix):
+    #         X = sparse.csr_matrix(X)
+    #     norms = csr_row_norms(X)
+    # else:
+    norms = np.einsum('ij,ij->i', X, X)
+
+    if not squared:
+        np.sqrt(norms, norms)
+    return norms
+
+# See sklearn/utils/validation/check_random_state
+def check_random_state(seed):
+    """Turn seed into a np.random.RandomState instance
+    Parameters
+    ----------
+    seed : None, int or instance of RandomState
+        If seed is None, return the RandomState singleton used by np.random.
+        If seed is an int, return a new RandomState instance seeded with seed.
+        If seed is already a RandomState instance, return it.
+        Otherwise raise ValueError.
+    """
+    if seed is None or seed is np.random:
+        return np.random.mtrand._rand
+    if isinstance(seed, numbers.Integral):
+        return np.random.RandomState(seed)
+    if isinstance(seed, np.random.RandomState):
+        return seed
+    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
+                     ' instance' % seed)
 
 class kmeans_custom(KMeans):
 
@@ -78,10 +125,12 @@ class kmeans_custom(KMeans):
         if x_squared_norms is None:
             x_squared_norms = row_norms(X, squared=True)
 
-        if self._algorithm == "full":
-            kmeans_single = _kmeans_single_lloyd
-        else:
-            kmeans_single = _kmeans_single_elkan
+        # if self._algorithm == "full":
+        #     kmeans_single = _kmeans_single_lloyd
+        # else:
+        #     kmeans_single = _kmeans_single_elkan
+
+        kmeans_single = _kmeans_single_lloyd
 
         best_labels, best_inertia, best_centers = None, None, None
 

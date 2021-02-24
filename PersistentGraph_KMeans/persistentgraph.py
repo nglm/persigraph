@@ -268,7 +268,7 @@ class PersistentGraph():
             labels = model.fit_predict(copy_X, **fit_predict_kw)
             if model.n_iter_ == max_iter:
                 raise ValueError('Kmeans did not converge')
-            list_cluster_info = []
+            clusters_info = []
             clusters = []
             for label_i in range(n_clusters):
                 # Members belonging to that clusters
