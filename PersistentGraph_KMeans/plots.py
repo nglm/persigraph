@@ -7,6 +7,7 @@ import random
 from math import exp
 from PersistentGraph_KMeans.analysis import sort_components_by
 from PersistentGraph_KMeans.vertex import Vertex
+from typing import List
 
 # =========================================================================
 # TODO!
@@ -72,14 +73,47 @@ from PersistentGraph_KMeans.vertex import Vertex
 # -------------------------------------------------------------------------
 #
 
+# See https://colorbrewer2.org/#type=qualitative&scheme=Set1&n=8
+COLOR_BREWER = [
+    "#377eb8", # Blue
+    "#ff7f00", # Orange
+    "#4daf4a", # Green
+    "#984ea3", # Purple
+    "#a65628", # Brown
+    "#f781bf", # Pink
+    "#e41a1c", # Red
+    "#ffff33", # Yellow
+]
+
+# We will try to use color brewer instead
+# def get_list_colors(
+#     N,
+#     seed: int = 22
+# ):
+#     cm = plt.get_cmap('tab10', lut=N)
+#     list_colors = [cm(i) for i in range(N)]
+#     random.Random(seed).shuffle(list_colors)
+#     return list_colors
+
 def get_list_colors(
-    N,
-    seed: int = 22
-):
-    cm = plt.get_cmap('tab10', lut=N)
-    list_colors = [cm(i) for i in range(N)]
-    random.Random(seed).shuffle(list_colors)
-    return list_colors
+    N: int,
+) -> List:
+    """
+    Repeat COLOR_BREWER list until we get exactly N colors
+
+    :param N: Number of colors desired
+    :type N: int
+    :return: List of colors (taken from COLOR_BREWER list)
+    :rtype: List
+    """
+
+    n_cb = len(COLOR_BREWER)
+    list_colors = []
+    for i in range(1 + N//n_cb) :
+        list_colors += COLOR_BREWER
+    return list_colors[:N]
+
+
 
 def sigmoid(
     x,
