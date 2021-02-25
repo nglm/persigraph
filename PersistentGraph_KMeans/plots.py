@@ -8,6 +8,7 @@ from math import exp
 from PersistentGraph_KMeans.analysis import sort_components_by
 from PersistentGraph_KMeans.vertex import Vertex
 from typing import List
+from PIL import ImageColor
 
 # =========================================================================
 # TODO!
@@ -85,6 +86,10 @@ COLOR_BREWER = [
     "#ffff33", # Yellow
 ]
 
+COLOR_BREWER_RGB = [np.array(ImageColor.getcolor(c, "RGB"))/255 for c in COLOR_BREWER]
+
+COLOR_BREWER_RGBA = [np.r_[c, np.ones(1)] for c in COLOR_BREWER_RGB]
+
 # We will try to use color brewer instead
 # def get_list_colors(
 #     N,
@@ -106,11 +111,13 @@ def get_list_colors(
     :return: List of colors (taken from COLOR_BREWER list)
     :rtype: List
     """
-
+    print(COLOR_BREWER_RGB[0])
+    print(COLOR_BREWER_RGBA[0])
     n_cb = len(COLOR_BREWER)
     list_colors = []
     for i in range(1 + N//n_cb) :
-        list_colors += COLOR_BREWER
+        list_colors += COLOR_BREWER_RGBA
+    print(list_colors[:N])
     return list_colors[:N]
 
 
