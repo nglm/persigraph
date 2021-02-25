@@ -111,13 +111,10 @@ def get_list_colors(
     :return: List of colors (taken from COLOR_BREWER list)
     :rtype: List
     """
-    print(COLOR_BREWER_RGB[0])
-    print(COLOR_BREWER_RGBA[0])
     n_cb = len(COLOR_BREWER)
     list_colors = []
     for i in range(1 + N//n_cb) :
         list_colors += COLOR_BREWER_RGBA
-    print(list_colors[:N])
     return list_colors[:N]
 
 
@@ -136,7 +133,24 @@ def sigmoid(
     res = min(max(0, res), 1)
     # Here we will get f(0) = f0 and f(1) = f1
     if not range0_1:
-        res = f1*res + f0*(1-x)
+        res = f1*res + f0*(1-res)
+    return res
+
+
+
+def linear(
+    x,
+    range0_1 = True,
+    shift=0.,
+    a=1.,
+    f0=0.7,
+    f1=6,
+):
+    # Use min and max because of precision error
+    res = min(max(0, x), 1)
+    # Here we will get f(0) = f0 and f(1) = f1
+    if not range0_1:
+        res = f1*res + f0*(1-res)
     return res
 
 
@@ -242,7 +256,7 @@ def plot_gaussian_vertices(
     c2 = np.array([254,254,0,0]),
     lw_min=0.5,
     lw_max=15,
-    f=sigmoid,
+    f=linear,
     color_list = get_list_colors(51),
     ax=None,
 ):
@@ -312,7 +326,7 @@ def plot_gaussian_edges(
     c2 = np.array([254,254,0,1]),
     lw_min=0.3,
     lw_max=15,
-    f=sigmoid,
+    f=linear,
     color_list = get_list_colors(51),
     show_std = False,
     ax=None,
@@ -344,7 +358,7 @@ def plot_gaussian_edges(
         if show_std:
 
             polys = __std_polygon(g, edges)
-            colors[:,3] /= 3
+            colors[:,3] /= 6
             polys = PolyCollection(polys, facecolors=colors)
             ax.add_collection(polys)
 
@@ -455,9 +469,9 @@ def plot_as_graph(
         ax.autoscale()
         ax.set_xlabel(ax_kw['xlabel'])
         ax.set_ylabel(ax_kw['ylabel'])
-        ax.set_facecolor("whitesmoke")
+        #ax.set_facecolor("whitesmoke")
         #ax.set_title(title)
-    ax.set_facecolor("whitesmoke")
+    #ax.set_facecolor("whitesmoke")
     color_list = get_list_colors(g.N)
     if s is None:
         title = "All steps"

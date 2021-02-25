@@ -24,7 +24,7 @@ else:
 # Parameters
 # ---------------------------------------------------------
 
-score_type = 'variance'
+score_type = 'max_inertia'
 zero_type = 'uniform'
 
 # Absolute path to the files

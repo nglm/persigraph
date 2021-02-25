@@ -3,8 +3,6 @@ from sklearn.cluster._kmeans import _validate_center_shape, _kmeans_single_lloyd
 import numpy as np
 import sklearn
 
-print(sklearn.__version__)
-
 # See sklearn.utils.extmath.row_norms
 def row_norms(X, squared=False):
     """Row-wise (squared) Euclidean norm of X.
@@ -156,13 +154,13 @@ class kmeans_custom(KMeans):
         #         X += X_mean
         #     best_centers += X_mean
 
-        distinct_clusters = len(set(best_labels))
-        if distinct_clusters < self.n_clusters:
-            warnings.warn(
-                "Number of distinct clusters ({}) found smaller than "
-                "n_clusters ({}). Possibly due to duplicate points "
-                "in X.".format(distinct_clusters, self.n_clusters),
-                ConvergenceWarning, stacklevel=2)
+        # distinct_clusters = len(set(best_labels))
+        # if distinct_clusters < self.n_clusters:
+        #     warnings.warn(
+        #         "Number of distinct clusters ({}) found smaller than "
+        #         "n_clusters ({}). Possibly due to duplicate points "
+        #         "in X.".format(distinct_clusters, self.n_clusters),
+        #         ConvergenceWarning, stacklevel=2)
 
         self.cluster_centers_ = best_centers
         self.labels_ = best_labels
