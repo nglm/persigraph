@@ -10,10 +10,6 @@ from PersistentGraph import Vertex
 from PersistentGraph import Edge
 from PersistentGraph import _pg_kmeans
 
-
-
-
-
 class PersistentGraph():
     _SCORES_TO_MINIMIZE = [
         'inertia',
@@ -251,18 +247,18 @@ class PersistentGraph():
     def _get_model_parameters(
         self,
         X,
-        copy_X = None,
+        t = None,
     ):
         if self._model_type == "KMeans":
             model_kw, fit_predict_kw = _pg_kmeans.get_model_parameters(
                 self,
                 X = X,
-                copy_X = copy_X,
             )
         elif self._model_type == "Naive":
             model_kw, fit_predict_kw = _pg_naive.get_model_parameters(
                 self,
                 X = X,
+                t = t,
             )
 
         return model_kw, fit_predict_kw
@@ -272,7 +268,6 @@ class PersistentGraph():
     def _clustering_model(
         self,
         X,
-        copy_X,
         model_kw : Dict = {},
         fit_predict_kw : Dict = {},
         ):
@@ -280,7 +275,6 @@ class PersistentGraph():
             score, clusters, clusters_info = _pg_kmeans.clustering_model(
                 self,
                 X = X,
-                copy_X = copy_X,
                 model_kw = model_kw,
                 fit_predict_kw = fit_predict_kw,
             )
@@ -786,26 +780,25 @@ class PersistentGraph():
 
 
     def _construct_vertices(self):
+        if self._model_type == "KMeans":
+            cluster_range = range(self.N-1, 0,-1)
+        elif self._model_type == "Naive":
+            cluster_range = range(2,self.N+1)
 
         for t in range(self.T):
             if self._verbose:
                 print(" ========= ", t, " ========= ")
-            # The same N datapoints X are use for all n_clusters values
-            # Furthermore the clustering method might want to copy X
-            # Each time it is called and compute pairwise distances
-            # We avoid doing that more than once
-            # using copy_X and row_norms_X (in fit_predict_kw)
+
             X = self._members[:, t].reshape(-1,1)
-            copy_X = np.copy(X)
             # Get clustering model parameters required by the
             # clustering model
             model_kw, fit_predict_kw = self._get_model_parameters(
                     X = X,
-                    copy_X = copy_X,
+                    t = t,
                 )
 
             local_step = 0
-            for n_clusters in range(self.N-1, 0,-1):
+            for n_clusters in cluster_range:
 
                 # Update model_kw
                 model_kw['n_clusters'] = n_clusters
@@ -814,7 +807,6 @@ class PersistentGraph():
                     # Fit & predict using the clustering model
                     score, clusters, clusters_info = self._clustering_model(
                         X,
-                        copy_X,
                         model_kw = model_kw,
                         fit_predict_kw = fit_predict_kw,
                     )
