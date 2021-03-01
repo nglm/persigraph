@@ -84,22 +84,22 @@ def compute_bottleneck_distances(barcodes):
         bn_dist = bn_dist[0]
     return bn_dist
 
-def sort_components_by(components, criteron="ratio_life", descending=True):
+def sort_components_by(components, criteron="life_span", descending=True):
     # components must be a nested list
     if not isinstance(components[0], list):
         components = [components]
     sorted_components = []
-    def get_ratio_life(component):
-        return component.ratio_life
+    def get_life_span(component):
+        return component.life_span
     def get_ratio_members(component):
         return component.ratio_members
     if criteron=="ratio_members":
         key_func = get_ratio_members
     else:
-        key_func = get_ratio_life
+        key_func = get_life_span
     for cmpts_t in components:
         sort_t = cmpts_t.copy()
-        sort_t.sort(reverse=descending, key=get_ratio_life)
+        sort_t.sort(reverse=descending, key=key_func)
         sorted_components.append(sort_t)
     return sorted_components
 

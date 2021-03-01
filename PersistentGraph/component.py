@@ -1,165 +1,262 @@
+from typing import List, Sequence
+from scipy.spatial.distance import euclidean
+from utils.check_variable import check_O1_range, check_positive, check_all_positive
+from utils.sorted_lists import has_element, get_common_elements, bisect_search
+import numpy as np
+
 class Component():
 
     key_incr:int = 0
 
     def __init__(
         self,
-        s_birth:int = 0,
-        t:int = None,
-        num:int = None,
-        nb_members: int = None,
+        t: int = None,
+        num: int = None,
+        members : List[int] = [],
+        scores: Sequence[float] = None,
+        score_ratios: Sequence[float] = None,
+        score_bounds: float = None,
+        total_nb_members: int = None,
     ):
         self.__key: int = Component.key_incr
         self.num = num
-        self.__s_death = -1
-        self.s_birth = s_birth
         self.time_step = t
-        self.nb_members = nb_members
-        self.__ratio_life = None
-        self.__ratio_members = None
-        self.__r_birth = None,
-        self.__r_death = None
-        self.__t = None
+        self.members = members
+        self.scores = scores
+        self.compute_ratio_members(total_nb_members = total_nb_members)
+        if score_ratios is None:
+            self.compute_ratio_scores(score_bounds = score_bounds)
+        else:
+            self.score_ratios = score_ratios
+
         Component.key_incr += 1
 
     def reset_key_incr(self):
         Component.key_incr = 0
 
+    def has_member(self, m: int):
+        """
+        Check if a member belongs to the component
 
-    def update_life_info(
+        Component.members must be sorted
+
+        :param m: index of the member to find
+        :type m: int
+        """
+        return has_element(self.__members, m, len_l = self.nb_members)
+
+    def get_common_members(
         self,
-        distances,
-        N,
-        nb_steps,
-    ):
+        cmpt,
+    ) -> List[int]:
         """
-        Update:
-          - ratio_life
-          - ratio_member
-          - r_birth
-          - r_death
-          - s_death if cmpt still alive at the end
+        Return the common members between self and cmpt
 
-        :param distances: Matrix used as normalizer
-        :type distances: [type]
-        :param N: Matrix used as normalizer
-        :type distances: int
+        Component.members must be sorted
+
+        :param cmpt: Component to compare to
+        :type cmpt: Component
+        :return: Common members
+        :rtype: List[int]
         """
-        self.r_birth = distances[self.s_birth] / distances[0]
-        self.r_death = distances[self.s_death] / distances[0]
-        self.ratio_life = self.r_birth - self.r_death
-        self.ratio_members = self.nb_members/N
-        if self.s_death == -1:
-            self.s_death = nb_steps
+        return get_common_elements(self.__members, cmpt.members)
+
+    def compute_ratio_members(self, total_nb_members):
+        if total_nb_members is None or self.nb_members is None:
+            self.__ratio_members = None
+        else:
+            ratio_members = self.nb_members/total_nb_members
+            check_O1_range(ratio_members, 'Ratio members')
+            self.__ratio_members = ratio_members
+
+    def compute_ratio_scores(
+        self,
+        score_bounds = None,
+        ):
+        if score_bounds is None or self.scores is None:
+            self.__ratio_scores = None
+        else:
+            # Normalizer so that ratios are within 0-1 range
+            norm = euclidean(score_bounds[0], score_bounds[1])
+
+            # BIRTH
+            # If score_birth is ``None`` or 0 it means that the component is
+            # alive since the very beginning
+            if self.scores[0] is None:
+                ratio_birth = 0
+            else:
+                ratio_birth = euclidean(self.scores[0], score_bounds[0]) / norm
+
+
+            # DEATH
+            # If score_death is ``None`` it means that the component is not
+            # dead at the end
+            if self.scores[1] is None:
+                ratio_death = 1
+            else:
+                ratio_death = euclidean(self.scores[1], score_bounds[0]) / norm
+
+            self.score_ratios = [ratio_birth, ratio_death]
+
 
 
 
     @property
-    def s_birth(self):
-        return(self.__s_birth)
+    def key(self) -> int:
+        """
+        Number of the component
 
-    @property
-    def s_death(self):
-        return(self.__s_death)
-
-    @property
-    def num(self):
-        return self.__num
-
-    @property
-    def key(self):
+        :rtype: int
+        """
         return self.__key
 
     @property
-    def nb_members(self):
-        return self.__nb_members
-
-    @property
-    def ratio_life(self):
+    def num(self) -> int :
         """
-        (distances[s_birth] - distances[s_death])/distances[0]
+        Number of the component (unique at that time step)
 
-        with distances[-1] = 0.
-        (associated to the graph representing members)
-
-        :return: [description]
-        :rtype: [type]
+        :rtype: int
         """
-        return self.__ratio_life
+        return self.__num
+
+    @num.setter
+    def num(self, num: int):
+        """
+        Number of the component (unique at that time step)
+
+        :type num: int
+        :raises ValueError: If ``num`` is not > 0
+        """
+        if num is not None:
+            check_positive(num, 'num')
+            self.__num = int(abs(num))
+        else:
+            num = None
 
     @property
-    def ratio_members(self):
-        return self.__ratio_members
+    def time_step(self) -> int:
+        """
+        Time step at which Component exists
 
-    @property
-    def r_birth(self):
-        return self.__r_birth
-
-    @property
-    def r_death(self):
-        return self.__r_death
-
-    @property
-    def time_step(self):
+        :rtype: int
+        """
         return self.__time_step
 
     @time_step.setter
-    def time_step(self, t):
+    def time_step(self, t: int):
         if (t < 0):
             raise ValueError("t should be >= 0")
         self.__time_step = t
 
+    @property
+    def members(self) -> List[int]:
+        """
+        Ordered list of members indices belonging to Component
 
-    @r_birth.setter
-    def r_birth(self, r_birth):
-        if (r_birth > 1) or (r_birth < 0):
-            raise ValueError("ratio should be within 0-1 range")
-        self.__r_birth = r_birth
+        :rtype: List[int]
+        """
+        return self.__members
 
-    @r_death.setter
-    def r_death(self, r_death):
-        if (r_death > 1) or (r_death < 0):
-            raise ValueError("ratio should be within 0-1 range")
-        self.__r_death = r_death
-
-    @ratio_members.setter
-    def ratio_members(self, ratio_members):
-        if (ratio_members > 1) or (ratio_members < 0):
-            raise ValueError("ratio should be within 0-1 range")
-        self.__ratio_members = ratio_members
+    @members.setter
+    def members(self, members: List[int]):
+        if members is not None:
+            check_all_positive(members, 'members')
+            self.__members = [int(m) for m in members]
+            self.__nb_members = len(members)
+        else:
+            self.__members = []
 
 
-    @ratio_life.setter
-    def ratio_life(self, ratio_life):
-        if (ratio_life > 1) or (ratio_life < 0):
-            raise ValueError("ratio should be within 0-1 range")
-        self.__ratio_life = ratio_life
+    @property
+    def ratio_members(self) -> float:
+        """
+        Ratio of members belonging to Component: ``nb_members`` / N
 
-    @s_birth.setter
-    def s_birth(self, s_birth):
-        if s_birth is not None:
-            if (s_birth < 0):
-                raise ValueError("s should be > 0")
-            self.__s_birth = int(max(s_birth, 0))
+        :rtype: float
+        """
+        return self.__ratio_members
 
-    @s_death.setter
-    def s_death(self, s_death):
-        if s_death is not None:
-            if (s_death < 0):
-                raise ValueError("s should be > 0")
-            self.__s_death = int(s_death)
+    @property
+    def nb_members(self) -> int:
+        """
+        Number of members belonging to Component
 
-    @num.setter
-    def num(self, num):
-        if num is not None:
-            if (num < 0):
-                raise ValueError("num should be > O")
-            self.__num = int(abs(num))
+        :rtype: int
+        """
+        return self.__nb_members
 
-    @nb_members.setter
-    def nb_members(self, nb_members):
-        if nb_members is not None:
-            if (nb_members < 0):
-                raise ValueError("number should be > O")
-            self.__nb_members = int(abs(nb_members))
+    @property
+    def scores(self) -> Sequence[float]:
+        """
+        Sequence (score_birth, score_death) "scores" depends on the method used.
+
+        Naive method: max distance between members
+        GMM: average log-likelihood of the members
+
+        :rtype: Sequence[float]
+        """
+        return self.__scores
+
+    @scores.setter
+    def scores(self, scores: Sequence[float]):
+        if scores is None:
+            self.__scores = None
+        else:
+            if len(scores) != 2:
+                raise ValueError("scores should be a sequence of 2 elements")
+            else:
+                self.__scores = scores
+
+    @property
+    def score_ratios(self) -> Sequence[float]:
+        """
+        Sequence (ratio_score_birth, ratio_score_death) "scores" depends on
+        the method used.
+
+        Naive method: max distance between members
+        GMM: average log-likelihood of the members
+
+        :rtype: Sequence[float]
+        """
+        return self.__score_ratios
+
+    @score_ratios.setter
+    def score_ratios(self, score_ratios):
+        if score_ratios is None:
+            self.__score_ratios = None
+            self.__life_span = None
+        else:
+            if len(score_ratios) != 2:
+                raise ValueError("score_ratios should be a sequence of 2 elements")
+
+            check_O1_range(score_ratios[0], 'Ratio birth')
+            check_O1_range(score_ratios[1], 'Ratio death')
+
+            self.__score_ratios = score_ratios
+
+            # LIFE SPAN
+            # Note: ratio death must always be >= ratio_birth
+            # Note: life_span is with 0-1 range
+            life_span = euclidean(score_ratios[0], score_ratios[1])
+            self.__life_span = np.around(min(max(life_span,0), 1), 3)
+
+
+    @property
+    def life_span(self) -> float:
+        """
+        Life span of Component: ``ratio_death`` - ``ratio_birh``
+
+        :rtype: float
+        """
+        return self.__life_span
+
+
+
+
+
+
+
+
+
+
 

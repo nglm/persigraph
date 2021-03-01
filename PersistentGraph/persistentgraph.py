@@ -1,828 +1,1333 @@
 import numpy as np
-from math import isnan
-from sklearn.metrics import pairwise_distances
+from utils.kmeans import kmeans_custom, row_norms
 from PersistentGraph.vertex import Vertex
 from PersistentGraph.edge import Edge
-from typing import List, Tuple
-from utils.lists import get_indices_element
+from typing import List, Sequence, Union, Any, Dict
+from utils.sorted_lists import bisect_search, insert_no_duplicate, concat_no_duplicate, reverse_bisect_left
+from bisect import bisect, bisect_left, bisect_right, insort
+import time
+from scipy.spatial.distance import sqeuclidean, cdist
+import pickle
+
+
 
 class PersistentGraph():
+    __SCORES_TO_MINIMIZE = [
+        'inertia',
+        'max_inertia',
+        'min_inertia',
+        'variance',
+        'min_variance',
+        'max_variance',
+        ]
+
+    __SCORES_TO_MAXIMIZE = []
+
 
     def __init__(
         self,
-        members,
-        time_axis=None,
-        weights=None,
+        members: np.ndarray,
+        time_axis: np.ndarray = None,
+        weights: np.ndarray = None,
+        score_is_improving: bool = False,
+        precision: int = 13,
+        score_type: str = 'inertia',
+        zero_type: str = 'uniform',
+        name: str = None,
     ):
         """
-        Initialize the graph with the mean
+        Initialize an empty graph
 
-        :param members: [description]
-        :type members: [type]
+        :param members: (N, T)-array. Original data, ensemble of time series
+
+        - N: number of members
+        - T: length of the time series
+
+        :type members: np.ndarray
+
+        :param time_axis: (T)-array. Time axis, mostly used for plotting,
+        defaults to None, in that case, ``time_axis = np.arange(T)``
+        :type time_axis: np.ndarray, optional
+
+        :param weights: Only here for parameter compatibility with the naive
+        version, defaults to None
+        :type weights: np.ndarray, optional
+
+        :param score_is_improving: Is the score improving throughout the
+        algorithm steps? (Is, ``score_birth`` 'worse' than ``score_death``),
+        defaults to False
+        FIXME: OUTDATED IMPLEMENTATION
+        :type score_is_improving: bool, optional
+
+        :param precision: Score precision, defaults to 13
+        :type precision: int, optional
+
+        :param score_type: Define how the score is computed,
+        defaults to 'inertia'. Scores available:
+
+        - inertia
+        - min / max_inertia
+        - variance
+        - min / max_variance
+
+        :type score_type: str, optional
+        :param zero_type: Define the "0" cluster, defaults to 'uniform'
+        :type zero_type: str, optional
+
+        :param pre_prune: Are new step close to their previous step
+        pre-pruned? Pre-pruned means their corresponding vertices are
+        never created and the step never stored, defaults to False.
+        FIXME: OUTDATED IMPLEMENTATION
+        :type pre_prune: bool, optional
+
+        :param pre_prune_threshold: Threshold determining which steps
+        are pre-pruned, defaults to 0.30
+        FIXME: OUTDATED IMPLEMENTATION
+        :type pre_prune_threshold: float, optional
+
+        :param post_prune: FIXME: NOT IMPLEMENTED YET
+        :type post_prune: bool, optional
+
+        :param post_prune_threshold: Threshold determining which steps
+        are post-pruned,, defaults to 0.05
+        FIXME: NOT IMPLEMENTED YET
+        :type post_prune_threshold: float, optional
+
+        :param verbose: Level of verbosity (defaults to False):
+
+        - 0 (False) Nothing
+        - 1 (True) Steps overview
+        - 2 Steps overview + more details about vertices and edges
+        :type verbose: Union[bool,int], optional
+
+        :param name: Name of the graph object, mostly used for saving,
+        defaults to None
+        :type name: str, optional
+        :raises ValueError: [description]
         """
 
+
+        # --------------------------------------------------------------
+        # ---------------------- About the data ------------------------
+        # --------------------------------------------------------------
+
+        self.__members = np.copy(members)  #Original Data
+
+        # Variable dimension
         shape = members.shape
         if len(shape) < 3:
-            self.__d = int(1)  # number of variable
+            self.__d = int(1)
         else:
             self.__d = shape[0]
-        self.__N = shape[-2]           # Number of members (time series)
-        self.__T = shape[-1]           # Length of the time series
-        self.__members = np.copy(members)   # Initial physical values
+
+        self.__N = shape[0]  # Number of members (time series)
+        self.__T = shape[1]  # Length of the time series
+
+        # Shared x-axis values among the members
         if time_axis is None:
             self.__time_axis = np.arange(self.T)
         else:
             self.__time_axis = time_axis
-        self.__min_value = self.__members.min()
-        self.__max_value = self.__members.max()
-        self.__min_time_step = self.__time_axis.min()
-        self.__max_time_step = self.__time_axis.max()
-        self.__dist_matrix = None           # Distance between each members
+
         if weights is None:
-            weights = np.ones((self.T,1))
-        self.__dist_weights = weights       # Dist weights at each time step
-        self.__nb_zeros = 0
-        self.__compute_dist_matrix()
+            self.__weights = np.ones_like(time_axis, dtype = float)
+        else:
+            self.__weights = np.array(weights)
 
-        # Total number of iteration required by the algorithm
-        self.__nb_steps = int((self.N - 1)*self.T + 1 + 1)
-        self.__steps = []        # List of (i,j,t) involved in each step
-        self.__distances = []    # List of distance between i-j at each step
-        self.__vertices = []     # Nested list of vertices (see Vertex class)
-        self.__edges = []        # Nested list of edges (see Edge class)
+        # --------------------------------------------------------------
+        # --------- About the graph:   graph's attributes --------------
+        # --------------------------------------------------------------
 
-        # T*d arrays, members statistics
-        mean = np.mean(self.__members, axis=0)
-        std = np.std(self.__members, axis=0)
+        # True if we should consider only relevant scores
+        self.__pre_prune = True
+        self.__pre_prune_threshold = 0
+        # True if we should remove vertices with short life span
+        self.__post_prune = False
+        self.__post_prune_threshold = 0
+        # True if the score is improving with respect to the algo step
+        self.__score_is_improving = score_is_improving
+        # Score type, determines how to measure how good a model is
+        self.__set_score_type(score_type)
+        # Determines how to measure the score of the 0th component
+        self.__zero_type = zero_type
+        # Total number of iteration of the algorithm
+        self.__nb_steps = 0
+        # Local number of iteration of the algorithm
+        self.__nb_local_steps = np.zeros(self.T, dtype = int)
+        # Total number of vertices/edges created at each time step
+        self.__nb_vertices = np.zeros((self.T), dtype=int)
+        self.__nb_edges = np.zeros((self.T-1), dtype=int)
+        # Nested list (time, nb_vertices/edges) of vertices/edges
+        self.__vertices = [[] for _ in range(self.T)]
+        self.__edges = [[] for _ in range(self.T-1)]
+        # Nested list (time, nb_local_steps) of dict storing info about
+        # The successive steps
+        self.__local_steps = [[] for _ in range(self.T)]
+        # Dict of lists containing step info stored in increasing step order
+        self.__sorted_steps = {
+            'time_steps' : [],
+            'local_step_nums' : [],
+            'scores' : [],
+            'params' : [],
+        }
 
-        # Create one vertex and one edge for each time step
-        for t in range(self.T):
-            # TODO: add a more relevant reprensentative here...
-            v = Vertex(
-                representative=0,
-                s_birth=0,
-                t=t,
-                num=0,
-                value=mean[t],
-                std=std[t],
-                nb_members = self.N,
-            )
-            self.__vertices.append([v])
-            if t<(self.T-1):
-                e = Edge(
-                    v_start=0,
-                    v_end=0,
-                    nb_members = self.N,
-                    s_birth=0,
-                    t=t,
-                    num=0,
+        # Score precision
+        if precision <= 0:
+            raise ValueError("precision must be a > 0 int")
+        else:
+            self.__precision = int(precision)
+
+        if name is None:
+            name = score_type + zero_type
+
+        # --------------------------------------------------------------
+        # --------- About the graph:   algo's helpers ------------------
+        # --------------------------------------------------------------
+
+        # To find members' vertices and edges more efficiently
+        #
+        # Nested list (time, local steps) of arrays of size N
+        # members_v_distrib[t][local_step][i] is the vertex num of the
+        # ith member at t at the given local step
+        self.__members_v_distrib = [
+            [] for _ in range(self.T)
+        ]
+        # To find local steps vertices and more efficiently
+        #
+        # v_at_step[t]['v'][local_step][i] is the vertex num of the
+        # ith alive vertex at t at the given local step
+        #
+        # v_at_step[t]['global_step_nums'][local_step] is the global step
+        # num associated with 'local_step' at 't'
+        self.__v_at_step = [
+            {
+                'v' : [],
+                'global_step_nums' : []
+             } for _ in range(self.T)
+        ]
+
+        # Same as above EXCEPT that here local steps don't really refer to
+        # the algo's local steps since they will be new edges at t whenever
+        # there is a new local step at t OR at t+1
+        self.__e_at_step = [
+            {
+                'e' : [],
+                'global_step_nums' : []
+             } for _ in range(self.T)
+        ]
+
+        if self.__maximize:
+            self.__best_scores = -np.inf*np.ones(self.T)
+            self.__worst_scores = np.inf*np.ones(self.T)
+            self.__zero_scores = None
+        else:
+            self.__best_scores = np.inf*np.ones(self.T)
+            self.__worst_scores = -np.inf*np.ones(self.T)
+            self.__zero_scores = None
+
+        self.__are_bounds_known = False
+        self.__norm_bounds = None
+        self.__verbose = False
+
+    def __set_score_type(self, score_type):
+        if score_type in self.__SCORES_TO_MAXIMIZE:
+            self.__maximize = True
+        elif score_type in self.__SCORES_TO_MINIMIZE:
+            self.__maximize = False
+        else:
+            raise ValueError(
+                "Choose an available score_type"
+                + str(self.__SCORES_TO_MAXIMIZE + self.__SCORES_TO_MINIMIZE)
                 )
-                self.__edges.append([e])
-
-        # Total number of vertices created for each time step
-        self.__nb_vertices = np.ones((self.T), dtype=int)
-        # Total number of edges created for each time step
-        self.__nb_edges = np.ones((self.T-1), dtype=int)
-        # Distribution of members among vertices
-        # Initialy, at each t, all members belong to the only vertex created
-        self.__M_v = [np.zeros((self.T,self.N), dtype=int)]
-        self.__dist_min = 0
-        self.__dist_max = None
+        self.__score_type = score_type
 
 
-    def __compute_dist_matrix(
+
+    def __clustering_model(
         self,
-    ):
-        """
-        Compute the pairwise distance matrix for each time step
+        X,
+        copy_X,
+        model_type = 'KMeans',
+        model_kw : Dict = {},
+        fit_predict_kw : Dict = {},
+        ):
+        if model_type == 'KMeans':
+            # Default kw values
+            max_iter = model_kw.pop('max_iter', 200)
+            n_init = model_kw.pop('n_init', 10)
+            tol = model_kw.pop('tol', 1e-3)
+            n_clusters = model_kw.pop('n_clusters')
+            model = kmeans_custom(
+                n_clusters = n_clusters,
+                max_iter = max_iter,
+                tol = tol,
+                n_init = n_init,
+                copy_x = False,
+                **model_kw,
+            )
+            labels = model.fit_predict(copy_X, **fit_predict_kw)
+            if model.n_iter_ == max_iter:
+                raise ValueError('Kmeans did not converge')
+            clusters_info = []
+            clusters = []
+            for label_i in range(n_clusters):
+                # Members belonging to that clusters
+                members = [m for m in range(self.N) if labels[m] == label_i]
+                clusters.append(members)
+                if members == []:
+                    print("No members in cluster")
+                    raise ValueError('No members in cluster')
+                # Info related to this specific vertex
+                clusters_info.append({
+                    'type' : 'KMeans',
+                    'params' : [
+                        float(model.cluster_centers_[label_i]),
+                        float(np.std(X[members])),
+                        ],
+                    'brotherhood_size' : n_clusters
+                })
+            score = self.__compute_score(
+                model = model,
+                X = X,
+                clusters = clusters
+            )
+        return score, clusters, clusters_info
 
-        .. warning::
-
-          Distance to self is set to 0
-        """
-        dist = []
-        # append is more efficient for list than for np
-        for t in range(self.T):
-            # if your data has a single feature use array.reshape(-1, 1)
-            if self.d == 1:
-                dist_t = pairwise_distances(self.__members[:,t].reshape(-1, 1))
-            else:
-                dist_t = pairwise_distances(self.__members[:,t])
-            dist.append(dist_t/self.__dist_weights[t])
-        self.__dist_matrix = np.asarray(dist)
-
-    def __sort_dist_matrix(
+    def __is_relevant_score(
         self,
+        score,
+        previous_score
     ):
-        """
-        Return a vector of indices to sort distance_matrix
-        """
-        # Add NaN to avoid redundancy
-        dist_matrix = np.copy(self.__dist_matrix)
-        for t in range(self.T):
-            for i in range(self.N):
-                dist_matrix[t,i,i:] = np.nan
-                for j in range(i):
-                    #If the distance is null
-                    if dist_matrix[t,i,j] == 0:
-                        dist_matrix[t,i,j] = np.nan
-                        self.__nb_zeros += 1
-        # Sort the matrix (NaN should be at the end)
-        # Source:
-        # https://stackoverflow.com/questions/30577375/have-numpy-argsort-return-an-array-of-2d-indices
-        idx = np.dstack(np.unravel_index(
-            np.argsort(dist_matrix.ravel()), (self.T, self.N, self.N)
-        )).squeeze()
+        # Case if it is the first step
+        if previous_score is None:
+            res = True
+        # General case
+        else:
+            res = (
+                self.better_score(previous_score, score, or_equal=False)
+                # and self.__pre_prune
+                # and (
+                #     abs(score-previous_score)
+                #     / abs(self.worst_score(previous_score, score))
+                #     > self.__pre_prune_threshold
+                #     )
+                # or (not self.__pre_prune and
+                #     self.better_score(score, previous_score))
+            )
+        return res
 
-        # Keep only the first non-NaN elements
-        for k, (t,i,j) in enumerate(idx):
-            if isnan(dist_matrix[t,i,j]):
-                idx_first_nan = k
-                break
 
-        sort_idx = idx[:idx_first_nan]
+    def __compute_score(self, model=None, X=None, clusters=None):
+        if self.__score_type == 'inertia':
+            return np.around(model.inertia_, self.__precision)
+        elif self.__score_type == 'max_inertia':
+            score = 0
+            for i_cluster, members in enumerate(clusters):
+                score = max(
+                    score,
+                    np.sum(cdist(
+                        X[members],
+                        np.mean(X[members]).reshape(-1, 1) ,
+                        metric='sqeuclidean'
+                        )
+                    ))
+                return np.around(score, self.__precision)
+        elif self.__score_type == 'min_inertia':
+            score = np.inf
+            for i_cluster, members in enumerate(clusters):
+                score = min(
+                    score,
+                    np.sum(cdist(
+                        X[members],
+                        np.mean(X[members]).reshape(-1, 1) ,
+                        metric='sqeuclidean'
+                        )
+                    ))
+                return np.around(score, self.__precision)
+        elif self.__score_type == 'variance':
+            score = 0
+            for i_cluster, members in enumerate(clusters):
+                score += len(members)/self.N * np.var(X[members])
+            return np.around(score, self.__precision)
+        elif self.__score_type == 'max_variance':
+            score = 0
+            for i_cluster, members in enumerate(clusters):
+                score = max(np.var(X[members]), score)
+            return np.around(score, self.__precision)
+        elif self.__score_type == 'min_variance':
+            score = np.inf
+            for i_cluster, members in enumerate(clusters):
+                score = min(np.var(X[members]), score)
+            return np.around(score, self.__precision)
 
-        # Store min and max distances
-        (t_min, i_min, j_min) = sort_idx[0]
-        self.__dist_min = self.__dist_matrix[t_min, i_min, j_min]
-        (t_max, i_max, j_max) = sort_idx[-1]
-        self.__dist_max = self.__dist_matrix[t_max, i_max, j_max]
 
-        return(sort_idx)
+    def better_score(self, score1, score2, or_equal=False):
+        # None means that the score has not been reached yet
+        # So None is better if score is improving
+        if score1 is None:
+            return self.__score_is_improving
+        elif score2 is None:
+            return not self.__score_is_improving
+        elif score1 == score2:
+            return or_equal
+        elif score1 > score2:
+            return self.__maximize
+        elif score1 < score2:
+            return not self.__maximize
+        else:
+            print(score1, score2)
+            raise ValueError("Better score not determined")
+
+
+    def argbest(self, score1, score2):
+        if self.better_score(score1, score2):
+            return 0
+        else:
+            return 1
+
+    def best_score(self, score1, score2):
+        if self.argbest(score1, score2) == 0:
+            return score1
+        else:
+            return score2
+
+    def argworst(self, score1, score2):
+        if self.argbest(score1, score2) == 0:
+            return 1
+        else:
+            return 0
+
+    def worst_score(self, score1, score2):
+        if self.argworst(score1, score2) == 0:
+            return score1
+        else:
+            return score2
+
 
 
     def __add_vertex(
         self,
-        s: int,
+        info: Dict[str, Any],
         t: int,
-        members=None,
-        value: float = None,
-        std: float = None,
-        representative: int = None,
-        nb_members: int = None
+        members: List[int],
+        scores: Sequence[float],
+        local_step: int,
     ):
         """
         Add a vertex to the current graph
 
-        If ``members`̀  is not None then ``value`` and ``std``
-        will be ignored and computed according to ``members``
-        In this case and if ``representative`` is not specified then the
-        first element of ``member`` is considered as the representative
-
-        :param s: Current algorithm step, used to set ``Vertex.s_birth``
-        :type s: int
-        :param t: Time step at which the vertex should be added
+        :param info: Info related to the cluster the vertex represents
+        :type info: Dict[str, Any]
+        :param t: time step at which the vertex should be added
         :type t: int
-        :param members: [description], defaults to None
-        :type members: [type], optional
-        :param value: [description], defaults to None
-        :type value: float, optional
-        :param std: [description], defaults to None
-        :type std: float, optional
-        :param representative: [description], defaults to None
-        :type representative: int, optional
+        :param members: Ordered list of members indices represented by the
+        vertex
+        :type members: List[int]
+        :param scores: (score_birth, score_death)
+        :type scores: Sequence[float]
+        :param local_step: Local step of the algorithm
+        :type local_step: int
+        :return: The newly added vertex
+        :rtype: Vertex
         """
-        # creating the vertex
-        v = Vertex(s_birth=s, t=t)
-        v.num = self.__nb_vertices[t]
-        # In this case 'value', 'std' and 'representative' have to be specified
-        if members is None:
-            v.value = value
-            v.std = std
-            v.representative = int(representative)
-            v.nb_members = nb_members
-        # Else: compute attributes according to 'members'
-        else:
-            if representative is None:
-                v.representative = int(members[0])
-            else:
-                v.representative = int(representative)
-            members_values = np.asarray(
-                [self.__members[i,t] for i in members]
-            )
-            v.value = np.mean(members_values, axis=0)
-            v.std = np.std(members_values, axis=0)
-            v.nb_members = len(members)
 
-        # update the graph with the new vertex
+        # Create the vertex
+        num = self.__nb_vertices[t]
+        v = Vertex(
+            info = info,
+            t = t,
+            num = num,
+            members = members,
+            scores = scores,
+            score_bounds = None,  # Unknown at that point
+            total_nb_members = self.N,
+        )
+
+        # Update the graph with the new vertex
         self.__nb_vertices[t] += 1
         self.__vertices[t].append(v)
+        self.__members_v_distrib[t][local_step][members] = num
+        insort(self.__v_at_step[t]['v'][local_step], v.num)
+
         return v
 
     def __add_edge(
         self,
-        s:int,
-        t:int,
-        v_start:int,
-        v_end:int,
-        nb_members:int,
-
+        v_start: Vertex,
+        v_end: Vertex,
+        t: int,
+        members: List[int],
     ):
         """
         Add an adge to the current graph
 
-        :param s: Current algorithm step, used to set ``Edge.s_birth``
-        :type s: int
-        :param t: Time step at which the edge starts
+        :param v_start: Number (unique at ``t``) of the vertex from which the
+        Edge comes
+        :type v_start: Vertex
+        :param v_end: Number (unique at ``t+1``) of the vertex to which Edge
+        goes
+        :type v_end: Vertex
+        :param t: time step at which the edge should be added
         :type t: int
-        :param v_start: [description]
-        :type v_start: int
-        :param v_end: [description]
-        :type v_end: int
-        :param nb_members: [description]
-        :type nb_members: int
+        :param members: Ordered list of members indices represented by the
+        edge
+        :type members: List[int]
+        :return: The newly added edge
+        :rtype: Edge
         """
-        # Initialize edge
+
+        if (
+            self.better_score(v_start.scores[1], v_end.scores[0], or_equal=True)
+            or self.better_score(v_end.scores[1], v_start.scores[0], or_equal=True)
+        ):
+            print("v_start scores: ", v_start.scores)
+            print("v_end scores: ", v_end.scores)
+            print("WANRING: Vertices are not comtemporaries")
+        # Create the edge
+        argbirth = self.argworst(v_start.scores[0], v_end.scores[0])
+        argdeath = self.argbest(v_start.scores[1], v_end.scores[1])
+        # This if condition is what solved the problem of ratio birth > 1
+        # That happens
+        if v_start.scores[1] is None and v_end.scores[1] is None:
+            if self.__score_is_improving:
+                argdeath = self.argbest(
+                    self.__best_scores[t],
+                    self.__best_scores[t+1]
+                )
+            else:
+                argdeath = self.argworst(
+                    self.__worst_scores[t],
+                    self.__worst_scores[t+1]
+                )
+
+        score_birth = [v_start.scores[0], v_end.scores[0]][argbirth]
+        score_death = [v_start.scores[1], v_end.scores[1]][argdeath]
+        if self.better_score(score_death, score_birth):
+            print(
+                "WARNING: score death better than score birth!",
+                score_death, score_birth
+            )
+
         e = Edge(
-            v_start=v_start,
-            v_end=v_end,
-            nb_members = nb_members,
-            s_birth = s,
-            t=t,
+            v_start = v_start,
+            v_end = v_end,
+            t = t,
             num = self.__nb_edges[t],
+            members = members,
+            scores = [score_birth, score_death],
+            score_bounds = [
+                self.__best_scores[t+argdeath],
+                self.__worst_scores[t+argdeath]
+                ],
+            total_nb_members = self.N,
         )
 
-        # update the graph with the new edge
+        # Update the graph with the new edge
         self.__nb_edges[t] += 1
         self.__edges[t].append(e)
+        insort(self.__e_at_step[t]['e'][-1], e.num)
         return e
 
 
     def __kill_vertices(
         self,
-        s:int,
         t:int,
-        vertices,
-        verbose:bool = False,
+        vertices: List[int],
+        score_death: float = None,
     ):
         """
-        Kill vertices and all their edges
+        Kill vertices
 
-        .. note::
-          the date of death is defined as the step 's' at which the
-          vertex is unused for the first time
-
-        :param s: Current algorithm step, used to set ``s_death``
-        :type s: int
         :param t: Time step at which the vertices should be killed
         :type t: int
         :param vertices: Vertex or list of vertices to be killed
-        :type vertices: [type]
-        """
-        if not isinstance(vertices, list):
-            vertices = [vertices]
-        for v in vertices:
-            self.__vertices[t][v].s_death = s
-            #self.set_ratio(self.__vertices[t][v])
-            edges_to_v, edges_from_v = self.extract_edges_of_vertex(s,t,v)
-            if verbose:
-                print("edges to kill: ", edges_to_v, edges_from_v)
-            self.__kill_edges(s, t-1, edges_to_v)
-            self.__kill_edges(s, t, edges_from_v)
+        :type vertices: List[Vertex]
+        :param score_death: (Open interval) best score at which a vertex
+        is still alive
+        :type score_death: float
 
-    def __kill_edges(
+        """
+        if score_death is not None:
+            if not isinstance(vertices, list):
+                vertices = [vertices]
+            for v in vertices:
+                self.__vertices[t][v].scores[1] = score_death
+
+
+    def __keep_alive_edges(
         self,
-        s:int,
         t:int,
-        edges,
+        edges: List[int],
+        score: float = None,
     ):
         """
-        Kill the given edges
+        Keep edges that are not dead yet at that score
 
-        .. note::
-          the date of death is defined as the step 's' at which the edge
-          is unused for the first time
-
-        :param s: Current algorithm step, used to set ``s_death``
-        :type s: int
-        :param t: Time step at which the edges should be killed
-        :type t: int
-        :param edges: Edge or list of edges to be killed
-        :type edges: [type]
+        Assume that edges are already born (This is the edges's counterpart
+        of "kill_vertices" function)
         """
-        if not isinstance(edges, list):
-            edges = [edges]
-        for e in edges:
-            self.__edges[t][e].s_death = s
-            #self.set_ratio(self.__edges[t][e])
+        if score is not None:
+            if not isinstance(edges, list):
+                edges = [edges]
+            return [
+                e for e in edges
+                if self.better_score(score, self.__edges[t][e].scores[1])
+                ]
+
+
+    def get_local_step_from_global_step(
+        self,
+        step,
+        t,
+    ):
+        """
+        Find the local step corresponding to the given global step
+
+
+        ``self.local_steps[t][s]['global_step_num']`` gives indeed the global
+        steps corresponding exactly to a given local step. But one local step
+        may live during more than 1 global step, if the global steps concern
+        other time steps.
+
+        :param step: [description]
+        :type step: [type]
+        :param t: [description]
+        :type t: [type]
+        :return: [description]
+        :rtype: [type]
+        """
+        #TODO: Not all cases are implemented yet
+
+        if self.__score_is_improving:
+            if self.__maximize:
+                s = bisect_right(
+                    self.__v_at_step[t]['global_step_nums'],
+                    step,
+                    hi = self.__nb_local_steps[t],
+                    )
+                # We want the local step's global step to be equal or inferior
+                # to the step given
+                s -= 1
+            else:
+                print("Not implemented yet")
+        else:
+            if self.__maximize:
+                print("Not implemented yet")
+            else:
+                s = bisect_right(
+                    self.__v_at_step[t]['global_step_nums'],
+                    step,
+                    hi = self.__nb_local_steps[t],
+                    )
+                # We want the local step's global step to be equal or inferior
+                # to the step given
+                s -= 1
+
+        return s
+
+    def get_e_local_step_from_global_step(
+        self,
+        step,
+        t,
+    ):
+        """
+        Find the local step corresponding to the given global step
+
+
+        ``self.local_steps[t][s]['global_step_num']`` gives indeed the global
+        steps corresponding exactly to a given local step. But one local step
+        may live during more than 1 global step, if the global steps concern
+        other time steps.
+
+        :param step: [description]
+        :type step: [type]
+        :param t: [description]
+        :type t: [type]
+        :return: [description]
+        :rtype: [type]
+        """
+        #TODO: Not all cases are implemented yet
+
+        if self.__score_is_improving:
+            if self.__maximize:
+                s = bisect_right(self.__e_at_step[t]['global_step_nums'], step)
+                # We want the local step's global step to be equal or inferior
+                # to the step given
+                s -= 1
+            else:
+                print("Not implemented yet")
+        else:
+            if self.__maximize:
+                print("Not implemented yet")
+            else:
+                s = bisect_right(self.__e_at_step[t]['global_step_nums'], step)
+                # We want the local step's global step to be equal or inferior
+                # to the step given
+                s -= 1
+        return s
 
     def get_alive_vertices(
         self,
-        s:int = None,
-        t:int = None,
-    ):
+        scores: Union[Sequence[float], float] = None,
+        steps: Union[Sequence[int], int] = None,
+        t: Union[Sequence[int],int] = None,
+        get_only_num: bool = True
+    ) -> Union[List[Vertex], List[int]]:
         """
-        Extract alive vertices (their number to be more specific)
+        Extract alive vertices
 
         If ``t`` is not specified then returns a nested list of
         alive vertices for each time steps
 
-        :param s: Algorithm step at which vertices should be alive
-        :type s: int
+        :param scores: Scores at which vertices should be alive
+        :type scores: float, optional
         :param t: Time step from which the vertices should be extracted
-        :type t: int
+        :type t: int, optional
+        :param get_only_num: Return the compononent or its num only?
+        :type get_only_num: bool, optional
         """
+        # -------------------- Initialization --------------------------
+        v_alive = []
         if t is None:
-            v_alive = []
-            for t in range(self.T):
-                v_alive.append(list(set(self.__M_v[s][t])))
+            return_nested_list = True
+            t_range = range(self.T)
         else:
-            v_alive = list(set(self.__M_v[s][t][:]))
+            if isinstance(t, int):
+                return_nested_list = False
+                t_range = [t]
+            else:
+                return_nested_list = True
+                t_range = t
+
+        # If Scores and steps are None,
+        #  Then return the vertices that are still alive at the end
+        if scores is None and steps is None:
+            for t in t_range:
+                v_alive_t = self.__v_at_step[t][-1]
+            if not get_only_num:
+                v_alive_t = [
+                    self.__vertices[t][v_num] for v_num in v_alive_t
+                ]
+            v_alive.append(v_alive_t)
+        # Else: scores or steps is specified
+        else:
+            if steps is None:
+                #TODO: not implemented yet:
+                #
+                # Find the step with a bisect search on the local scores
+                # And then proceed normaly as if steps was given
+                print("not implemented yet")
+
+            # If a single step was given
+            if isinstance(steps, int):
+                steps = [steps]
+
+            # -------------------- Main part ---------------------------
+            for t in t_range:
+                v_alive_t = []
+                for s in steps:
+                    local_s = self.get_local_step_from_global_step(step=s, t=t)
+
+                    # If the global step occured before the initialization step at
+                    # t then return local_s = -1 and there is no alive vertices
+                    # to add
+                    if local_s != -1:
+                        v_alive_t = concat_no_duplicate(
+                            v_alive_t,
+                            self.__v_at_step[t]['v'][local_s],
+                            copy = False,
+                        )
+                    #print("s, t, local_s", s, t, local_s)
+                if not get_only_num:
+                    v_alive_t = [
+                        self.__vertices[t][v_num] for v_num in v_alive_t
+                    ]
+                v_alive.append(v_alive_t)
+
+        if not return_nested_list:
+            v_alive = v_alive[0]
         return v_alive
 
     def get_alive_edges(
         self,
-        s:int = None,
-        t:int = None,
-    ):
+        scores: Union[Sequence[float], float] = None,
+        steps: Union[Sequence[int], int] = None,
+        t: Union[Sequence[int],int] = None,
+        get_only_num: bool = True
+    ) -> Union[List[Vertex], List[int]]:
         """
-        Extract alive edges (their number to be more specific)
+        Extract alive edges
 
         If ``t`` is not specified then returns a nested list of
         alive edges for each time steps
 
-        :param s: Algorithm step at which edges should be alive
-        :type s: int
-        :param t: Time step at which the edges start
+        If ``scores`` is not specified then it will return edges that
+        are still alive at the end of the algorithm
+
+        :param scores: Scores at which edges should be alive
+        :type s: float
+        :param t: Time step from which the edges should be extracted
         :type t: int
+        :param get_only_num: Return the compononent or its num only?
+        :type get_only_num: bool, optional
         """
         e_alive = []
         if t is None:
-            for t in range(self.T-1):
-                e_t = []
-                for e in self.__edges[t]:
-                    if (e.s_birth <= s) and (e.s_death > s or e.s_death == -1):
-                        e_t.append(e.num)
-                e_alive.append(e_t)
+            return_nested_list = True
+            t_range = range(self.T-1)
         else:
-            for e in self.__edges[t]:
-                if (e.s_birth <= s) and (e.s_death > s or e.s_death == -1):
-                    e_alive.append(e.num)
+            if isinstance(t, int):
+                return_nested_list = False
+                t_range = [t]
+            else:
+                return_nested_list = True
+                t_range = t
+
+        if steps is None:
+            #TODO: not implemented yet:
+            #
+            # Find the step with a bisect search on the local scores
+            # And then proceed normaly as if steps was given
+            print("not implemented yet")
+
+        # If a single step was given
+        if isinstance(steps, int):
+            steps = [steps]
+
+        # -------------------- Main part ---------------------------
+        for t in t_range:
+            e_alive_t = []
+            for s in steps:
+                local_s = self.get_e_local_step_from_global_step(step=s, t=t)
+
+                # If the global step occured before the initialization step at
+                # t then return local_s = -1 and there is no alive edges
+                # to add
+                if local_s != -1:
+                    e_alive_t = concat_no_duplicate(
+                        e_alive_t,
+                        self.__e_at_step[t]['e'][local_s],
+                        copy = False,
+                    )
+            if not get_only_num:
+                e_alive_t = [
+                    self.__edges[t][e_num] for e_num in e_alive_t
+                ]
+            e_alive.append(e_alive_t)
+
+        if not return_nested_list:
+            e_alive = e_alive[0]
         return e_alive
 
-    def extract_edges_of_vertex(
-        self,
-        s:int,
-        t:int,
-        v:int,
-    ):
+    def __graph_initialization(self):
         """
-        Extract all edges going to and from a vertex
-
-        :param t: Time step at which the vertex is
-        :type t: int
-        :param v: Vertex (its number more specifically) from which we
-        want to extract edges
-        :type v: int
-        """
-        edges_to_v = []
-        edges_from_v = []
-        # get edges TO v
-        if (t>0 and t<self.T):
-            for e in self.__edges[t-1]:
-                if (
-                    (e.v_end == v)
-                    and (e.s_birth <= s)
-                    and (e.s_death > s or e.s_death == -1)
-                ):
-                    edges_to_v.append(e.num)
-
-        # get edges FROM v
-        if t<(self.T-1):
-            for e in self.__edges[t]:
-                if (
-                    (e.v_start == v)
-                    and (e.s_birth <= s)
-                    and (e.s_death > s or e.s_death == -1)
-                ):
-                    edges_from_v.append(e.num)
-        return(edges_to_v, edges_from_v)
-
-
-    def extract_representatives(
-        self,
-        s: int = None,
-        t: int = None,
-        duplicate: bool = False,
-    ):
-        """
-        Extract alive representatives (their number) at the time step t
-
-        If ``t`` is not specified then returns a nested list of
-        representatives for each time steps
-
-        ``s`` must be > 0
-        """
-        v_alive = self.get_alive_vertices(s,t)
-        if t is None:
-            rep_alive = []
-            for t in range(self.T):
-                rep_alive.append(
-                    [self.__vertices[t][v].representative for v in v_alive[t]]
-                )
-        else:
-            rep_alive = [self.__vertices[t][v].representative for v in v_alive]
-        # Remove duplicates
-        if not duplicate:
-            rep_alive = list(set(rep_alive))
-        return rep_alive
-
-
-    def __update_representatives(
-        self,
-        s:int,
-        t:int,
-        i:int,
-        j:int,
-        verbose: bool = False,
-    ) -> List[int]:
-        """
-        Add i and j to the list of representatives and remove rep[i] (=rep[j])
-
-        CALLED ONLY IN ``construct_graph``
-
-        :param s: Algo step at which vertices should be updated
-        :type s: int
-        :param t: time step at which vertices should be updated
-        :type t: int
-        :param i: One of the 2 new representatives
-        :type i: int
-        :param j: One of the 2 new representatives
-        :type j: int
-        :param verbose: defaults to False
-        :type verbose: bool, optional
-        :return: List of members considered as the representatives of vertices
-        :rtype: List[int]
-        """
-        # Break the vertex v into 2 vertices represented by i and j
-        v_to_break = self.__M_v[s][ t, i]
-
-        representatives = self.extract_representatives(s, t)
-        representatives.remove(self.__vertices[t][v_to_break].representative)
-        representatives += [i,j]
-        if verbose:
-            print('new representatives: ', representatives)
-        return representatives
-
-
-    def __associate_with_representatives(
-        self,
-        t:int,
-        representatives: List[int],
-    ):
-        """
-        Associate each member with one and only one of the representatives
-
-        CALLED ONLY IN ``construct_graph``
-
-        :param t: time step at which vertices should be updated
-        :type t: int
-        :param representatives: Updated set of representatives
-        :type representatives: List[int]
-        :return: For each member, its representative
-        :rtype: List[int]
-        """
-        # extract distance to representatives
-        dist = []
-        for rep in representatives:
-            dist.append(self.__dist_matrix[t,rep])
-
-        dist = np.asarray(dist)     # (nb_rep, N) array
-        # for each member, find the representative that is the closest
-        idx = np.nanargmin(dist, axis=0)
-        return [representatives[i] for i in idx]
-
-    def __update_vertices(
-        self,
-        s: int,
-        t: int,
-        representatives: List[int],
-        verbose: bool = False,
-    ):
-        """
-        Update vertices
-
-        CALLED ONLY IN ``construct_graph``
-
-        1. Re-distribute members among updated representatives
-        2. Kill unused vertices and their associated edges
-        3. Create new vertices
-        4. Update self.__M_v (members distribution among alive vertices)
-
-        :param s: Algo step at which vertices should be updated
-        :type s: int
-        :param t: time step at which vertices should be updated
-        :type t: int
-        :param representatives: Updated set of representatives
-        :type representatives: List[int]
-        :param verbose: defaults to False
-        :type verbose: bool, optional
+        Initialize the graph with N components at each time step
         """
 
-        # Re-distribute members among updated representatives
-        new_rep_distrib = self.__associate_with_representatives(
-            t,
-            representatives,
-        )
+        if self.__verbose:
+            print(" ========= Initialization ========= ")
+        for t in range(self.T):
 
-        # Previous members' distrib  among vertices
-        prev_v_distrib = self.__M_v[s][ t]
-        # v_to_create is a nested list.
-        # each 1st sublists' elt is the representative of a vertex
-        # to create. Other elts are the members associated with it
-        v_to_create = []
-        to_create = []    # boolean specifying potential vertex creation
-        v_to_kill = []    # List of vertices that must be killed
-        rep_visited = []  # List of visited representatives
-
-        # Check which members have changed their representative
-        for member in range(self.N):
-
-            # Previous vertex to which 'member' was associated
-            v_prev = prev_v_distrib[member]
-            # Get the previous representative of this vertex
-            rep_prev = self.vertices[t][v_prev].representative
-            # Get the new representative of this member
-            rep_new = new_rep_distrib[member]
-
-            # Check if 'rep_new' has already been visited
-            [idx] = get_indices_element(
-                my_list=rep_visited,
-                my_element=rep_new,
-                if_none=[-1]
+            # Initialization
+            self.__members_v_distrib[t].append(
+                np.zeros(self.N, dtype = int)
             )
+            self.__v_at_step[t]['v'].append([])
+            self.__v_at_step[t]['global_step_nums'].append(None)
 
-            # IF rep_new has never been visited
-            # THEN it should be added to 'rep_visited'
-            # and a *potential* vertex to create must be added
-            if idx == -1:
-                # Note: idx is then the 'right' index of appended elts
-                rep_visited.append(rep_new)
-
-                if member == rep_new:
-                    v_to_create.append([rep_new])
-                else:
-                    v_to_create.append([rep_new, member])
-                # So far there is no reason to recreate this vertex
-                to_create.append(False)
-            # Else add 'member' to 'v_to_create[idx]'
-            # only if rep_new != member since otherwise it has already
-            # been added by one of its current or previous members
-            elif rep_new != member:
-                v_to_create[idx].append(member)
-
-            # If its representative has changed then its previous vertex
-            # must be killed
-            if rep_new != rep_prev:
-
-                v_to_kill.append(v_prev)
-
-                # v associated to rep_new must be (re-)created
-                to_create[idx] = True
-
-                # v associated to rep_prev must be (re-)created
-                [idx_rep_prev] = get_indices_element(
-                    my_list=rep_visited,
-                    my_element=rep_prev,
-                    if_none=[-1]
-                )
-                if idx_rep_prev == -1:
-                    rep_visited.append(rep_prev)
-                    v_to_create.append([rep_prev])
-                    to_create.append(True)
-                # Else idx is then the index of the corresponding vertex
-                else:
-                    to_create[idx_rep_prev] = True
-
-
-        # Remove multiple occurences of the same vertex key
-        v_to_kill = list(set(v_to_kill))
-        if verbose:
-            print("Vertices killed: ", v_to_kill)
-        # Kill the vertices
-        self.__kill_vertices(s, t, v_to_kill, verbose=verbose)
-
-        # Process new vertices
-        # Keep only vertices that really need to be created
-        v_to_create = [v for i, v in enumerate(v_to_create) if to_create[i]]
-        v_created = []
-        for i, members in enumerate(v_to_create):
-            # Add vertex to the graph and return it
-            v_new = self.__add_vertex(s,t, members=members)
-            v_created.append(v_new.num)
-            # Update M_v with the new vertex
-            for m in members:
-                self.__M_v[s][t,m] = v_new.num
-        if verbose:
-            print("Vertices created: ", v_created)
-
-    def __update_edges(
-        self,
-        s: int,
-        t: int,
-        new_vertices,
-        verbose: bool = False,
-    ):
-        """
-        Update edges
-
-        CALLED ONLY IN ``update_vertices`` (itself called only in
-        ``construct_graph``)
-
-        1. Find edges associated to ``new_vertices``
-        2. Kill unused edges
-        3. Create new edges
-
-        :param s: Algo step at which edges should be updated
-        :type s: int
-        :param t: time step at which edges should be updated
-        :type t: int
-        :param new_vertices: New vertices created at step ``s``
-        :type new_vertices: [type]
-        :param verbose: defaults to False
-        :type verbose: bool, optional
-        """
-        if not isinstance(new_vertices, list):
-            new_vertices = [new_vertices]
-        for v in new_vertices:
-            # Find all the members in v
-            members_in_v = get_indices_element(
-                self.__M_v[s][ t],
-                v,
-                all_indices = True,
-                if_none = [-1],
-            )
-            v_ante_visited = []  # list of vertices going to v
-            nb_members_ante = [] # number of members in each v_ante visited
-            v_succ_visited = []  # list of vertices coming from v
-            nb_members_succ = [] # number of members in each v_succ visited
-
-            for m in members_in_v:
-                # Find vertices from which members of v come from
-                if (t>0):
-                    v_ante = self.__M_v[s][ t-1, m] # Vertex of 'm' at t-1
-
-                    # Check if v_ante has already been visited
-                    [v_ante_idx] = get_indices_element(
-                        v_ante_visited,
-                        v_ante,
-                        all_indices = False,
-                        if_none = [-1],
-                    )
-                    # If it hasn't been visited then append 'v_ante'
-                    if (v_ante_idx == -1):
-                        v_ante_visited.append(v_ante)
-                        nb_members_ante.append(1)
-                    # Else increment 'nb_members_ante'
-                    else:
-                        nb_members_ante[v_ante_idx] += 1
-                else:
-                    v_ante_visited = []
-
-                # Find vertices to which members of v go
-                if t<(self.T-1):
-                    v_succ = self.__M_v[s][ t+1, m] # Vertex of 'm' at t+1
-                    [v_succ_idx] = get_indices_element(
-                        v_succ_visited,
-                        v_succ,
-                        all_indices = False,
-                        if_none = [-1],
-                    )
-                    if (v_succ_idx == -1):
-                        v_succ_visited.append(v_succ)
-                        nb_members_succ.append(1)
-                    else:
-                        nb_members_succ[v_succ_idx] += 1
-                else:
-                    v_succ_visited = []
-
-            # Add edges between vertices at t-1 and v
-            e_ante_created = []
-            for i, v_start in enumerate(v_ante_visited):
-                e_new = self.__add_edge(
-                    s = s,
-                    t = t-1,
-                    v_start = v_start,
-                    v_end = v,
-                    nb_members = nb_members_ante[i]
-                )
-                e_ante_created.append(e_new.num)
-
-            # Add edges between v and vertices at t+1
-            e_succ_created = []
-            for i, v_end in enumerate(v_succ_visited):
-                e_new = self.__add_edge(
-                    s = s,
+            # ======= Create one vertex per member and time step =======
+            for i in range(self.N):
+                info = {
+                    'type' : 'KMeans',
+                    'params' : [self.__members[i,t], 0.],
+                    'brotherhood_size' : self.N
+                }
+                v = self.__add_vertex(
+                    info = info,
                     t = t,
-                    v_start = v,
-                    v_end = v_end,
-                    nb_members = nb_members_succ[i]
+                    members = [i],
+                    scores = [0, None],
+                    local_step = 0
                 )
-                e_succ_created.append(e_new.num)
-            if verbose:
-                print("New edges created going to t_s : ", e_ante_created)
-                print("New edges created coming from t_s : ", e_succ_created)
+
+            # ========== Finalize initialization step ==================
+
+            self.__local_steps[t].append({
+                'param' : {"n_clusters" : self.N},
+                'score' : 0,
+            })
+
+            self.__nb_local_steps[t] += 1
+            self.__nb_steps += 1
+
+            if self.__verbose:
+                print(" ========= ", t, " ========= ")
+                print(
+                    "n_clusters: ", 0,
+                    "   score: ", 0
+                )
+
+    def __compute_extremum_scores(self):
+        inertia_scores = ['inertia', 'max_inertia', 'min_inertia']
+        variance_scores = ['variance', 'max_variance', 'min_variance']
+        if self.__zero_type == 'uniform':
+            mins = np.amin(self.__members, axis = 0)
+            maxs = np.amax(self.__members, axis = 0)
+
+            if self.__score_type in inertia_scores:
+                self.__zero_scores = np.around(
+                    self.N / 12 * (mins-maxs)**2,
+                    self.__precision
+                )
+            elif self.__score_type in variance_scores:
+                self.__zero_scores = np.around(
+                    1 / 12 * (mins-maxs)**2,
+                    self.__precision
+                )
+        elif self.__zero_type == 'data':
+            if self.__score_type in inertia_scores:
+                self.__zero_scores = np.around(
+                    self.N * np.var(self.__members, axis = 0),
+                    self.__precision
+                )
+            elif self.__score_type in variance_scores:
+                self.__zero_scores = np.around(
+                    np.var(self.__members, axis = 0),
+                    self.__precision
+                )
+        # Compute the score of one component and choose the worst score
+        for t in range(self.T):
+            model_kw = {'n_clusters' : 1}
+            X = self.__members[:,t].reshape(-1,1)
+            score, _, _ = self.__clustering_model(
+                X,
+                X,
+                model_type = 'KMeans',
+                model_kw = model_kw,
+            )
+            self.__worst_scores[t] = self.worst_score(
+                score,
+                self.__zero_scores[t]
+            )
+
+        self.__best_scores = np.zeros(self.T)
+        self.__norm_bounds = np.abs(self.__best_scores - self.__worst_scores)
+        self.__are_bounds_known = True
 
 
 
-    def __compute_ratios(self):
+    def __construct_vertices(self):
+
+        for t in range(self.T):
+            if self.__verbose:
+                print(" ========= ", t, " ========= ")
+            # The same N datapoints X are use for all n_clusters values
+            # Furthermore the clustering method might want to copy X
+            # Each time it is called and compute pairwise distances
+            # We avoid doing that more than once
+            # using copy_X and row_norms_X
+            X = self.__members[:, t].reshape(-1,1)
+            copy_X = np.copy(X)
+            row_norms_X = row_norms(copy_X, squared=True)
+
+            local_step = 0
+            for n_clusters in range(self.N-1, 0,-1):
+
+                # Fit & predict using the clustering model
+                model_kw = {'n_clusters' : n_clusters}
+                fit_predict_kw = {"x_squared_norms" : row_norms_X}
+                try :
+                    score, clusters, clusters_info = self.__clustering_model(
+                        X,
+                        copy_X,
+                        model_type = 'KMeans',
+                        model_kw = model_kw,
+                        fit_predict_kw = fit_predict_kw,
+                    )
+                except ValueError:
+                    print('Step ignored: one cluster without member')
+                    continue
+
+                # If the score is worse than the 0th component, stop there
+                if self.better_score(self.__zero_scores[t], score):
+                    if self.__verbose:
+                        print(
+                            "Score worse than 0 component: ",
+                            self.__zero_scores[t]," VS ", score
+                        )
+                    break
+
+                # Consider this step only if it improves the score
+                previous_score = self.__local_steps[t][local_step]['score']
+                if self.__is_relevant_score(score, previous_score):
+
+                    # -------------- New step ---------------
+                    local_step += 1
+                    if self.__verbose:
+                        print(
+                            "n_clusters: ", n_clusters,
+                            "   score: ", score
+                        )
+
+                    self.__local_steps[t].append({
+                        'param' : {"n_clusters" : n_clusters},
+                        'score' : score,
+                    })
+                    self.__members_v_distrib[t].append(
+                        np.zeros(self.N, dtype = int)
+                    )
+                    self.__v_at_step[t]['v'].append([])
+                    self.__v_at_step[t]['global_step_nums'].append(None)
+                    self.__nb_steps += 1
+                    self.__nb_local_steps[t] += 1
+
+                    # ------- Update vertices: Kill and Create ---------
+                    # For each new component, check if it already exists
+                    # Then kill and create vertices accordingly
+
+                    # Alive vertices
+                    alive_vertices = self.__v_at_step[t]['v'][local_step-1][:]
+                    v_to_kill = []
+                    nb_v_created = 0
+                    for i_cluster in range(n_clusters):
+
+                        to_create = True
+                        members = clusters[i_cluster]
+
+                        # IF i_cluster already exists in alive_vertices
+                        # THEN 'to_create' is then 'False'
+                        # And update 'v_at_step' and 'members_v_distrib'
+                        # ELSE, kill the former vertex of each of its members
+                        # And create a new vertex
+                        for i, v_alive_key in enumerate(alive_vertices):
+                            v_alive = self.__vertices[t][v_alive_key]
+                            if (v_alive.is_equal_to(
+                                members = members,
+                                time_step = t,
+                                v_type = 'KMeans'
+                            )):
+                                to_create = False
+                                insort(
+                                    self.__v_at_step[t]['v'][local_step],
+                                    v_alive_key
+                                )
+                                self.__members_v_distrib[t][local_step][members] = v_alive_key
+                                # No need to check v_alive anymore for the
+                                # next cmpt
+                                del alive_vertices[i]
+                                break
+                        if to_create:
+                            # For each of its members, find their former vertex
+                            # and kill them
+                            nb_v_created += 1
+                            for m in members:
+                                insert_no_duplicate(
+                                    v_to_kill,
+                                    self.__members_v_distrib[t][local_step-1][m]
+                                )
+
+                            # --- Creating a new vertex ----
+                            # NOTE: score_death is not set yet
+                            # it will be set at the step at which v dies
+                            v = self.__add_vertex(
+                                info = clusters_info[i_cluster],
+                                t = t,
+                                members = members,
+                                scores = [score, None],
+                                local_step = local_step,
+                            )
+
+                    # -----------  Kill Vertices -------------
+                    self.__kill_vertices(
+                        t = t,
+                        vertices = v_to_kill,
+                        score_death = score,
+                    )
+                    if self.__verbose == 2:
+                        print("  ", nb_v_created, ' vertices created\n  ',
+                              v_to_kill, ' killed')
+
+                elif self.__verbose:
+                    print("n_clusters: ", n_clusters,
+                          "Score not good enough:", score,
+                          "VS", previous_score)
+
+        if self.__verbose:
+            print(
+                "nb steps: ", self.__nb_steps,
+                "\nnb_local_steps: ", self.__nb_local_steps
+            )
+        # -------------------- Compute ratios ----------------------
+        for t, v_t in enumerate(self.__vertices):
+            for v in v_t:
+                v.compute_ratio_scores(
+                    score_bounds = (
+                        self.__best_scores[t], self.__worst_scores[t]
+                    )
+                )
+
+    def __sort_steps(self):
+
+        # ====================== Initialization ==============================
+        # Current local step (i.e step_t[i] represents the ith step at t)
+        step_t = -1 * np.ones(self.T, dtype=int)
+
+        # Find the score of the first algorithm step at each time step
+        candidate_scores = np.array([
+            self.__local_steps[t][0]["score"]
+            for t in range(self.T)
+        ])
+        # candidate_time_steps[i] is the time step of candidate_scores[i]
+        candidate_time_steps = list(np.argsort( candidate_scores ))
+
+        # Now candidate_scores are sorted in increasing order
+        candidate_scores = list(candidate_scores[candidate_time_steps])
+
+        i = 0
+        while candidate_scores:
+
+            # ==== Find the candidate score with its associated time step ====
+            if self.__maximize:
+                idx_candidate = -1
+            else:
+                idx_candidate = 0
+            t = candidate_time_steps[idx_candidate]
+
+            # Only for the first local step
+            if step_t[t] == -1:
+                step_t[t] += 1
+
+            if self.__verbose:
+                print(
+                    "Step ", i, " = ",
+                    ' t: ', t,
+                    'local step_num: ', step_t[t],
+                    ' score: ', candidate_scores[idx_candidate]
+                )
+
+            # ==================== Update sorted_steps =======================
+            self.__sorted_steps['time_steps'].append(t)
+            self.__sorted_steps['local_step_nums'].append(step_t[t])
+            self.__sorted_steps['scores'].append(
+                candidate_scores[idx_candidate]
+            )
+            self.__sorted_steps['params'].append(
+                self.__local_steps[t][step_t[t]]["param"]
+            )
+
+            # ==================== Update local_steps =======================
+            self.__local_steps[t][step_t[t]]["global_step_num"] = i
+            self.__v_at_step[t]['global_step_nums'][step_t[t]] = i
+
+
+            # ======= Update candidates: deletion and insertion ==============
+
+            # 1. Deletion:
+            del candidate_scores[idx_candidate]
+            del candidate_time_steps[idx_candidate]
+
+            # 2. Insertion if there are more local steps available:
+            step_t[t] += 1
+            if step_t[t] < self.__nb_local_steps[t]:
+                next_score = self.__local_steps[t][step_t[t]]["score"]
+                idx_insert = bisect(candidate_scores, next_score)
+                candidate_scores.insert(idx_insert, next_score)
+                candidate_time_steps.insert(idx_insert, t)
+
+            i += 1
+
+        if i != self.__nb_steps:
+            print(
+                "WARNING: number of steps sorted: ", i,
+                " But number of steps done: ", self.__nb_steps
+            )
+
+
+
+    def __construct_edges(self):
+
+        last_v_at_t = -1 * np.ones(self.T, dtype = int)
+        local_step_nums = -1 * np.ones(self.T, dtype = int)
+        for s in range(self.nb_steps):
+            # Find the next time step
+            t = self.__sorted_steps['time_steps'][s]
+            score =  self.__sorted_steps['scores'][s]
+            # Find the next local step at this time step
+            local_step_nums[t] = self.__sorted_steps['local_step_nums'][s]
+            local_s = local_step_nums[t]
+
+            # Find the new vertices (so vertices created at this step)
+            new_vertices = [
+                self.__vertices[t][v] for v in self.__v_at_step[t]['v'][local_s]
+                if v > last_v_at_t[t]
+            ]
+            if new_vertices:
+                # New vertices are sorted
+                last_v_at_t[t] =  new_vertices[-1].num
+            else:
+                continue
+                print("WARNING NO NEW VERTICES")
+
+            if self.__verbose:
+                print(
+                    "Step ", s, " = ",
+                    ' t: ', t,
+                    ' local step_num: ', local_s,
+                    ' nb new vertices: ', len(new_vertices)
+                )
+            # Prepare next edges' creation
+            nb_new_edges_from = 0
+
+            if ( (t < self.T - 1) and (local_step_nums[t + 1] != -1)):
+                #self.__e_at_step[t]['e'].append([])
+                self.__e_at_step[t]['e'].append(
+                    self.__keep_alive_edges(
+                        t,
+                        self.get_alive_edges(steps=s-1,t=int(t)),
+                        score,
+                        )
+                    )
+                self.__e_at_step[t]['global_step_nums'].append(s)
+            nb_new_edges_to = 0
+
+            if ( (t > 0) and (local_step_nums[t - 1] != -1) ):
+                #self.__e_at_step[t - 1]['e'].append([])
+                self.__e_at_step[t - 1]['e'].append(
+                    self.__keep_alive_edges(
+                        t-1,
+                        self.get_alive_edges(steps=s-1,t=int(t-1)),
+                        score,
+                        )
+                    )
+                self.__e_at_step[t - 1]['global_step_nums'].append(s)
+
+            for v_new in new_vertices:
+
+                # ======== Construct edges from t-1 to t ===============
+                if ( (t > 0) and (local_step_nums[t - 1] != -1) ):
+                    #step_num_start = max(local_step_nums[t-1], 0)
+                    step_num_start =local_step_nums[t-1]
+                    v_starts = set([
+                        self.__vertices[t-1][self.__members_v_distrib[t-1][step_num_start][m]]
+                        for m in v_new.members
+                    ])
+                    for v_start in v_starts:
+                        members = v_new.get_common_members(v_start)
+                        nb_new_edges_to += 1
+                        self.__add_edge(
+                            v_start = v_start,
+                            v_end = v_new,
+                            t = t-1,
+                            members = members,
+                        )
+
+                # ======== Construct edges from t to t+1 ===============
+                if ( (t < self.T - 1) and (local_step_nums[t + 1] != -1)):
+
+                    #step_num_end = max(local_step_nums[t + 1], 0)
+                    step_num_end = local_step_nums[t+1]
+                    v_ends = set([
+                        self.__vertices[t+1][self.__members_v_distrib[t+1][step_num_end][m]]
+                        for m in v_new.members
+                    ])
+                    for v_end in v_ends:
+                        nb_new_edges_from += 1
+                        members = v_new.get_common_members(v_end)
+                        self.__add_edge(
+                            v_start = v_new,
+                            v_end = v_end,
+                            t = t,
+                            members = members,
+                        )
+            if self.__verbose == 2:
+                print("nb new edges going FROM t: ", nb_new_edges_from)
+                print("nb new edges going TO t: ", nb_new_edges_to)
+
+    def prune(self):
         """
-        CALLED ONLY IN ``construct_graph``
+        FIXME: Outdated
         """
-        # Concatenate vertices and edges
-        components = [
-            self.__vertices[t] + self.__edges[t] for t in range(self.T-1)
-        ] + [self.__vertices[-1]]
-        for cmpts_t in components:
-            for cmpt in cmpts_t:
-                cmpt.update_life_info(self.__distances, self.N, self.nb_steps)
+        tot_count = 0
+        for t in range(self.T):
+            count = 0
+            for i, v in enumerate(self.__vertices[t]):
+                if v.life_span < threshold:
+                    del self.__vertices[t][i]
+                    count += 1
+            if self.__verbose:
+                print("t = ", t, " nb vertices pruned = ", count)
+            tot_count += count
+            self.__nb_vertices[t] -= count
 
 
     def construct_graph(
         self,
-        verbose=False,
-        descending_order = True,
+        pre_prune: bool = False,
+        pre_prune_threshold: float = 0.30,
+        post_prune: bool = False,
+        post_prune_threshold: float = 0.05,
+        verbose: Union[bool,int] = False,
     ):
-        # Before s=0 the graph is initialized with one vertex per time
-        # step. s=0 will be the graph state AFTER the first split!
-        s=0
-        sort_idx = self.__sort_dist_matrix()
 
-        # If descending order
-        # Then: reverse argsort of the pairwise distance matrix
-        # NOTE: the ascending order is not implemented yet....
-        if descending_order:
-            sort_idx = sort_idx[::-1]
+        self.__verbose = verbose
+        self.__pre_prune = pre_prune
+        self.__pre_prune_threshold = pre_prune_threshold
+        self.__post_prune = post_prune
+        self.__post_prune_threshold = post_prune_threshold
 
-        # Take the 2 farthest members and the corresponding time step
-        for (t_s, i_s, j_s) in sort_idx:
+        self.__compute_extremum_scores()
 
-            # Iterate algo only if i_s and j_s are in the same vertex
-            if (self.__M_v[s][t_s, i_s] == self.__M_v[s][t_s, j_s]):
+        if self.__verbose :
+            print("Graph initialization...")
+        self.__graph_initialization()
 
-                # End algo if the 2 farthest apart members are equal
-                if self.__dist_matrix[t_s, i_s, j_s] == 0:
-                    break
+        t_start = time.time()
+        if self.__verbose:
+            print("Construct vertices...")
+        self.__construct_vertices()
+        t_end = time.time()
+        if self.__verbose:
+            print('Vertices constructed in %.2f s' %(t_end - t_start))
 
-                if verbose:
-                    print(
-                        "==== Step ", str(s), "====",
-                        "(t, i, j) = ", (t_s, j_s, i_s),
-                        "distance i-j: ", self.__dist_matrix[t_s, i_s, j_s]
-                    )
-                self.__steps.append((t_s, i_s, j_s))
-                self.__distances.append(self.__dist_matrix[t_s, i_s, j_s])
+        if post_prune:
+            t_start = time.time()
+            if self.__verbose:
+                print("Prune vertices...")
+            self.prune()
+            t_end = time.time()
+            if self.__verbose:
+                print('Vertices pruned in %.2f s' %(t_end - t_start))
 
-                # List of new representatives
-                representatives = self.__update_representatives(
-                    s=s,
-                    t=t_s,
-                    i=i_s,
-                    j=j_s,
-                    verbose=verbose,
-                )
+        t_start = time.time()
+        if self.__verbose:
+            print("Sort steps...")
+        self.__sort_steps()
+        t_end = time.time()
+        if self.__verbose:
+            print('Steps sorted in %.2f s' %(t_end - t_start))
 
-                # Update (i.e kill and create) vertices at t_s
-                prev_nb_vertices = self.__nb_vertices[t_s]
-                self.__update_vertices(
-                    s=s,
-                    t=t_s,
-                    representatives=representatives,
-                    verbose=verbose,
-                )
+        if self.__verbose:
+            print("Construct edges...")
+        t_start = time.time()
+        self.__construct_edges()
+        t_end = time.time()
+        if self.__verbose:
+            print('Edges constructed in %.2f s' %(t_end - t_start))
 
-                # Update (kill and create) edges going to and from t_s
-                new_vertices = list(
-                    range(prev_nb_vertices, self.__nb_vertices[t_s])
-                )
-                self.__update_edges(
-                    s=s,
-                    t=t_s,
-                    new_vertices=new_vertices,
-                    verbose=verbose,
-                )
+    def save(self, filename = None, path=''):
+        if filename is None:
+            filename = self.name
+        with open(path + filename, 'wb') as f:
+            pickle.dump(self, f)
 
-                #Next distribution initialized with a COPY of the current one
-                self.__M_v.append(np.copy(self.__M_v[s]))
+    def load(self, filename, path=''):
+        with open(path + filename, 'rb') as f:
+            self = pickle.load(f)
 
-                s += 1
-
-        # Update the total number of steps
-        if self.__nb_steps != s-1:
-            self.__nb_steps = s-1
-        self.__M_v = np.array(self.__M_v[:self.__nb_steps])
-
-        # Compute the ratios for each member and each vertex
-        self.__distances.append(0.)
-        self.__compute_ratios()
-
-    @property
-    def nb_zeros(self):
-        return self.__nb_zeros
 
 
     @property
-    def N(self):
+    def N(self) -> int :
         """Number of members in the ensemble
 
         :rtype: int
@@ -830,7 +1335,7 @@ class PersistentGraph():
         return self.__N
 
     @property
-    def T(self):
+    def T(self) -> int :
         """Length of the time series
 
         :rtype: int
@@ -838,22 +1343,31 @@ class PersistentGraph():
         return self.__T
 
     @property
-    def d(self):
+    def d(self) -> int :
         """Number of variables studied
         :rtype: int
         """
         return self.__d
 
     @property
-    def nb_points(self):
-        """Total number of points (N*T)
+    def members(self) -> np.ndarray:
+        """Original data, ensemble of time series
 
-        :rtype: int
+        :rtype: np.ndarray[float], shape: (N,T,d)
         """
-        return self.__N*self.__T
+        return np.copy(self.__members)
 
     @property
-    def nb_steps(self):
+    def time_axis(self) -> np.ndarray:
+        """
+        Time axis, mostly used for plotting
+
+        :rtype: np.ndarray[float], shape: T
+        """
+        return self.__time_axis
+
+    @property
+    def nb_steps(self) -> int :
         """Total number of iteration on the graph
 
         :rtype: int
@@ -861,59 +1375,53 @@ class PersistentGraph():
         return self.__nb_steps
 
     @property
-    def steps(self):
-        """ (t,i,j) of each iterations
+    def nb_local_steps(self) -> np.ndarray :
+        """Total number of local iteration on the graph
 
-
-        :rtype: Tuple[int,int,int]
+        :rtype: np.ndarray
         """
-        return self.__steps
+        return self.__nb_local_steps
 
     @property
-    def distances(self):
-        """ Distance between i-j at t for each iterations
+    def v_at_step(self):
+        return self.__v_at_step
 
-        .. note::
-          distances[-1] is set to ``0.``
-          (associated to the graph representing members)
+    @property
+    def e_at_step(self):
+        return self.__e_at_step
 
-        :rtype: float
+
+    @property
+    def nb_vertices(self) -> np.ndarray:
         """
-        return self.__distances
+        Total number of vertices created at each time step (T)
 
-
-    @property
-    def members(self):
-        """Original data, ensemble of time series
-
-        :rtype: np.ndarray((N,T,d))
+        :rtype: np.ndarray[int], shape: T
         """
-        return np.copy(self.__members)
+        return np.copy(self.__nb_vertices)
 
     @property
-    def time_axis(self):
+    def nb_vertices_max(self) -> int:
         """
-        Time axis, mostly used for plotting
+        Max number of vertices created at each time step
 
-        :rtype: [type]
+        :rtype: int
         """
-        return self.__time_axis
+        return int(self.N*(self.N+1)/2)
 
     @property
-    def min_value(self):
-        return self.__min_value
+    def nb_edges(self) -> np.ndarray:
+        """
+        Total number of edges created at each time step (T-1)
 
-    @property
-    def max_value(self):
-        return self.__max_value
+        ..note::
+          ``nb_edges[t]`` are the edges going from vertices at ``t`` to
+          vertices at ``t+1``
 
-    @property
-    def min_time_step(self):
-        return self.__min_time_step
+        :rtype: np.ndarray[int], shape: T-1
+        """
+        return np.copy(self.__nb_edges)
 
-    @property
-    def max_time_step(self):
-        return self.__max_time_step
 
     @property
     def edges(self) -> List[List[Edge]]:
@@ -939,54 +1447,39 @@ class PersistentGraph():
         """
         return self.__vertices
 
-    @property
-    def M_v(self):
-        """
-        Distribution of members among vertices (nb_steps, T, N)
-
-        :rtype: np.ndarray((nb_steps, T, N))
-        """
-        return np.copy(self.__M_v)
 
     @property
-    def nb_vertices(self):
+    def local_steps(self) -> List[List[dict]]:
         """
-        Total number of vertices created at each time step (T)
+        Nested list (time and steps) of scores
 
-        :rtype: np.ndarray((T))
+        :rtype: List[List[dict]]
         """
-        return np.copy(self.__nb_vertices)
+        return self.__local_steps
 
     @property
-    def nb_vertices_max(self):
+    def sorted_steps(self) -> Dict[str, List]:
         """
-        Max number of vertices created at each time step
+        Sorted scores as used for each step of the algorithm
 
-        :rtype: int
+        :rtype: dict[str, List]
         """
-        return int(self.N*(self.N+1)/2)
+        return self.__sorted_steps
 
     @property
-    def nb_edges(self):
+    def parameters(self) -> dict:
         """
-        Total number of edges created at each time step (T-1)
+        Parameters of the graph
 
-        ..note::
-          ``nb_edges[t]`` are the edges going from vertices at ``t`` to
-          vertices at ``t+1``
-
-        :rtype: np.ndarray((T-1))
+        :rtype: dict
         """
-        return np.copy(self.__nb_edges)
-
-    @property
-    def distance_matrix(self):
-        """
-        Pairwise distance matrix for each time step (T,N,N)
-
-        .. warning::
-          Distance to self is set to NaN
-
-        :rtype: np.ndarray((T,N,N))
-        """
-        return np.copy(self.__dist_matrix)
+        dic = {
+            "zero_type" : self.__zero_type,
+            "score_type" : self.__score_type,
+            "score_is_improving": self.__score_is_improving,
+            "pre-prune" : self.__pre_prune,
+            "pre_prune_threshold" : self.__pre_prune_threshold,
+            "post-prune" : self.__post_prune,
+            "post_prune_threshold" : self.__post_prune_threshold,
+        }
+        return dic

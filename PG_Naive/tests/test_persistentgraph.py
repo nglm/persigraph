@@ -3,8 +3,6 @@ import numpy as np
 from numpy.testing import assert_array_equal
 from netCDF4 import Dataset
 
-
-
 import os,sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 sys.path.insert(1, os.path.join(sys.path[0], '../../'))
@@ -19,7 +17,7 @@ members = np.array([
     (0 ,-0.5, -0.5, -0.5, -1),
 ])
 
-nc = Dataset("tests/ec.ens.2020012900.sfc.meteogram.nc","r")
+nc = Dataset("PersistentGraph/tests/ec.ens.2020012900.sfc.meteogram.nc","r")
 (list_var, var_names) = extract_variables(nc, var_names=["t2m"], ind_lat=np.array([0]), ind_long=np.array([0]))
 members_nc = np.transpose(list_var[0].squeeze())
 
@@ -44,20 +42,26 @@ def test_init():
         myGraph.N,
         myGraph.T,
         myGraph.d,
+        myGraph.nb_steps,
     ]
     output_it = [
+        myGraph.M_v,
         myGraph.nb_vertices,
         myGraph.nb_edges,
+        myGraph.distance_matrix.shape
     ]
 
     output_int_exp = [
         N_exp,
         T_exp,
         d_exp,
+        nb_steps_exp,
     ]
     output_it_exp = [
+        M_v_exp,
         nb_vertices_exp,
         nb_edges_exp,
+        shape_dist_matrix_exp,
     ]
     for i in range(len(output_int)):
         assert output_int[i] == output_int_exp[i] , "output: " + str(output_int[i]) + " VS " + str(output_int_exp[i])

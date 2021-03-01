@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils.lists import flatten
 from gudhi import bottleneck_distance
-from PersistentGraph_KMeans.vertex import Vertex
-from PersistentGraph_KMeans.edge import Edge
-from PersistentGraph_KMeans.component import Component
+from PersistentGraph.vertex import Vertex
+from PersistentGraph.edge import Edge
+from PersistentGraph.component import Component
 from typing import List, Dict, Tuple
 
 def stats(components: List[List[Component]]) -> Dict[str, float]:
@@ -84,22 +84,22 @@ def compute_bottleneck_distances(barcodes):
         bn_dist = bn_dist[0]
     return bn_dist
 
-def sort_components_by(components, criteron="life_span", descending=True):
+def sort_components_by(components, criteron="ratio_life", descending=True):
     # components must be a nested list
     if not isinstance(components[0], list):
         components = [components]
     sorted_components = []
-    def get_life_span(component):
-        return component.life_span
+    def get_ratio_life(component):
+        return component.ratio_life
     def get_ratio_members(component):
         return component.ratio_members
     if criteron=="ratio_members":
         key_func = get_ratio_members
     else:
-        key_func = get_life_span
+        key_func = get_ratio_life
     for cmpts_t in components:
         sort_t = cmpts_t.copy()
-        sort_t.sort(reverse=descending, key=key_func)
+        sort_t.sort(reverse=descending, key=get_ratio_life)
         sorted_components.append(sort_t)
     return sorted_components
 

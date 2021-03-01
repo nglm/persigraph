@@ -17,8 +17,8 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 TYPE_PG = 'KMeans'
 
 if TYPE_PG == 'KMeans':
-    from PersistentGraph_KMeans.persistentgraph import *
-    from PersistentGraph_KMeans.plots import *
+    from PersistentGraph.persistentgraph import *
+    from PersistentGraph.plots import *
 else:
     from PersistentGraph.persistentgraph import *
     from PersistentGraph.plots import *
@@ -34,10 +34,7 @@ FIG_SIZE = (5,5)
 FIG_SIZE2 = (14,8)
 
 score_types = [
-    'max_inertia',
     'max_variance',
-    'min_inertia',
-    'min_variance',
     ] # put [''] if naive method
 
 best_2_gaussian = [
@@ -333,6 +330,6 @@ def make_gif_best():
                 # Save
                 ani.save(dest_name + name_fig +"_with_weights.gif", writer=writer)
 
-#main()
+main()
 rename_best()
 #make_gif_best()
