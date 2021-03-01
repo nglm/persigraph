@@ -80,31 +80,31 @@ def test_decreasing_distance():
             assert dist_matrix[t_sup,i_sup,j_sup] >= dist_matrix[t,i,j]
 
 
-def test_nb_vertices():
-    g = PersistentGraph(members)
-    g.construct_graph()
-    for t in range(g.T):
-        assert g.nb_vertices[t] <= g.nb_vertices_max
+# def test_nb_vertices():
+#     g = PersistentGraph(members)
+#     g.construct_graph()
+#     for t in range(g.T):
+#         assert g.nb_vertices[t] <= g.nb_vertices_max
 
-def test_members():
-    g = PersistentGraph(members_nc)
-    g.construct_graph()
-    assert np.shape(g.members) == (50,51)
+# def test_members():
+#     g = PersistentGraph(members_nc)
+#     g.construct_graph()
+#     assert np.shape(g.members) == (50,51)
 
 
-def test_consistent_values():
-    list_g = []
-    g = PersistentGraph(members)
-    g.construct_graph()
-    list_g.append(g)
-    g = PersistentGraph(members_nc)
-    g.construct_graph()
-    list_g.append(g)
-    for g in list_g:
-        for t in range(g.T):
-            values = np.array([v.value for v in g.vertices[t]])
-            assert np.amin(values) == np.amin(g.members[:,t])
-            assert np.amax(values) == np.amax(g.members[:,t])
+# def test_consistent_values():
+#     list_g = []
+#     g = PersistentGraph(members)
+#     g.construct_graph()
+#     list_g.append(g)
+#     g = PersistentGraph(members_nc)
+#     g.construct_graph()
+#     list_g.append(g)
+#     for g in list_g:
+#         for t in range(g.T):
+#             values = np.array([v.value for v in g.vertices[t]])
+#             assert np.amin(values) == np.amin(g.members[:,t])
+#             assert np.amax(values) == np.amax(g.members[:,t])
 
 def test_increment_nb_vertex():
     g = PersistentGraph(members)

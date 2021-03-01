@@ -9,7 +9,6 @@ from shutil import copy2, copyfile
 import matplotlib.pyplot as plt
 import sys
 sys.path.append("..")
-from PersistentGraph.persistentgraph import *
 from PersistentGraph.plots import *
 from os.path import isfile
 from matplotlib.animation import FuncAnimation, PillowWriter
@@ -34,7 +33,7 @@ FIG_SIZE = (5,5)
 FIG_SIZE2 = (14,8)
 
 score_types = [
-    'max_variance',
+    'max_inertia',
     ] # put [''] if naive method
 
 best_2_gaussian = [

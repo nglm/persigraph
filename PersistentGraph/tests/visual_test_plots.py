@@ -6,12 +6,10 @@ import warnings
 warnings.warn = warn
 
 import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
 sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 
-
-from persistentgraph import PersistentGraph
-from plots import *
+from PersistentGraph import PersistentGraph
+from PersistentGraph.plots import *
 
 
 members = np.array([

@@ -1,5 +1,5 @@
-from PersistentGraph.component import Component
-from PersistentGraph.vertex import Vertex
+from PersistentGraph import Component
+from PersistentGraph import Vertex
 from typing import Sequence, List
 
 class Edge(Component):

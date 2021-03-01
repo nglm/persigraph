@@ -1,4 +1,4 @@
-from PersistentGraph.component import Component
+from PersistentGraph import Component
 from typing import Sequence, List, Dict, Any
 
 class Vertex(Component):

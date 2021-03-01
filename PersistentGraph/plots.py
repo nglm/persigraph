@@ -6,7 +6,8 @@ from matplotlib.path import Path
 import random
 from math import exp
 from PersistentGraph.analysis import sort_components_by
-from PersistentGraph.vertex import Vertex
+from PersistentGraph import Vertex
+from PersistentGraph import Edge
 from typing import List
 from PIL import ImageColor
 
@@ -228,7 +229,7 @@ def sort_components(
                 ]
                 uniforms = [ c for c in components if c.info['type'] == 'uniform' ]
             # EDGES
-            else:
+            elif isinstance(components[0],Edge):
                 gaussians = [
                     c for c in components
                     if (
