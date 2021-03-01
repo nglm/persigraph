@@ -32,7 +32,7 @@ def compute_score(pg, model=None, X=None, clusters=None):
     elif pg._score_type == 'variance':
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score += len(members)/self.N * np.var(X[members])
+            score += len(members)/pg.N * np.var(X[members])
         return np.around(score, pg._precision)
     elif pg._score_type == 'max_variance':
         score = 0
@@ -50,8 +50,6 @@ def graph_initialization(pg):
     Initialize the graph with N components at each time step
     """
 
-    if pg._verbose:
-        print(" ========= Initialization ========= ")
     for t in range(pg.T):
 
         # Initialization
@@ -92,6 +90,52 @@ def graph_initialization(pg):
                 "n_clusters: ", 0,
                 "   score: ", 0
             )
+
+def compute_extremum_scores(pg):
+    inertia_scores = ['inertia', 'max_inertia', 'min_inertia']
+    variance_scores = ['variance', 'max_variance', 'min_variance']
+    if pg._zero_type == 'uniform':
+        mins = np.amin(pg._members, axis = 0)
+        maxs = np.amax(pg._members, axis = 0)
+
+        if pg._score_type in inertia_scores:
+            pg._zero_scores = np.around(
+                pg.N / 12 * (mins-maxs)**2,
+                pg._precision
+            )
+        elif pg._score_type in variance_scores:
+            pg._zero_scores = np.around(
+                1 / 12 * (mins-maxs)**2,
+                pg._precision
+            )
+    elif pg._zero_type == 'data':
+        if pg._score_type in inertia_scores:
+            pg._zero_scores = np.around(
+                pg.N * np.var(pg._members, axis = 0),
+                pg._precision
+            )
+        elif pg._score_type in variance_scores:
+            pg._zero_scores = np.around(
+                np.var(pg._members, axis = 0),
+                pg._precision
+            )
+    # Compute the score of one component and choose the worst score
+    for t in range(pg.T):
+        model_kw = {'n_clusters' : 1}
+        X = pg._members[:,t].reshape(-1,1)
+        score, _, _ = pg._clustering_model(
+            X,
+            X,
+            model_kw = model_kw,
+        )
+        pg._worst_scores[t] = pg.worst_score(
+            score,
+            pg._zero_scores[t]
+        )
+
+    pg._best_scores = np.zeros(pg.T)
+    pg._norm_bounds = np.abs(pg._best_scores - pg._worst_scores)
+    pg._are_bounds_known = True
 
 
 def clustering_model(

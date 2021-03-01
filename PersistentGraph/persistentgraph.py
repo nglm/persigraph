@@ -37,6 +37,7 @@ class PersistentGraph():
         precision: int = 13,
         score_type: str = 'inertia',
         zero_type: str = 'uniform',
+        model_type: str = 'KMeans',
         name: str = None,
     ):
         """
@@ -154,6 +155,8 @@ class PersistentGraph():
         self._set_score_type(score_type)
         # Determines how to measure the score of the 0th component
         self._zero_type = zero_type
+        # Determines how to cluster the members
+        self._model_type = model_type
         # Total number of iteration of the algorithm
         self._nb_steps = 0
         # Local number of iteration of the algorithm
@@ -251,11 +254,10 @@ class PersistentGraph():
         self,
         X,
         copy_X,
-        model_type = 'KMeans',
         model_kw : Dict = {},
         fit_predict_kw : Dict = {},
         ):
-        if model_type == 'KMeans':
+        if self._model_type == 'KMeans':
             score, clusters, clusters_info = _pg_kmeans.clustering_model(
                 self,
                 X = X,
@@ -408,9 +410,10 @@ class PersistentGraph():
             self.better_score(v_start.scores[1], v_end.scores[0], or_equal=True)
             or self.better_score(v_end.scores[1], v_start.scores[0], or_equal=True)
         ):
-            print("v_start scores: ", v_start.scores)
-            print("v_end scores: ", v_end.scores)
-            print("WANRING: Vertices are not comtemporaries")
+            if not self._quiet:
+                print("v_start scores: ", v_start.scores)
+                print("v_end scores: ", v_end.scores)
+                print("WANRING: Vertices are not comtemporaries")
         # Create the edge
         argbirth = self.argworst(v_start.scores[0], v_end.scores[0])
         argdeath = self.argbest(v_start.scores[1], v_end.scores[1])
@@ -431,10 +434,11 @@ class PersistentGraph():
         score_birth = [v_start.scores[0], v_end.scores[0]][argbirth]
         score_death = [v_start.scores[1], v_end.scores[1]][argdeath]
         if self.better_score(score_death, score_birth):
-            print(
-                "WARNING: score death better than score birth!",
-                score_death, score_birth
-            )
+            if not self._quiet:
+                print(
+                    "WARNING: score death better than score birth!",
+                    score_death, score_birth
+                )
 
         e = Edge(
             v_start = v_start,
@@ -751,96 +755,13 @@ class PersistentGraph():
         """
         Initialize the graph with N components at each time step
         """
+        if self._model_type == "KMeans":
+            _pg_kmeans.graph_initialization(self)
 
-        if self._verbose:
-            print(" ========= Initialization ========= ")
-        for t in range(self.T):
-
-            # Initialization
-            self._members_v_distrib[t].append(
-                np.zeros(self.N, dtype = int)
-            )
-            self._v_at_step[t]['v'].append([])
-            self._v_at_step[t]['global_step_nums'].append(None)
-
-            # ======= Create one vertex per member and time step =======
-            for i in range(self.N):
-                info = {
-                    'type' : 'KMeans',
-                    'params' : [self._members[i,t], 0.],
-                    'brotherhood_size' : self.N
-                }
-                v = self._add_vertex(
-                    info = info,
-                    t = t,
-                    members = [i],
-                    scores = [0, None],
-                    local_step = 0
-                )
-
-            # ========== Finalize initialization step ==================
-
-            self._local_steps[t].append({
-                'param' : {"n_clusters" : self.N},
-                'score' : 0,
-            })
-
-            self._nb_local_steps[t] += 1
-            self._nb_steps += 1
-
-            if self._verbose:
-                print(" ========= ", t, " ========= ")
-                print(
-                    "n_clusters: ", 0,
-                    "   score: ", 0
-                )
 
     def _compute_extremum_scores(self):
-        inertia_scores = ['inertia', 'max_inertia', 'min_inertia']
-        variance_scores = ['variance', 'max_variance', 'min_variance']
-        if self._zero_type == 'uniform':
-            mins = np.amin(self._members, axis = 0)
-            maxs = np.amax(self._members, axis = 0)
-
-            if self._score_type in inertia_scores:
-                self._zero_scores = np.around(
-                    self.N / 12 * (mins-maxs)**2,
-                    self._precision
-                )
-            elif self._score_type in variance_scores:
-                self._zero_scores = np.around(
-                    1 / 12 * (mins-maxs)**2,
-                    self._precision
-                )
-        elif self._zero_type == 'data':
-            if self._score_type in inertia_scores:
-                self._zero_scores = np.around(
-                    self.N * np.var(self._members, axis = 0),
-                    self._precision
-                )
-            elif self._score_type in variance_scores:
-                self._zero_scores = np.around(
-                    np.var(self._members, axis = 0),
-                    self._precision
-                )
-        # Compute the score of one component and choose the worst score
-        for t in range(self.T):
-            model_kw = {'n_clusters' : 1}
-            X = self._members[:,t].reshape(-1,1)
-            score, _, _ = self._clustering_model(
-                X,
-                X,
-                model_type = 'KMeans',
-                model_kw = model_kw,
-            )
-            self._worst_scores[t] = self.worst_score(
-                score,
-                self._zero_scores[t]
-            )
-
-        self._best_scores = np.zeros(self.T)
-        self._norm_bounds = np.abs(self._best_scores - self._worst_scores)
-        self._are_bounds_known = True
+        if self._model_type == "KMeans":
+            _pg_kmeans.compute_extremum_scores(self)
 
 
 
@@ -868,12 +789,12 @@ class PersistentGraph():
                     score, clusters, clusters_info = self._clustering_model(
                         X,
                         copy_X,
-                        model_type = 'KMeans',
                         model_kw = model_kw,
                         fit_predict_kw = fit_predict_kw,
                     )
                 except ValueError:
-                    print('Step ignored: one cluster without member')
+                    if not self._quiet:
+                        print('Step ignored: one cluster without member')
                     continue
 
                 # If the score is worse than the 0th component, stop there
@@ -932,7 +853,7 @@ class PersistentGraph():
                             if (v_alive.is_equal_to(
                                 members = members,
                                 time_step = t,
-                                v_type = 'KMeans'
+                                v_type = self._model_type
                             )):
                                 to_create = False
                                 insort(
@@ -1094,8 +1015,11 @@ class PersistentGraph():
                 # New vertices are sorted
                 last_v_at_t[t] =  new_vertices[-1].num
             else:
+                if not self._quiet:
+                    print("WARNING NO NEW VERTICES")
                 continue
-                print("WARNING NO NEW VERTICES")
+
+
 
             if self._verbose:
                 print(
@@ -1208,7 +1132,8 @@ class PersistentGraph():
         self._compute_extremum_scores()
 
         if self._verbose :
-            print("Graph initialization...")
+            print(" ========= Initialization ========= ")
+
         self._graph_initialization()
 
         t_start = time.time()
