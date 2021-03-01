@@ -5,13 +5,20 @@ from utils.kmeans import kmeans_custom, row_norms
 def get_model_parameters(
         pg,
         X,
-        copy_X = None,
 ):
+    # The same N datapoints X are use for all n_clusters values
+    # Furthermore the clustering method might want to copy X
+    # Each time it is called and compute pairwise distances
+    # We avoid doing that more than once
+    # using copy_X and row_norms_X (in fit_predict_kw)
+    copy_X = np.copy(X)
     row_norms_X = row_norms(copy_X, squared=True)
-    fit_predict_kw = {"x_squared_norms" : row_norms_X}
+    fit_predict_kw = {
+        "x_squared_norms" : row_norms_X,
+        'X' : copy_X,
+        }
     model_kw = {}
     return model_kw, fit_predict_kw
-
 
 
 def compute_score(pg, model=None, X=None, clusters=None):
@@ -131,13 +138,18 @@ def compute_extremum_scores(pg):
                 pg._precision
             )
     # Compute the score of one component and choose the worst score
+
     for t in range(pg.T):
-        model_kw = {'n_clusters' : 1}
+
         X = pg._members[:,t].reshape(-1,1)
-        score, _, _ = pg._clustering_model(
-            X,
+        model_kw, fit_predict_kw = get_model_parameters(pg, X)
+        model_kw['n_clusters'] = 1
+
+        score, _, _ = clustering_model(
+            pg,
             X,
             model_kw = model_kw,
+            fit_predict_kw = fit_predict_kw,
         )
         pg._worst_scores[t] = pg.worst_score(
             score,
@@ -152,7 +164,6 @@ def compute_extremum_scores(pg):
 def clustering_model(
     pg,
     X,
-    copy_X,
     model_kw : Dict = {},
     fit_predict_kw : Dict = {},
     ):
@@ -170,7 +181,7 @@ def clustering_model(
         copy_x = False,
         **model_kw,
     )
-    labels = model.fit_predict(copy_X, **fit_predict_kw)
+    labels = model.fit_predict(**fit_predict_kw)
     if model.n_iter_ == max_iter:
         raise ValueError('Kmeans did not converge')
     clusters_info = []
