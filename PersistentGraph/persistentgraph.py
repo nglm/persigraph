@@ -6,7 +6,6 @@ import time
 from scipy.spatial.distance import sqeuclidean, cdist
 import pickle
 
-from utils.kmeans import kmeans_custom, row_norms
 from PersistentGraph import Vertex
 from PersistentGraph import Edge
 from PersistentGraph import _pg_kmeans
@@ -247,6 +246,26 @@ class PersistentGraph():
                 + str(self._SCORES_TO_MAXIMIZE + self._SCORES_TO_MINIMIZE)
                 )
         self._score_type = score_type
+
+
+    def _get_model_parameters(
+        self,
+        X,
+        copy_X = None,
+    ):
+        if self._model_type == "KMeans":
+            model_kw, fit_predict_kw = _pg_kmeans.get_model_parameters(
+                self,
+                X = X,
+                copy_X = copy_X,
+            )
+        elif self._model_type == "Naive":
+            model_kw, fit_predict_kw = _pg_naive.get_model_parameters(
+                self,
+                X = X,
+            )
+
+        return model_kw, fit_predict_kw
 
 
 
@@ -757,12 +776,13 @@ class PersistentGraph():
         """
         if self._model_type == "KMeans":
             _pg_kmeans.graph_initialization(self)
+        elif self._model_type == "Naive":
+            _pg_naive.graph_initialization(self)
 
 
     def _compute_extremum_scores(self):
         if self._model_type == "KMeans":
             _pg_kmeans.compute_extremum_scores(self)
-
 
 
     def _construct_vertices(self):
@@ -774,18 +794,24 @@ class PersistentGraph():
             # Furthermore the clustering method might want to copy X
             # Each time it is called and compute pairwise distances
             # We avoid doing that more than once
-            # using copy_X and row_norms_X
+            # using copy_X and row_norms_X (in fit_predict_kw)
             X = self._members[:, t].reshape(-1,1)
             copy_X = np.copy(X)
-            row_norms_X = row_norms(copy_X, squared=True)
+            # Get clustering model parameters required by the
+            # clustering model
+            model_kw, fit_predict_kw = self._get_model_parameters(
+                    X = X,
+                    copy_X = copy_X,
+                )
 
             local_step = 0
             for n_clusters in range(self.N-1, 0,-1):
 
-                # Fit & predict using the clustering model
-                model_kw = {'n_clusters' : n_clusters}
-                fit_predict_kw = {"x_squared_norms" : row_norms_X}
+                # Update model_kw
+                model_kw['n_clusters'] = n_clusters
+
                 try :
+                    # Fit & predict using the clustering model
                     score, clusters, clusters_info = self._clustering_model(
                         X,
                         copy_X,

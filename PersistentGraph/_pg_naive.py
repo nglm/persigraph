@@ -1,18 +1,13 @@
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict
-from utils.kmeans import kmeans_custom, row_norms
+from utils.kmeans import kmeans_custom
+from scipy.spatial.distance import sqeuclidean, cdist
 
 def get_model_parameters(
-        pg,
-        X,
-        copy_X = None,
-):
-    row_norms_X = row_norms(copy_X, squared=True)
-    fit_predict_kw = {"x_squared_norms" : row_norms_X}
-    model_kw = {}
-    return model_kw, fit_predict_kw
-
-
+    pg,
+    X = None,
+    ):
+    
 
 def compute_score(pg, model=None, X=None, clusters=None):
     if pg._score_type == 'inertia':
@@ -59,8 +54,14 @@ def compute_score(pg, model=None, X=None, clusters=None):
 
 def graph_initialization(pg):
     """
-    Initialize the graph with N components at each time step
+    Initialize the graph with 1 components at each time step (mean)
+
     """
+    # Start inialization
+    mean = np.mean(pg_members, axis=0)
+    std = np.std(pg_members, axis=0)
+    scores = np.linalg.norm(pg_members, ord=2, axis=0)
+    members = [i for i in range(pg.N)]
     for t in range(pg.T):
 
         # Initialization
@@ -70,26 +71,26 @@ def graph_initialization(pg):
         pg._v_at_step[t]['v'].append([])
         pg._v_at_step[t]['global_step_nums'].append(None)
 
-        # ======= Create one vertex per member and time step =======
-        for i in range(pg.N):
-            info = {
-                'type' : 'KMeans',
-                'params' : [pg._members[i,t], 0.], #mean, std
-                'brotherhood_size' : pg.N
-            }
-            v = pg._add_vertex(
-                info = info,
-                t = t,
-                members = [i],
-                scores = [0, None],
-                local_step = 0
-            )
+        # ======= Create one vertex per time step =======
+
+        info = {
+            'type' : 'Naive',
+            'params' : [pg._members[i,t], 0., 0], #mean, std, rep
+            'brotherhood_size' : 1
+        }
+        v = pg._add_vertex(
+            info = info,
+            t = t,
+            members = members,
+            scores = [scores[t], None],
+            local_step = 0
+        )
 
         # ========== Finalize initialization step ==================
 
         pg._local_steps[t].append({
-            'param' : {"n_clusters" : pg.N},
-            'score' : 0,
+            'param' : {"n_clusters" : 1},
+            'score' : scores[t],
         })
 
         pg._nb_local_steps[t] += 1
@@ -98,7 +99,7 @@ def graph_initialization(pg):
         if pg._verbose:
             print(" ========= ", t, " ========= ")
             print(
-                "n_clusters: ", pg.N,
+                "n_clusters: ", 1,
                 "   score: ", 0
             )
 
@@ -158,9 +159,6 @@ def clustering_model(
     ):
 
     # Default kw values
-    max_iter = model_kw.pop('max_iter', 200)
-    n_init = model_kw.pop('n_init', 10)
-    tol = model_kw.pop('tol', 1e-3)
     n_clusters = model_kw.pop('n_clusters')
     model = kmeans_custom(
         n_clusters = n_clusters,
@@ -201,3 +199,63 @@ def clustering_model(
         )
 
     return score, clusters, clusters_info
+
+
+
+def compute_dist_matrix(pg, X):
+    """
+    Compute the pairwise distance matrix for each time step
+
+    .. warning::
+
+        Distance to self is set to 0
+    """
+    dist = []
+    # append is more efficient for list than for np
+    for t in range(self.T):
+        # if your data has a single feature use array.reshape(-1, 1)
+        if self.d == 1:
+            dist_t = pairwise_distances(self.__members[:,t].reshape(-1, 1))
+        else:
+            dist_t = pairwise_distances(self.__members[:,t])
+        dist.append(dist_t/self.__dist_weights[t])
+    self.__dist_matrix = np.asarray(dist)
+
+def __sort_dist_matrix(
+    self,
+):
+    """
+    Return a vector of indices to sort distance_matrix
+    """
+    # Add NaN to avoid redundancy
+    dist_matrix = np.copy(self.__dist_matrix)
+    for t in range(self.T):
+        for i in range(self.N):
+            dist_matrix[t,i,i:] = np.nan
+            for j in range(i):
+                #If the distance is null
+                if dist_matrix[t,i,j] == 0:
+                    dist_matrix[t,i,j] = np.nan
+                    self.__nb_zeros += 1
+    # Sort the matrix (NaN should be at the end)
+    # Source:
+    # https://stackoverflow.com/questions/30577375/have-numpy-argsort-return-an-array-of-2d-indices
+    idx = np.dstack(np.unravel_index(
+        np.argsort(dist_matrix.ravel()), (self.T, self.N, self.N)
+    )).squeeze()
+
+    # Keep only the first non-NaN elements
+    for k, (t,i,j) in enumerate(idx):
+        if isnan(dist_matrix[t,i,j]):
+            idx_first_nan = k
+            break
+
+    sort_idx = idx[:idx_first_nan]
+
+    # Store min and max distances
+    (t_min, i_min, j_min) = sort_idx[0]
+    self.__dist_min = self.__dist_matrix[t_min, i_min, j_min]
+    (t_max, i_max, j_max) = sort_idx[-1]
+    self.__dist_max = self.__dist_matrix[t_max, i_max, j_max]
+
+    return(sort_idx)
