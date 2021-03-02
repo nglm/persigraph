@@ -272,14 +272,19 @@ class PersistentGraph():
         fit_predict_kw : Dict = {},
         ):
         if self._model_type == 'KMeans':
-            clusters, clusters_info, step_info = _pg_kmeans.clustering_model(
+            (
+                clusters,
+                clusters_info,
+                step_info,
+                model_kw,
+            ) = _pg_kmeans.clustering_model(
                 self,
                 X = X,
                 model_kw = model_kw,
                 fit_predict_kw = fit_predict_kw,
             )
 
-        return clusters, clusters_info, step_info
+        return clusters, clusters_info, step_info, model_kw
 
     def _is_relevant_score(
         self,
@@ -805,7 +810,12 @@ class PersistentGraph():
 
                 try :
                     # Fit & predict using the clustering model
-                    clusters, clusters_info, step_info = self._clustering_model(
+                    (
+                        clusters,
+                        clusters_info,
+                        step_info,
+                        model_kw,
+                    ) = self._clustering_model(
                         X,
                         model_kw = model_kw,
                         fit_predict_kw = fit_predict_kw,

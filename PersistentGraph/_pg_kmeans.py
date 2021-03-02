@@ -145,7 +145,7 @@ def compute_extremum_scores(pg):
         model_kw, fit_predict_kw = get_model_parameters(pg, X)
         model_kw['n_clusters'] = 1
 
-        _, _, step_info = clustering_model(
+        _, _, step_info, _ = clustering_model(
             pg,
             X,
             model_kw = model_kw,
@@ -212,4 +212,4 @@ def clustering_model(
         )
     step_info = {'score' : score}
 
-    return clusters, clusters_info, step_info
+    return clusters, clusters_info, step_info, model_kw

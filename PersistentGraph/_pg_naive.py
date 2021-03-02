@@ -56,7 +56,7 @@ def _sort_dist_matrix(
 def get_model_parameters(
     pg,
     X = None,
-    t = t
+    t = t,
 ):
     # Compute pairwise distances
     distance_matrix = pairwise_distances(X) / g._weights[t]
@@ -65,6 +65,7 @@ def get_model_parameters(
     fit_predict_kw = {
         "distance_matrix" : distance_matrix,
         "sorted_idx" : sorted_idx,
+        't' : t,
         }
 
     model_kw = {}
@@ -185,7 +186,7 @@ def clustering_model(
 
 
     # Take the 2 farthest members and the corresponding time step
-    for (t_s, i_s, j_s) in sort_idx:
+    for (i_s, j_s) in sort_idx:
 
         # Iterate algo only if i_s and j_s are in the same vertex
         if (self.__M_v[s][t_s, i_s] == self.__M_v[s][t_s, j_s]):
@@ -197,7 +198,7 @@ def clustering_model(
             if verbose:
                 print(
                     "==== Step ", str(s), "====",
-                    "(t, i, j) = ", (t_s, j_s, i_s),
+                    "(i, j) = ", (j_s, i_s),
                     "distance i-j: ", self.__dist_matrix[t_s, i_s, j_s]
                 )
             self.__steps.append((t_s, i_s, j_s))
