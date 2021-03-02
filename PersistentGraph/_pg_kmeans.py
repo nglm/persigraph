@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict
 from utils.kmeans import kmeans_custom, row_norms
+from scipy.spatial.distance import sqeuclidean, cdist
 
 def get_model_parameters(
         pg,
@@ -191,8 +192,6 @@ def clustering_model(
         members = [m for m in range(pg.N) if labels[m] == label_i]
         clusters.append(members)
         if members == []:
-            if pg._quiet:
-                print("No members in cluster")
             raise ValueError('No members in cluster')
         # Info related to this specific vertex
         clusters_info.append({
@@ -211,5 +210,7 @@ def clustering_model(
             clusters = clusters,
         )
     step_info = {'score' : score}
+
+    #TODO: add cluster center to model_kw for future clustering
 
     return clusters, clusters_info, step_info, model_kw

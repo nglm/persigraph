@@ -1,26 +1,9 @@
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict
 from utils.kmeans import kmeans_custom
+from utils.sorted_lists import insert_no_duplicate
 from scipy.spatial.distance import sqeuclidean, cdist
 
-def compute_dist_matrix(pg, X):
-    """
-    Compute the pairwise distance matrix for each time step
-
-    .. warning::
-
-        Distance to self is set to 0
-    """
-    dist = []
-    # append is more efficient for list than for np
-    for t in range(self.T):
-        # if your data has a single feature use array.reshape(-1, 1)
-        if self.d == 1:
-            dist_t = pairwise_distances(self.__members[:,t].reshape(-1, 1))
-        else:
-            dist_t = pairwise_distances(self.__members[:,t])
-        dist.append(dist_t/self.__dist_weights[t])
-    self.__dist_matrix = np.asarray(dist)
 
 def _sort_dist_matrix(
     pg,
@@ -60,59 +43,19 @@ def get_model_parameters(
 ):
     # Compute pairwise distances
     distance_matrix = pairwise_distances(X) / g._weights[t]
+    #np.fill_diagonal(distance_matrix, np.nan)
     # Argsort of pairwise distances
     sorted_idx = _sort_dist_matrix(pg, distance_matrix)
+    # t is needed to access members_v_distrib[t][-1]
     fit_predict_kw = {
         "distance_matrix" : distance_matrix,
         "sorted_idx" : sorted_idx,
         't' : t,
         }
-
-    model_kw = {}
+    # idx is needed to know which i, j are the next candidates
+    model_kw = {'idx' : 0}
     return model_kw, fit_predict_kw
 
-def compute_score(pg, model=None, X=None, clusters=None):
-    if pg._score_type == 'inertia':
-        return np.around(model.inertia_, pg._precision)
-    elif pg._score_type == 'max_inertia':
-        score = 0
-        for i_cluster, members in enumerate(clusters):
-            score = max(
-                score,
-                np.sum(cdist(
-                    X[members],
-                    np.mean(X[members]).reshape(-1, 1) ,
-                    metric='sqeuclidean'
-                    )
-                ))
-            return np.around(score, pg._precision)
-    elif pg._score_type == 'min_inertia':
-        score = np.inf
-        for i_cluster, members in enumerate(clusters):
-            score = min(
-                score,
-                np.sum(cdist(
-                    X[members],
-                    np.mean(X[members]).reshape(-1, 1) ,
-                    metric='sqeuclidean'
-                    )
-                ))
-            return np.around(score, pg._precision)
-    elif pg._score_type == 'variance':
-        score = 0
-        for i_cluster, members in enumerate(clusters):
-            score += len(members)/pg.N * np.var(X[members])
-        return np.around(score, pg._precision)
-    elif pg._score_type == 'max_variance':
-        score = 0
-        for i_cluster, members in enumerate(clusters):
-            score = max(np.var(X[members]), score)
-        return np.around(score, pg._precision)
-    elif pg._score_type == 'min_variance':
-        score = np.inf
-        for i_cluster, members in enumerate(clusters):
-            score = min(np.var(X[members]), score)
-        return np.around(score, pg._precision)
 
 def graph_initialization(pg):
     """
@@ -179,84 +122,69 @@ def compute_extremum_scores(pg):
 def clustering_model(
     pg,
     X,
-    copy_X,
     model_kw : Dict = {},
     fit_predict_kw : Dict = {},
     ):
-
+    t = fit_predict_kw['t']
+    idx = model_kw['idx']
 
     # Take the 2 farthest members and the corresponding time step
-    for (i_s, j_s) in sort_idx:
+    for k, (i, j) in enumerate(fit_predict_kw['sorted_idx'][idx:]):
 
         # Iterate algo only if i_s and j_s are in the same vertex
-        if (self.__M_v[s][t_s, i_s] == self.__M_v[s][t_s, j_s]):
+        if pg._members_v_distrib[t][-1][i] == pg._members_v_distrib[t][-1][j]:
 
             # End algo if the 2 farthest apart members are equal
-            if self.__dist_matrix[t_s, i_s, j_s] == 0:
-                break
+            if fit_predict_kw['distance_matrix'][i, j] == 0:
+                raise ValueError('Remaining members are now equal')
 
-            if verbose:
-                print(
-                    "==== Step ", str(s), "====",
-                    "(i, j) = ", (j_s, i_s),
-                    "distance i-j: ", self.__dist_matrix[t_s, i_s, j_s]
-                )
-            self.__steps.append((t_s, i_s, j_s))
-            self.__distances.append(self.__dist_matrix[t_s, i_s, j_s])
+            # =============== Fit & predict part =======================
 
-            # List of new representatives
-            representatives = self.__update_representatives(
-                s=s,
-                t=t_s,
-                i=i_s,
-                j=j_s,
-                verbose=verbose,
-            )
+            # We'll break this vertex into 2 vertices represented by i and j
+            v_to_break = pg._members_v_distrib[t][-1][i]
+            rep_to_break = v_to_break.info['params'][2]
 
+            # Extract representatives of alive vertices
+            rep = []
+            for v_alive in pg._vertices[t][pg._v_at_step[t][-1]]:
+                # We want to remove rep_to_break from rep
+                if v_alive.info['params'][2] != rep_to_break
+                    insert_no_duplicate(rep, v_alive.info['params'][2])
+            # Now we want to add the new reps i,j replacing rep_to_break
+            insert_no_duplicate(rep, i)
+            insert_no_duplicate(rep, j)
 
+            # extract distance to representatives
+            dist = []
+            for r in representatives:
+                dist.append(fit_predict_kw['distance_matrix'][r])
 
+            dist = np.asarray(dist)     # (nb_rep, N) array
+            # for each member, find the representative that is the closest
+            idx = np.nanargmin(dist, axis=0)
 
-    # Default kw values
-    n_clusters = model_kw.pop('n_clusters')
-    model = kmeans_custom(
-        n_clusters = n_clusters,
-        max_iter = max_iter,
-        tol = tol,
-        n_init = n_init,
-        copy_x = False,
-        **model_kw,
-    )
-    labels = model.fit_predict(copy_X, **fit_predict_kw)
-    if model.n_iter_ == max_iter:
-        raise ValueError('Kmeans did not converge')
-    clusters_info = []
-    clusters = []
-    for label_i in range(n_clusters):
-        # Members belonging to that clusters
-        members = [m for m in range(pg.N) if labels[m] == label_i]
-        clusters.append(members)
-        if members == []:
-            if pg._quiet:
-                print("No members in cluster")
-            raise ValueError('No members in cluster')
-        # Info related to this specific vertex
-        clusters_info.append({
-            'type' : 'KMeans',
-            'params' : [
-                float(model.cluster_centers_[label_i]),
-                float(np.std(X[members])),
-                ],
-            'brotherhood_size' : n_clusters
-        })
+            # ========== clusters, cluster_info, step_info =============
 
-    score = compute_score(
-            pg,
-            model = model,
-            X = X,
-            clusters = clusters,
-        )
+            score = np.linalg.norm(pg._members[i,t]-pg._members[j,t] , ord=2)
+            step_info = {'score' : score}
+            clusters_info = []
+            clusters = []
+            for i_cluster in range(n_cluster):
+                # Members belonging to that clusters
+                members = [m for m in range(pg.N) if rep[m] == rep[i_cluster]]
+                clusters.append(members)
+                # Info related to this specific vertex
+                clusters_info.append({
+                    'type' : 'Naive',
+                    'params' : [
+                        np.mean(members),
+                        np.std(members),
+                        rep[i_cluster]
+                        ],
+                    })
 
-    return score, clusters, clusters_info
+            model_kw['idx'] = k + idx
+            # Stop for loop
+            break
 
-
-
+    return clusters, clusters_info, step_info, model_kw

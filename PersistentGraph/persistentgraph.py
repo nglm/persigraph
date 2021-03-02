@@ -1,14 +1,13 @@
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict
-from utils.sorted_lists import bisect_search, insert_no_duplicate, concat_no_duplicate, reverse_bisect_left
-from bisect import bisect, bisect_left, bisect_right, insort
+from bisect import bisect, bisect_right, insort
 import time
-from scipy.spatial.distance import sqeuclidean, cdist
 import pickle
 
 from PersistentGraph import Vertex
 from PersistentGraph import Edge
 from PersistentGraph import _pg_kmeans
+from utils.sorted_lists import insert_no_duplicate, concat_no_duplicate
 
 class PersistentGraph():
     _SCORES_TO_MINIMIZE = [
@@ -160,6 +159,7 @@ class PersistentGraph():
         self._nb_vertices = np.zeros((self.T), dtype=int)
         self._nb_edges = np.zeros((self.T-1), dtype=int)
         # Nested list (time, nb_vertices/edges) of vertices/edges
+        # Here are stored Vertices/Edges themselves, not only their num
         self._vertices = [[] for _ in range(self.T)]
         self._edges = [[] for _ in range(self.T-1)]
         # Nested list (time, nb_local_steps) of dict storing info about
@@ -278,6 +278,18 @@ class PersistentGraph():
                 step_info,
                 model_kw,
             ) = _pg_kmeans.clustering_model(
+                self,
+                X = X,
+                model_kw = model_kw,
+                fit_predict_kw = fit_predict_kw,
+            )
+        elif self._model_type == 'Naive':
+            (
+                clusters,
+                clusters_info,
+                step_info,
+                model_kw,
+            ) = _pg_naive.clustering_model(
                 self,
                 X = X,
                 model_kw = model_kw,
@@ -820,9 +832,9 @@ class PersistentGraph():
                         model_kw = model_kw,
                         fit_predict_kw = fit_predict_kw,
                     )
-                except ValueError:
+                except ValueError as ve:
                     if not self._quiet:
-                        print('Step ignored: one cluster without member')
+                        print(str(ve))
                     continue
                 score = step_info['score']
 
