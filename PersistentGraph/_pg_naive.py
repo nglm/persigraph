@@ -183,6 +183,38 @@ def clustering_model(
     fit_predict_kw : Dict = {},
     ):
 
+
+    # Take the 2 farthest members and the corresponding time step
+    for (t_s, i_s, j_s) in sort_idx:
+
+        # Iterate algo only if i_s and j_s are in the same vertex
+        if (self.__M_v[s][t_s, i_s] == self.__M_v[s][t_s, j_s]):
+
+            # End algo if the 2 farthest apart members are equal
+            if self.__dist_matrix[t_s, i_s, j_s] == 0:
+                break
+
+            if verbose:
+                print(
+                    "==== Step ", str(s), "====",
+                    "(t, i, j) = ", (t_s, j_s, i_s),
+                    "distance i-j: ", self.__dist_matrix[t_s, i_s, j_s]
+                )
+            self.__steps.append((t_s, i_s, j_s))
+            self.__distances.append(self.__dist_matrix[t_s, i_s, j_s])
+
+            # List of new representatives
+            representatives = self.__update_representatives(
+                s=s,
+                t=t_s,
+                i=i_s,
+                j=j_s,
+                verbose=verbose,
+            )
+
+
+
+
     # Default kw values
     n_clusters = model_kw.pop('n_clusters')
     model = kmeans_custom(

@@ -272,14 +272,14 @@ class PersistentGraph():
         fit_predict_kw : Dict = {},
         ):
         if self._model_type == 'KMeans':
-            score, clusters, clusters_info = _pg_kmeans.clustering_model(
+            clusters, clusters_info, step_info = _pg_kmeans.clustering_model(
                 self,
                 X = X,
                 model_kw = model_kw,
                 fit_predict_kw = fit_predict_kw,
             )
 
-        return score, clusters, clusters_info
+        return clusters, clusters_info, step_info
 
     def _is_relevant_score(
         self,
@@ -805,7 +805,7 @@ class PersistentGraph():
 
                 try :
                     # Fit & predict using the clustering model
-                    score, clusters, clusters_info = self._clustering_model(
+                    clusters, clusters_info, step_info = self._clustering_model(
                         X,
                         model_kw = model_kw,
                         fit_predict_kw = fit_predict_kw,
@@ -814,6 +814,7 @@ class PersistentGraph():
                     if not self._quiet:
                         print('Step ignored: one cluster without member')
                     continue
+                score = step_info['score']
 
                 # If the score is worse than the 0th component, stop there
                 if self.better_score(self._zero_scores[t], score):
