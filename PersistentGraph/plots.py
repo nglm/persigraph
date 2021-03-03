@@ -2,7 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection, PathCollection, PolyCollection, EllipseCollection
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.animation import FuncAnimation, PillowWriter
 from matplotlib.path import Path
+import time
 import random
 from math import exp
 from PersistentGraph.analysis import sort_components_by
@@ -529,6 +531,95 @@ def plot_as_graph(
     ax.set_ylabel(ax_kw['ylabel'])
     ax.set_title(title)
     return fig, ax
+
+
+def __init_make_gif():
+
+    return None
+
+def __update_make_gif(
+    s,
+    g,
+    show_vertices: bool = True,
+    show_edges: bool = True,
+    threshold_m:int = 1,
+    threshold_l:float = 0.00,
+    cumulative=True,
+    ax = None,
+    verbose = False,
+):
+    if not cumulative:
+        ax.collections = []
+        ax.artists = []
+        # ax.set_xlim(g.min_time_step, g.max_time_step)
+        # ax.set_ylim(g.min_value-1, g.max_value+1)
+    if verbose:
+        print(s)
+    fig, ax = plot_as_graph(
+        g,
+        s = s,
+        show_vertices = show_vertices,
+        show_edges = show_edges,
+        threshold_m = threshold_m,
+        threshold_l = threshold_l,
+        ax = ax,
+    )
+
+def make_gif(
+    g,
+    show_vertices: bool = True,
+    show_edges: bool = True,
+    threshold_m:int = 1,
+    threshold_l:float = 0.01,
+    cumulative=True,
+    ax = None,
+    fig = None,
+    fig_kw: dict = {"figsize" : (5,5)},
+    ax_kw: dict = {'xlabel' : "Time (h)",
+                   'ylabel' : "Temperature (°C)"},
+    verbose=False,
+    max_iter=None,
+):
+    """
+    FIXME: Outdated
+    """
+
+    fig, ax = plt.subplots(**fig_kw)
+    ax.set_xlim(g.min_time_step, g.max_time_step)
+    ax.set_ylim(g.min_value-1, g.max_value+1)
+
+    if max_iter is None:
+        max_iter = g.nb_steps
+
+    fargs = (
+        g,
+        show_vertices,
+        show_edges,
+        threshold_m,
+        threshold_l,
+        cumulative,
+        ax,
+        verbose
+    )
+
+    ani = FuncAnimation(
+        fig,
+        func = __update_make_gif,
+        fargs = fargs,
+        frames = max_iter,
+        init_func = None,
+    )
+    t_end = time.time()
+    return ani
+
+
+
+    # Update drawing the next step
+    # If cumulative, simply 'add' the current step to the previous ones
+    # If not, the current frame is composed of the current step only
+
+
+
 
 def plot_barcodes(
     barcodes,
