@@ -492,9 +492,15 @@ class PersistentGraph():
                 )
 
         if self._score_is_improving:
-            score_bounds = (self._worst_scores[t], self._best_scores[t])
+            score_bounds = (
+                self._worst_scores[t+argdeath],
+                self._best_scores[t+argdeath]
+            )
         else:
-            score_bounds = (self._best_scores[t], self._worst_scores[t])
+            score_bounds = (
+                self._best_scores[t+argdeath],
+                self._worst_scores[t+argdeath]
+            )
 
         e = Edge(
             v_start = v_start,
