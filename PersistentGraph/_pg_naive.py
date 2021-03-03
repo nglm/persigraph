@@ -37,8 +37,20 @@ def _sort_dist_matrix(
         if isnan(dist_matrix[i,j]):
             idx_first_nan = k
             break
+    idx = idx[:idx_first_nan]
 
-    return idx[:idx_first_nan]
+    return idx[::-1]
+
+
+def compute_score(pg, X=None, clusters=None, t=None):
+    if pg._score_type == 'max_diameter':
+        score = 0
+        for members in clusters:
+            score_i = np.abs(
+                np.amax(X[members])-np.amin(X[members])
+            ) / pg._weights[t]
+            score = max(score_i, score)
+        return np.around(score, pg._precision)
 
 
 def get_model_parameters(
@@ -51,6 +63,8 @@ def get_model_parameters(
     #np.fill_diagonal(distance_matrix, np.nan)
     # Argsort of pairwise distances
     sorted_idx = _sort_dist_matrix(pg, distance_matrix)
+    for (i, j) in sorted_idx:
+         print(distance_matrix[i,j])
     # t is needed to access members_v_distrib[t][-1]
     fit_predict_kw = {
         "distance_matrix" : distance_matrix,
@@ -70,7 +84,9 @@ def graph_initialization(pg):
     # Start inialization
     mean = np.mean(pg._members, axis=0)
     std = np.std(pg._members, axis=0)
-    scores = np.linalg.norm(pg._members, ord=2, axis=0) / pg._weights
+    maxs = np.amax(pg._members, axis=0)
+    mins = np.amin(pg._members, axis=0)
+    scores = np.abs(maxs-mins) / pg._weights
     members = [i for i in range(pg.N)]
     for t in range(pg.T):
 
@@ -122,8 +138,10 @@ def compute_extremum_scores(pg):
         pg._zero_scores = -np.inf*np.ones(pg.T)
     else:
         pg._zero_scores = np.inf*np.ones(pg.T)
-    one_scores = np.linalg.norm(pg._members, ord=2, axis=0) / pg._weights
-    pg._worst_scores = np.ones(pg.T) * np.amax(one_scores)
+    maxs = np.amax(pg._members, axis=0)
+    mins = np.amin(pg._members, axis=0)
+    worst_score = np.max(np.abs(maxs-mins) / pg._weights)
+    pg._worst_scores = np.ones(pg.T) * worst_score
     pg._best_scores = np.zeros(pg.T)
     pg._norm_bounds = np.abs(pg._best_scores - pg._worst_scores)
     pg._are_bounds_known = True
@@ -179,8 +197,6 @@ def clustering_model(
 
             # ========== clusters, cluster_info, step_info =============
 
-            score = np.linalg.norm([pg._members[i,t]-pg._members[j,t]] , ord=2)
-            step_info = {'score' : score, 'rep' : (i,j)}
             clusters_info = []
             clusters = []
             if len(set(rep)) < n_clusters:
@@ -203,6 +219,8 @@ def clustering_model(
                         ],
                     'brotherhood_size' : n_clusters
                     })
+            score = compute_score(pg, X=X, clusters=clusters, t=t)
+            step_info = {'score' : score, 'rep' : (i,j)}
 
             model_kw['idx'] = k + idx + 1
             # Stop for loop

@@ -240,7 +240,7 @@ class PersistentGraph():
     def _set_score_type(self, score_type):
         if self._model_type == "Naive":
             self._maximize = False
-            self._score_type = "max_distance"
+            self._score_type = "max_diameter"
         else:
             if score_type in self._SCORES_TO_MAXIMIZE:
                 self._maximize = True
@@ -307,6 +307,12 @@ class PersistentGraph():
             )
 
         return clusters, clusters_info, step_info, model_kw
+
+    def _is_earlier_score(self, score1, score2, or_equal=True):
+        return (
+            self.better_score(score1, score2, or_equal)
+            != self._score_is_improving
+        )
 
     def _is_relevant_score(
         self,
@@ -449,18 +455,16 @@ class PersistentGraph():
         :rtype: Edge
         """
 
-        # if (
-        #     self.better_score(v_start.scores[1], v_end.scores[0], or_equal=True)
-        #     or self.better_score(v_end.scores[1], v_start.scores[0], or_equal=True)
-        # ):
+        # If v_start is dead before v_end is even born
+        # Or if v_end is dead before v_start is even born
         if (
-            self._is_relevant_score(v_start.scores[1], v_end.scores[0])
-            or self._is_relevant_score(v_end.scores[1], v_start.scores[0])
+            self._is_earlier_score(v_start.scores[1], v_end.scores[0])
+            or self._is_earlier_score(v_end.scores[1], v_start.scores[0])
         ):
             if not self._quiet:
                 print("v_start scores: ", v_start.scores)
                 print("v_end scores: ", v_end.scores)
-                print("WANRING: Vertices are not comtemporaries")
+                print("WARNING: Vertices are not contemporaries")
         # Create the edge
         argbirth = self.argworst(v_start.scores[0], v_end.scores[0])
         argdeath = self.argbest(v_start.scores[1], v_end.scores[1])
@@ -480,10 +484,10 @@ class PersistentGraph():
 
         score_birth = [v_start.scores[0], v_end.scores[0]][argbirth]
         score_death = [v_start.scores[1], v_end.scores[1]][argdeath]
-        if self.better_score(score_death, score_birth):
+        if (self._is_earlier_score(score_death, score_birth)):
             if not self._quiet:
                 print(
-                    "WARNING: score death better than score birth!",
+                    "WARNING: score death earlier than score birth!",
                     score_death, score_birth
                 )
 
@@ -987,7 +991,10 @@ class PersistentGraph():
 
         # ====================== Initialization ==============================
         # Current local step (i.e step_t[i] represents the ith step at t)
-        step_t = -1 * np.ones(self.T, dtype=int)
+        if self._score_is_improving:
+            step_t = np.zeros(self.T, dtype=int)
+        else:
+            step_t = -1 * np.ones(self.T, dtype=int)
 
         # Find the score of the first algorithm step at each time step
         candidate_scores = np.array([

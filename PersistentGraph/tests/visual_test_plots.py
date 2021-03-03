@@ -20,7 +20,7 @@ members = np.array([
 ])
 
 model_type = "KMeans"
-#model_type = "Naive"
+model_type = "Naive"
 
 g = PersistentGraph(
     members,
