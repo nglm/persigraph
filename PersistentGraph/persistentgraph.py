@@ -176,6 +176,7 @@ class PersistentGraph():
             'time_steps' : [],
             'local_step_nums' : [],
             'ratio_scores' : [],
+            'scores' : [],
             'params' : [],
         }
 
@@ -479,8 +480,8 @@ class PersistentGraph():
         # If v_start is dead before v_end is even born
         # Or if v_end is dead before v_start is even born
         if (
-            v_start.score_ratios[1] <= v_end.score_ratios[0]
-            or v_end.score_ratios[1] <= v_start.score_ratios[0]
+            v_start.score_ratios[1] < v_end.score_ratios[0]
+            or v_end.score_ratios[1] < v_start.score_ratios[0]
         ):
             if not self._quiet:
                 print("v_start scores: ", v_start.score_ratios)
@@ -489,19 +490,6 @@ class PersistentGraph():
         # Create the edge
         argbirth = np.argmax([v_start.score_ratios[0], v_end.score_ratios[0]])
         argdeath = np.argmin([v_start.score_ratios[1], v_end.score_ratios[1]])
-        # This if condition is what solved the problem of ratio birth > 1
-        # That happens
-        # if v_start.scores[1] is None and v_end.scores[1] is None:
-        #     if self._score_is_improving:
-        #         argdeath = self.argbest(
-        #             self._best_scores[t],
-        #             self._best_scores[t+1]
-        #         )
-        #     else:
-        #         argdeath = self.argworst(
-        #             self._worst_scores[t],
-        #             self._worst_scores[t+1]
-        #         )
 
         # Note that score birth and death might not be consistent but
         # The most important thing is the ratios which must be consistent
@@ -510,41 +498,30 @@ class PersistentGraph():
 
         ratio_birth = [v_start.score_ratios[0], v_end.score_ratios[0]][argbirth]
         ratio_death = [v_start.score_ratios[1], v_end.score_ratios[1]][argdeath]
-        if (ratio_death <= ratio_birth):
+        if (ratio_death < ratio_birth):
             if not self._quiet:
                 print(
                     "WARNING: ratio death smaller than ratio birth!",
                     ratio_death, ratio_birth
                 )
 
-        # if self._score_is_improving:
-        #     score_bounds = (
-        #         self._worst_scores[t+argdeath],
-        #         self._best_scores[t+argdeath]
-        #     )
-        # else:
-        #     score_bounds = (
-        #         self._best_scores[t+argdeath],
-        #         self._worst_scores[t+argdeath]
-        #     )
+        if ratio_death > ratio_birth:
+            e = Edge(
+                v_start = v_start,
+                v_end = v_end,
+                t = t,
+                num = self._nb_edges[t],
+                members = members,
+                scores = [score_birth, score_death],
+                score_ratios = [ratio_birth, ratio_death],
+                total_nb_members = self.N,
+            )
 
-        e = Edge(
-            v_start = v_start,
-            v_end = v_end,
-            t = t,
-            num = self._nb_edges[t],
-            members = members,
-            scores = [score_birth, score_death],
-            #score_bounds = score_bounds,
-            score_ratios = [ratio_birth, ratio_death],
-            total_nb_members = self.N,
-        )
-
-        # Update the graph with the new edge
-        self._nb_edges[t] += 1
-        self._edges[t].append(e)
-        insort(self._e_at_step[t]['e'][-1], e.num)
-        return e
+            # Update the graph with the new edge
+            self._nb_edges[t] += 1
+            self._edges[t].append(e)
+            insort(self._e_at_step[t]['e'][-1], e.num)
+            return e
 
 
     def _kill_vertices(
@@ -576,20 +553,19 @@ class PersistentGraph():
         self,
         t:int,
         edges: List[int],
-        score: float = None,
+        ratio: float = None,
     ):
         """
-        Keep edges that are not dead yet at that score
+        Keep edges that are not dead yet at that ratio
 
         Assume that edges are already born (This is the edges's counterpart
         of "kill_vertices" function)
         """
-        if score is not None:
+        if ratio is not None:
             if not isinstance(edges, list):
                 edges = [edges]
             return [
-                e for e in edges
-                if self.better_score(score, self._edges[t][e].scores[1])
+                e for e in edges if ratio < self._edges[t][e].score_ratios[1]
                 ]
 
 
@@ -1047,26 +1023,26 @@ class PersistentGraph():
 
         # ====================== Initialization ==============================
         # Current local step (i.e step_t[i] represents the ith step at t)
-        if self._score_is_improving:
-            step_t = np.zeros(self.T, dtype=int)
-        else:
-            step_t = -1 * np.ones(self.T, dtype=int)
-        # step_t = -1 * np.ones(self.T, dtype=int)
+        # if self._score_is_improving:
+        #     step_t = np.zeros(self.T, dtype=int)
+        # else:
+        #     step_t = -1 * np.ones(self.T, dtype=int)
+        step_t = -1 * np.ones(self.T, dtype=int)
         # step_t = np.zeros(self.T, dtype=int)
 
-        # Find the score of the first algorithm step at each time step
-        candidate_scores = np.array([
+        # Find the ratio of the first algorithm step at each time step
+        candidate_ratios = np.array([
             self._local_steps[t][0]["ratio_score"]
             for t in range(self.T)
         ])
-        # candidate_time_steps[i] is the time step of candidate_scores[i]
-        candidate_time_steps = list(np.argsort( candidate_scores ))
+        # candidate_time_steps[i] is the time step of candidate_ratios[i]
+        candidate_time_steps = list(np.argsort( candidate_ratios ))
 
-        # Now candidate_scores are sorted in increasing order
-        candidate_scores = list(candidate_scores[candidate_time_steps])
+        # Now candidate_ratios are sorted in increasing order
+        candidate_ratios = list(candidate_ratios[candidate_time_steps])
 
         i = 0
-        while candidate_scores:
+        while candidate_ratios:
 
             # ==== Find the candidate score with its associated time step ====
             if self._score_is_improving:
@@ -1085,14 +1061,17 @@ class PersistentGraph():
                     "Step ", i, " = ",
                     ' t: ', t,
                     'local step_num: ', step_t[t],
-                    ' ratio_score: %.4f ' %candidate_scores[idx_candidate]
+                    ' ratio_score: %.4f ' %candidate_ratios[idx_candidate]
                 )
 
             # ==================== Update sorted_steps =======================
             self._sorted_steps['time_steps'].append(t)
             self._sorted_steps['local_step_nums'].append(step_t[t])
             self._sorted_steps['ratio_scores'].append(
-                candidate_scores[idx_candidate]
+                candidate_ratios[idx_candidate]
+            )
+            self._sorted_steps['scores'].append(
+                self._local_steps[t][step_t[t]]["score"]
             )
             self._sorted_steps['params'].append(
                 self._local_steps[t][step_t[t]]["param"]
@@ -1106,15 +1085,15 @@ class PersistentGraph():
             # ======= Update candidates: deletion and insertion ==============
 
             # 1. Deletion:
-            del candidate_scores[idx_candidate]
+            del candidate_ratios[idx_candidate]
             del candidate_time_steps[idx_candidate]
 
             # 2. Insertion if there are more local steps available:
             step_t[t] += 1
             if step_t[t] < self._nb_local_steps[t]:
-                next_score = self._local_steps[t][step_t[t]]["ratio_score"]
-                idx_insert = bisect(candidate_scores, next_score)
-                candidate_scores.insert(idx_insert, next_score)
+                next_ratio = self._local_steps[t][step_t[t]]["ratio_score"]
+                idx_insert = bisect(candidate_ratios, next_ratio)
+                candidate_ratios.insert(idx_insert, next_ratio)
                 candidate_time_steps.insert(idx_insert, t)
 
             i += 1
@@ -1135,7 +1114,7 @@ class PersistentGraph():
         for s in range(self.nb_steps):
             # Find the next time step
             t = self._sorted_steps['time_steps'][s]
-            score =  self._sorted_steps['ratio_scores'][s]
+            ratio =  self._sorted_steps['ratio_scores'][s]
             # Find the next local step at this time step
             local_step_nums[t] = self._sorted_steps['local_step_nums'][s]
             local_s = local_step_nums[t]
@@ -1153,8 +1132,6 @@ class PersistentGraph():
                     print("WARNING NO NEW VERTICES")
                 continue
 
-
-
             if self._verbose:
                 print(
                     "Step ", s, " = ",
@@ -1166,24 +1143,22 @@ class PersistentGraph():
             nb_new_edges_from = 0
 
             if ( (t < self.T - 1) and (local_step_nums[t + 1] != -1)):
-                #self._e_at_step[t]['e'].append([])
                 self._e_at_step[t]['e'].append(
                     self._keep_alive_edges(
                         t,
                         self.get_alive_edges(steps=s-1,t=int(t)),
-                        score,
+                        ratio,
                         )
                     )
                 self._e_at_step[t]['global_step_nums'].append(s)
             nb_new_edges_to = 0
 
             if ( (t > 0) and (local_step_nums[t - 1] != -1) ):
-                #self._e_at_step[t - 1]['e'].append([])
                 self._e_at_step[t - 1]['e'].append(
                     self._keep_alive_edges(
                         t-1,
                         self.get_alive_edges(steps=s-1,t=int(t-1)),
-                        score,
+                        ratio,
                         )
                     )
                 self._e_at_step[t - 1]['global_step_nums'].append(s)
@@ -1192,26 +1167,24 @@ class PersistentGraph():
 
                 # ======== Construct edges from t-1 to t ===============
                 if ( (t > 0) and (local_step_nums[t - 1] != -1) ):
-                    #step_num_start = max(local_step_nums[t-1], 0)
-                    step_num_start =local_step_nums[t-1]
+                    step_num_start = local_step_nums[t-1]
                     v_starts = set([
                         self._vertices[t-1][self._members_v_distrib[t-1][step_num_start][m]]
                         for m in v_new.members
                     ])
                     for v_start in v_starts:
                         members = v_new.get_common_members(v_start)
-                        nb_new_edges_to += 1
-                        self._add_edge(
+                        e = self._add_edge(
                             v_start = v_start,
                             v_end = v_new,
                             t = t-1,
                             members = members,
                         )
+                        if e is not None:
+                            nb_new_edges_to += 1
 
                 # ======== Construct edges from t to t+1 ===============
                 if ( (t < self.T - 1) and (local_step_nums[t + 1] != -1)):
-
-                    #step_num_end = max(local_step_nums[t + 1], 0)
                     step_num_end = local_step_nums[t+1]
                     v_ends = set([
                         self._vertices[t+1][self._members_v_distrib[t+1][step_num_end][m]]
@@ -1220,12 +1193,14 @@ class PersistentGraph():
                     for v_end in v_ends:
                         nb_new_edges_from += 1
                         members = v_new.get_common_members(v_end)
-                        self._add_edge(
+                        e = self._add_edge(
                             v_start = v_new,
                             v_end = v_end,
                             t = t,
                             members = members,
                         )
+                        if e is not None:
+                            nb_new_edges_from += 1
             if self._verbose == 2:
                 print("nb new edges going FROM t: ", nb_new_edges_from)
                 print("nb new edges going TO t: ", nb_new_edges_to)
