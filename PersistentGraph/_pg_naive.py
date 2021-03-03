@@ -63,8 +63,6 @@ def get_model_parameters(
     #np.fill_diagonal(distance_matrix, np.nan)
     # Argsort of pairwise distances
     sorted_idx = _sort_dist_matrix(pg, distance_matrix)
-    for (i, j) in sorted_idx:
-         print(distance_matrix[i,j])
     # t is needed to access members_v_distrib[t][-1]
     fit_predict_kw = {
         "distance_matrix" : distance_matrix,
@@ -101,7 +99,7 @@ def graph_initialization(pg):
 
         info = {
             'type' : 'Naive',
-            'params' : [np.mean(pg._members[:,t]), 0., 0], #mean, std, rep
+            'params' : [mean[t], std[t], 0], #mean, std, rep
             'brotherhood_size' : 1
         }
         v = pg._add_vertex(
@@ -200,8 +198,6 @@ def clustering_model(
             clusters_info = []
             clusters = []
             if len(set(rep)) < n_clusters:
-                print(rep)
-                print(n_clusters)
                 raise ValueError('No members in cluster')
             for i_cluster in range(n_clusters):
                 # Members belonging to that clusters
@@ -213,14 +209,14 @@ def clustering_model(
                 clusters_info.append({
                     'type' : 'Naive',
                     'params' : [
-                        np.mean(members),
-                        np.std(members),
+                        np.mean(X[members]),
+                        np.std(X[members]),
                         rep[i_cluster]
                         ],
                     'brotherhood_size' : n_clusters
                     })
             score = compute_score(pg, X=X, clusters=clusters, t=t)
-            step_info = {'score' : score, 'rep' : (i,j)}
+            step_info = {'score' : score, '(i,j)' : (i,j)}
 
             model_kw['idx'] = k + idx + 1
             # Stop for loop

@@ -1011,7 +1011,7 @@ class PersistentGraph():
         while candidate_scores:
 
             # ==== Find the candidate score with its associated time step ====
-            if self._maximize:
+            if self._score_is_improving:
                 idx_candidate = -1
             else:
                 idx_candidate = 0

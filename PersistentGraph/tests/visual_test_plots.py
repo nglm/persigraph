@@ -52,7 +52,7 @@ for t in range(g.T):
 for t in range(g.T):
     print(' -------------- ', t, ' -------------- ')
     print(g.time_axis[g.vertices[t][0].time_step])
-    #print([ (v.info['params'][0]) for v in g.vertices[t] ])
+    print("v.info['params']: ",  [ (v.info['params']) for v in g.vertices[t] ])
     if t < g.T-1:
         print("v_end/start:", [ (e.v_start.num, e.v_end.num) for e in g.edges[t] ])
         print("scores:", [ (e.scores) for e in g.edges[t] ])
