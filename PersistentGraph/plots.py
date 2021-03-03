@@ -336,8 +336,17 @@ def plot_gaussian_edges(
         #     [(f(e.life_span)*c1 + (1-f(e.life_span))*c2)
         #     for e in edges]
         # ).reshape((-1, 4)) / 255
+        # brotherhood_size = np.amax([
+        #     e.v_start.info['brotherhood_size'],
+        #     e.v_end.info['brotherhood_size']
+        # ])
         colors = np.asarray(
-            [color_list[e.v_start.info['brotherhood_size']] for e in edges]
+            [color_list[
+                np.amax([
+                    e.v_start.info['brotherhood_size'],
+                    e.v_end.info['brotherhood_size']
+                    ])
+                ] for e in edges]
         ).reshape((-1, 4))
         colors[:,3] = alphas
 
