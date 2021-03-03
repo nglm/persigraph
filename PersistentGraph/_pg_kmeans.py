@@ -170,7 +170,7 @@ def clustering_model(
     ):
 
     # Default kw values
-    max_iter = model_kw.pop('max_iter', 200)
+    max_iter = model_kw.pop('max_iter', 100)
     n_init = model_kw.pop('n_init', 10)
     tol = model_kw.pop('tol', 1e-3)
     n_clusters = model_kw.pop('n_clusters')

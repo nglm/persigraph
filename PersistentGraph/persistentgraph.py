@@ -591,35 +591,6 @@ class PersistentGraph():
         :rtype: [type]
         """
         #TODO: Not all cases are implemented yet
-
-        if self._score_is_improving:
-            if self._maximize:
-                s = bisect_right(
-                    self._v_at_step[t]['global_step_nums'],
-                    step,
-                    hi = self._nb_local_steps[t],
-                    )
-                # We want the local step's global step to be equal or inferior
-                # to the step given
-                s -= 1
-            else:
-                #print("Not implemented yet")
-                s = reverse_bisect_right(
-                    self._v_at_step[t]['global_step_nums'], step
-                )
-                s -= 1
-        else:
-            if self._maximize:
-                print("Not implemented yet")
-            else:
-                s = bisect_right(
-                    self._v_at_step[t]['global_step_nums'],
-                    step,
-                    hi = self._nb_local_steps[t],
-                    )
-                # We want the local step's global step to be equal or inferior
-                # to the step given
-                s -= 1
         s = bisect_right(
             self._v_at_step[t]['global_step_nums'],
             step,
@@ -628,7 +599,6 @@ class PersistentGraph():
         # We want the local step's global step to be equal or inferior
         # to the step given
         s -= 1
-
         return s
 
     def get_e_local_step_from_global_step(
@@ -652,28 +622,6 @@ class PersistentGraph():
         :return: [description]
         :rtype: [type]
         """
-        #TODO: Not all cases are implemented yet
-
-        if self._score_is_improving:
-            if self._maximize:
-                s = bisect_right(self._e_at_step[t]['global_step_nums'], step)
-                # We want the local step's global step to be equal or inferior
-                # to the step given
-                s -= 1
-            else:
-                #print("Not implemented yet")
-                s = reverse_bisect_right(
-                    self._e_at_step[t]['global_step_nums'], step
-                )
-                s -= 1
-        else:
-            if self._maximize:
-                print("Not implemented yet")
-            else:
-                s = bisect_right(self._e_at_step[t]['global_step_nums'], step)
-                # We want the local step's global step to be equal or inferior
-                # to the step given
-                s -= 1
         s = bisect_right(self._e_at_step[t]['global_step_nums'], step)
         # We want the local step's global step to be equal or inferior
         # to the step given

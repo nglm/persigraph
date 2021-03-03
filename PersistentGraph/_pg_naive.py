@@ -42,17 +42,6 @@ def _sort_dist_matrix(
     return idx[::-1]
 
 
-# def compute_score(pg, X=None, clusters=None, t=None):
-    # if pg._score_type == 'max_diameter':
-    #     score = 0
-    #     for members in clusters:
-    #         score_i = np.abs(
-    #             np.amax(X[members])-np.amin(X[members])
-    #         ) / pg._weights[t]
-    #         score = max(score_i, score)
-    #     return np.around(score, pg._precision)
-
-
 def get_model_parameters(
     pg,
     X = None,
@@ -60,7 +49,6 @@ def get_model_parameters(
 ):
     # Compute pairwise distances
     distance_matrix = pairwise_distances(X) / pg._weights[t]
-    #np.fill_diagonal(distance_matrix, np.nan)
     # Argsort of pairwise distances
     sorted_idx = _sort_dist_matrix(pg, distance_matrix)
     # t is needed to access members_v_distrib[t][-1]
@@ -154,8 +142,10 @@ def clustering_model(
     t = fit_predict_kw['t']
     idx = model_kw['idx']
     n_clusters = model_kw.pop('n_clusters')
+    clusters = None
 
     # Take the 2 farthest members and the corresponding time step
+
     for k, (i, j) in enumerate(fit_predict_kw['sorted_idx'][idx:]):
 
         # Iterate algo only if i_s and j_s are in the same vertex
@@ -215,12 +205,13 @@ def clustering_model(
                         ],
                     'brotherhood_size' : n_clusters
                     })
-            #score = compute_score(pg, X=X, clusters=clusters, t=t)
             score = fit_predict_kw['distance_matrix'][i, j]
             step_info = {'score' : score, '(i,j)' : (i,j)}
 
             model_kw['idx'] = k + idx + 1
             # Stop for loop
             break
+    if clusters is None:
+        raise ValueError('No new clusters')
 
     return clusters, clusters_info, step_info, model_kw

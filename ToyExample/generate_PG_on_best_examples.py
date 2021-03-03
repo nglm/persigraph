@@ -34,7 +34,7 @@ FIG_SIZE2 = (14,8)
 
 score_types = [
     'max_inertia',
-    ] # put [''] if naive method
+    ] # put [''] if Naive method
 
 best_2_gaussian = [
     "std_1-1_peak_0_const_0",
@@ -88,7 +88,7 @@ def plot_pg_mean_std(
     # Construct graph
     # ------------------------------------
     if g is None:
-        if TYPE_PG == 'naive':
+        if TYPE_PG == 'Naive':
             g = PersistentGraph(time_axis=xvalues, members=members, weights=weights)
             g.construct_graph(verbose=True)
             _, axs[0] = plot_as_graph(g, show_vertices=True, ax=axs[0])
@@ -209,7 +209,7 @@ def re_plot_saved_graph():
                 g.save(dest_name_graph + name_fig)
 
                 # Same thing with weights
-                if weights is not None and TYPE_PG == 'naive':
+                if weights is not None and TYPE_PG == 'Naive':
                     g, fig, axs = plot_pg_mean_std(xvalues, members, weights=weights)
                     fig.savefig(dest_name_fig + name_fig +"_with_weights.png")
                     g.save(dest_name_graph + name_fig +"_with_weights")
@@ -262,7 +262,7 @@ def main():
                 g.save(dest_name_graph + name_fig)
 
                 # Same thing with weights
-                if weights is not None and TYPE_PG == 'naive':
+                if weights is not None and TYPE_PG == 'Naive':
                     g, fig, axs = plot_pg_mean_std(
                     xvalues = xvalues,
                     members = members,
