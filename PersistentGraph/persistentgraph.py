@@ -491,6 +491,11 @@ class PersistentGraph():
                     score_death, score_birth
                 )
 
+        if self._score_is_improving:
+            score_bounds = (self._worst_scores[t], self._best_scores[t])
+        else:
+            score_bounds = (self._best_scores[t], self._worst_scores[t])
+
         e = Edge(
             v_start = v_start,
             v_end = v_end,
@@ -498,10 +503,7 @@ class PersistentGraph():
             num = self._nb_edges[t],
             members = members,
             scores = [score_birth, score_death],
-            score_bounds = [
-                self._best_scores[t+argdeath],
-                self._worst_scores[t+argdeath]
-                ],
+            score_bounds = score_bounds,
             total_nb_members = self.N,
         )
 
@@ -980,13 +982,12 @@ class PersistentGraph():
             )
         # -------------------- Compute ratios ----------------------
         for t, v_t in enumerate(self._vertices):
+            if self._score_is_improving:
+                score_bounds = (self._worst_scores[t], self._best_scores[t])
+            else:
+                score_bounds = (self._best_scores[t], self._worst_scores[t])
             for v in v_t:
-                v.compute_ratio_scores(
-                    score_bounds = (
-                        self._best_scores[t], self._worst_scores[t]
-                    )
-                )
-
+                v.compute_ratio_scores(score_bounds = score_bounds)
     def _sort_steps(self):
 
         # ====================== Initialization ==============================

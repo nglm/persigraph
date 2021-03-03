@@ -44,16 +44,19 @@ print("number of edges: ", [len(et) for et in g.edges])
 print(g.time_axis)
 
 for t in range(g.T):
-    print(' -------------- ', t, ' -------------- ')
+    print(' ============== ', t, ' ============== ')
     print("num, value:", [ (v.num, v.info['params'][0]) for v in g.vertices[t] ])
     print(g.v_at_step[t])
 
 
 for t in range(g.T):
-    print(' -------------- ', t, ' -------------- ')
-    print(g.time_axis[g.vertices[t][0].time_step])
+    print(' ============== ', t, ' ============== ')
+    print(' ----- vertices ----- ')
     print("v.info['params']: ",  [ (v.info['params']) for v in g.vertices[t] ])
+    print("v.scores: ",  [ (v.scores) for v in g.vertices[t] ])
+    print("v.life_span: ",  [ (v.life_span) for v in g.vertices[t] ])
     if t < g.T-1:
+        print(' ----- edges ----- ')
         print("v_end/start:", [ (e.v_start.num, e.v_end.num) for e in g.edges[t] ])
         print("scores:", [ (e.scores) for e in g.edges[t] ])
         print("life span:",[ (e.life_span) for e in g.edges[t] ])
