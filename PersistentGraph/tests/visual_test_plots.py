@@ -14,16 +14,20 @@ from PersistentGraph.plots import *
 
 members = np.array([
     (0.1 ,  1.,    2.05,   1.1,   0.1 ),
-    (0.,    0,     0,    0,    0.005 ),
+    (0.005,    0,     0,    0,    0.005 ),
     (-0.1,  -1,    -2,   -1,   0.05 ),
     (0.05,  -0.4,  -0.6, -0.5, -1),
 ])
+
+model_type = "KMeans"
+#model_type = "Naive"
 
 g = PersistentGraph(
     members,
     time_axis = np.arange(5),
     score_type = 'max_variance',
     zero_type = 'uniform',
+    model_type = model_type,
     )
 print(members.shape)
 g.construct_graph(

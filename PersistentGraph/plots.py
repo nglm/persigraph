@@ -225,7 +225,7 @@ def sort_components(
             if isinstance(components[0], Vertex):
                 gaussians = [
                     c for c in components
-                    if c.info['type'] == 'gaussian' or c.info['type'] == 'KMeans'
+                    if c.info['type'] in ['gaussian','KMeans','Naive']
                 ]
                 uniforms = [ c for c in components if c.info['type'] == 'uniform' ]
             # EDGES
@@ -233,12 +233,10 @@ def sort_components(
                 gaussians = [
                     c for c in components
                     if (
-                        c.v_start.info['type'] == 'gaussian'
-                        or c.v_start.info['type'] == 'KMeans')
-                    and (
-                        c.v_end.info['type'] == 'gaussian'
-                        or c.v_end.info['type'] == 'KMeans')
-                    ]
+                        c.v_start.info['type'] in ['gaussian','KMeans','Naive']
+                    and
+                        c.v_end.info['type'] in ['gaussian','KMeans', 'Naive']
+                    )]
                 uniforms = [
                     c for c in components
                     if (c.v_start.info['type'] == 'uniform')

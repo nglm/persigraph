@@ -6,8 +6,10 @@ import pickle
 
 from PersistentGraph import Vertex
 from PersistentGraph import Edge
-from PersistentGraph import _pg_kmeans
-from utils.sorted_lists import insert_no_duplicate, concat_no_duplicate
+from PersistentGraph import _pg_kmeans, _pg_naive
+from utils.sorted_lists import (
+    insert_no_duplicate, concat_no_duplicate, reverse_bisect_right
+)
 
 class PersistentGraph():
     _SCORES_TO_MINIMIZE = [
@@ -143,14 +145,17 @@ class PersistentGraph():
         # True if we should remove vertices with short life span
         self._post_prune = False
         self._post_prune_threshold = 0
+        # Determines how to cluster the members
+        self._model_type = model_type
         # True if the score is improving with respect to the algo step
-        self._score_is_improving = score_is_improving
+        if model_type == "Naive":
+            self._score_is_improving = True
+        else:
+            self._score_is_improving = score_is_improving
         # Score type, determines how to measure how good a model is
         self._set_score_type(score_type)
         # Determines how to measure the score of the 0th component
         self._zero_type = zero_type
-        # Determines how to cluster the members
-        self._model_type = model_type
         # Total number of iteration of the algorithm
         self._nb_steps = 0
         # Local number of iteration of the algorithm
@@ -230,18 +235,23 @@ class PersistentGraph():
         self._are_bounds_known = False
         self._norm_bounds = None
         self._verbose = False
+        self._quiet = False
 
     def _set_score_type(self, score_type):
-        if score_type in self._SCORES_TO_MAXIMIZE:
-            self._maximize = True
-        elif score_type in self._SCORES_TO_MINIMIZE:
+        if self._model_type == "Naive":
             self._maximize = False
+            self._score_type = "max_distance"
         else:
-            raise ValueError(
-                "Choose an available score_type"
-                + str(self._SCORES_TO_MAXIMIZE + self._SCORES_TO_MINIMIZE)
-                )
-        self._score_type = score_type
+            if score_type in self._SCORES_TO_MAXIMIZE:
+                self._maximize = True
+            elif score_type in self._SCORES_TO_MINIMIZE:
+                self._maximize = False
+            else:
+                raise ValueError(
+                    "Choose an available score_type"
+                    + str(self._SCORES_TO_MAXIMIZE + self._SCORES_TO_MINIMIZE)
+                    )
+            self._score_type = score_type
 
 
     def _get_model_parameters(
@@ -300,25 +310,28 @@ class PersistentGraph():
 
     def _is_relevant_score(
         self,
+        previous_score,
         score,
-        previous_score
+        or_equal = False,
     ):
-        # Case if it is the first step
-        if previous_score is None:
-            res = True
-        # General case
-        else:
-            res = (
-                self.better_score(previous_score, score, or_equal=False)
-                # and self._pre_prune
-                # and (
-                #     abs(score-previous_score)
-                #     / abs(self.worst_score(previous_score, score))
-                #     > self._pre_prune_threshold
-                #     )
-                # or (not self._pre_prune and
-                #     self.better_score(score, previous_score))
+        # # Case if it is the first step
+        # if previous_score is None:
+        #     res = True
+        # # General case
+        # else:
+        curr_is_better = self.better_score(
+            score, previous_score, or_equal=or_equal
             )
+        res = curr_is_better == self._score_is_improving
+            # and self._pre_prune
+            # and (
+            #     abs(score-previous_score)
+            #     / abs(self.worst_score(previous_score, score))
+            #     > self._pre_prune_threshold
+            #     )
+            # or (not self._pre_prune and
+            #     self.better_score(score, previous_score))
+
         return res
 
     def better_score(self, score1, score2, or_equal=False):
@@ -436,9 +449,13 @@ class PersistentGraph():
         :rtype: Edge
         """
 
+        # if (
+        #     self.better_score(v_start.scores[1], v_end.scores[0], or_equal=True)
+        #     or self.better_score(v_end.scores[1], v_start.scores[0], or_equal=True)
+        # ):
         if (
-            self.better_score(v_start.scores[1], v_end.scores[0], or_equal=True)
-            or self.better_score(v_end.scores[1], v_start.scores[0], or_equal=True)
+            self._is_relevant_score(v_start.scores[1], v_end.scores[0])
+            or self._is_relevant_score(v_end.scores[1], v_start.scores[0])
         ):
             if not self._quiet:
                 print("v_start scores: ", v_start.scores)
@@ -571,7 +588,11 @@ class PersistentGraph():
                 # to the step given
                 s -= 1
             else:
-                print("Not implemented yet")
+                #print("Not implemented yet")
+                s = reverse_bisect_right(
+                    self._v_at_step[t]['global_step_nums'], step
+                )
+                s -= 1
         else:
             if self._maximize:
                 print("Not implemented yet")
@@ -617,7 +638,11 @@ class PersistentGraph():
                 # to the step given
                 s -= 1
             else:
-                print("Not implemented yet")
+                #print("Not implemented yet")
+                s = reverse_bisect_right(
+                    self._e_at_step[t]['global_step_nums'], step
+                )
+                s -= 1
         else:
             if self._maximize:
                 print("Not implemented yet")
@@ -794,6 +819,8 @@ class PersistentGraph():
     def _compute_extremum_scores(self):
         if self._model_type == "KMeans":
             _pg_kmeans.compute_extremum_scores(self)
+        elif self._model_type == "Naive":
+            _pg_naive.compute_extremum_scores(self)
 
 
     def _construct_vertices(self):
@@ -849,20 +876,20 @@ class PersistentGraph():
 
                 # Consider this step only if it improves the score
                 previous_score = self._local_steps[t][local_step]['score']
-                if self._is_relevant_score(score, previous_score):
+                if self._is_relevant_score(previous_score, score):
 
                     # -------------- New step ---------------
                     local_step += 1
                     if self._verbose:
-                        print(
-                            "n_clusters: ", n_clusters,
-                            "   score: ", score
-                        )
+                        msg = "n_clusters: " + str(n_clusters)
+                        for (key,item) in step_info.items():
+                            msg += "  " + key + ":  " + str(item)
+                        print(msg)
 
-                    self._local_steps[t].append({
-                        'param' : {"n_clusters" : n_clusters},
-                        'score' : score,
-                    })
+                    self._local_steps[t].append(
+                        {**{'param' : {"n_clusters" : n_clusters}},
+                         **step_info
+                        })
                     self._members_v_distrib[t].append(
                         np.zeros(self.N, dtype = int)
                     )
@@ -1165,6 +1192,7 @@ class PersistentGraph():
     ):
 
         self._verbose = verbose
+        self._quiet = quiet
         self._pre_prune = pre_prune
         self._pre_prune_threshold = pre_prune_threshold
         self._post_prune = post_prune

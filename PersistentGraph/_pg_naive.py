@@ -1,8 +1,13 @@
 import numpy as np
+from sklearn.metrics import pairwise_distances
 from typing import List, Sequence, Union, Any, Dict
+from math import isnan
+from bisect import insort
+
 from utils.kmeans import kmeans_custom
 from utils.sorted_lists import insert_no_duplicate
 from scipy.spatial.distance import sqeuclidean, cdist
+
 
 
 def _sort_dist_matrix(
@@ -39,10 +44,10 @@ def _sort_dist_matrix(
 def get_model_parameters(
     pg,
     X = None,
-    t = t,
+    t = None,
 ):
     # Compute pairwise distances
-    distance_matrix = pairwise_distances(X) / g._weights[t]
+    distance_matrix = pairwise_distances(X) / pg._weights[t]
     #np.fill_diagonal(distance_matrix, np.nan)
     # Argsort of pairwise distances
     sorted_idx = _sort_dist_matrix(pg, distance_matrix)
@@ -80,7 +85,7 @@ def graph_initialization(pg):
 
         info = {
             'type' : 'Naive',
-            'params' : [pg._members[i,t], 0., 0], #mean, std, rep
+            'params' : [np.mean(pg._members[:,t]), 0., 0], #mean, std, rep
             'brotherhood_size' : 1
         }
         v = pg._add_vertex(
@@ -105,15 +110,20 @@ def graph_initialization(pg):
             print(" ========= ", t, " ========= ")
             print(
                 "n_clusters: ", 1,
-                "   score: ", 0
+                "   score: ", scores[t]
             )
 
 def compute_extremum_scores(pg):
     """
     Here all time steps share the same bounds
     """
+    # zero score is not really defined for the naive method
+    if pg._maximize:
+        pg._zero_scores = -np.inf*np.ones(pg.T)
+    else:
+        pg._zero_scores = np.inf*np.ones(pg.T)
     one_scores = np.linalg.norm(pg._members, ord=2, axis=0) / pg._weights
-    self._worst_scores = np.ones(pg.T) * np.amax(one_scores)
+    pg._worst_scores = np.ones(pg.T) * np.amax(one_scores)
     pg._best_scores = np.zeros(pg.T)
     pg._norm_bounds = np.abs(pg._best_scores - pg._worst_scores)
     pg._are_bounds_known = True
@@ -127,6 +137,7 @@ def clustering_model(
     ):
     t = fit_predict_kw['t']
     idx = model_kw['idx']
+    n_clusters = model_kw.pop('n_clusters')
 
     # Take the 2 farthest members and the corresponding time step
     for k, (i, j) in enumerate(fit_predict_kw['sorted_idx'][idx:]):
@@ -141,37 +152,46 @@ def clustering_model(
             # =============== Fit & predict part =======================
 
             # We'll break this vertex into 2 vertices represented by i and j
-            v_to_break = pg._members_v_distrib[t][-1][i]
+            v_to_break = pg._vertices[t][pg._members_v_distrib[t][-1][i]]
             rep_to_break = v_to_break.info['params'][2]
+            v_to_break_j = pg._vertices[t][pg._members_v_distrib[t][-1][j]]
+            rep_to_break_j = v_to_break_j.info['params'][2]
 
             # Extract representatives of alive vertices
             rep = []
-            for v_alive in pg._vertices[t][pg._v_at_step[t][-1]]:
+            v_alive = [pg._vertices[t][v] for v in pg._v_at_step[t]['v'][-1]]
+            for v in v_alive:
                 # We want to remove rep_to_break from rep
-                if v_alive.info['params'][2] != rep_to_break
-                    insert_no_duplicate(rep, v_alive.info['params'][2])
+                if v.info['params'][2] != rep_to_break:
+                    insert_no_duplicate(rep, v.info['params'][2])
             # Now we want to add the new reps i,j replacing rep_to_break
-            insert_no_duplicate(rep, i)
-            insert_no_duplicate(rep, j)
+            insort(rep, i)
+            insort(rep, j)
 
             # extract distance to representatives
             dist = []
-            for r in representatives:
+            for r in rep:
                 dist.append(fit_predict_kw['distance_matrix'][r])
 
             dist = np.asarray(dist)     # (nb_rep, N) array
             # for each member, find the representative that is the closest
-            idx = np.nanargmin(dist, axis=0)
+            members_r = [rep[r] for r in np.nanargmin(dist, axis=0)]
 
             # ========== clusters, cluster_info, step_info =============
 
-            score = np.linalg.norm(pg._members[i,t]-pg._members[j,t] , ord=2)
-            step_info = {'score' : score}
+            score = np.linalg.norm([pg._members[i,t]-pg._members[j,t]] , ord=2)
+            step_info = {'score' : score, 'rep' : (i,j)}
             clusters_info = []
             clusters = []
-            for i_cluster in range(n_cluster):
+            if len(set(rep)) < n_clusters:
+                print(rep)
+                print(n_clusters)
+                raise ValueError('No members in cluster')
+            for i_cluster in range(n_clusters):
                 # Members belonging to that clusters
-                members = [m for m in range(pg.N) if rep[m] == rep[i_cluster]]
+                members = [
+                    m for m in range(pg.N) if members_r[m] == rep[i_cluster]
+                ]
                 clusters.append(members)
                 # Info related to this specific vertex
                 clusters_info.append({
@@ -181,9 +201,10 @@ def clustering_model(
                         np.std(members),
                         rep[i_cluster]
                         ],
+                    'brotherhood_size' : n_clusters
                     })
 
-            model_kw['idx'] = k + idx
+            model_kw['idx'] = k + idx + 1
             # Stop for loop
             break
 
