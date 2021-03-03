@@ -13,28 +13,35 @@ from PersistentGraph.plots import *
 from os.path import isfile
 from matplotlib.animation import FuncAnimation, PillowWriter
 
-TYPE_PG = 'KMeans'
+from PersistentGraph import PersistentGraph
+from PersistentGraph.plots import *
 
-if TYPE_PG == 'KMeans':
-    from PersistentGraph.persistentgraph import *
-    from PersistentGraph.plots import *
-else:
-    from PersistentGraph.persistentgraph import *
-    from PersistentGraph.plots import *
+# ---------------------------------------------------------
+# Parameters
+# ---------------------------------------------------------
+
+PG_TYPE = 'Naive'
+
+SCORE_TYPES = [
+    'max_inertia',
+    ]
+
+if PG_TYPE == 'Naive':
+    SCORE_TYPES = ['max_diameter']
+
+
+ZERO_TYPE = 'uniform'
 
 
 PATH_FIG_PARENT = "/home/natacha/Documents/tmp/figs/toyexamples/"
 SUB_DIRS = ["spaghettis/", "true_distrib/", "spaghettis_true_distrib/", "data/"]
 PATH_BEST = PATH_FIG_PARENT+ "best/"
-PATH_OUTPUTS = "PG/" +TYPE_PG+"-mean_std/"
+PATH_OUTPUTS = "PG/" +PG_TYPE+"-mean_std/"
 PATH_GIF = "GIF/"
 PATH_DISTRIB = ["2/gaussian/", "3/gaussian/", "N/gaussian/", "2/uniform/"]
 FIG_SIZE = (5,5)
 FIG_SIZE2 = (14,8)
 
-score_types = [
-    'max_inertia',
-    ] # put [''] if Naive method
 
 best_2_gaussian = [
     "std_1-1_peak_0_const_0",
@@ -88,21 +95,19 @@ def plot_pg_mean_std(
     # Construct graph
     # ------------------------------------
     if g is None:
-        if TYPE_PG == 'Naive':
-            g = PersistentGraph(time_axis=xvalues, members=members, weights=weights)
-            g.construct_graph(verbose=True)
-            _, axs[0] = plot_as_graph(g, show_vertices=True, ax=axs[0])
-        else:
-            g = PersistentGraph(
-                time_axis = xvalues,
-                members = members,
-                score_is_improving = False,
-                score_type = score_type,
-                zero_type = 'uniform',
-            )
-            g.construct_graph(
-                verbose=True,
-            )
+
+        g = PersistentGraph(
+            time_axis = xvalues,
+            members = members,
+            score_is_improving = False,
+            score_type = score_type,
+            zero_type = 'uniform',
+            model_type = PG_TYPE,
+            weights=weights,
+        )
+        g.construct_graph(
+            verbose=True,
+        )
 
     # Plot Graph
     _, axs[0] = plot_as_graph(
@@ -131,13 +136,13 @@ def rename_best():
     for i_type_best in range(len(best)):
         count = 0
         for name_fig in best[i_type_best]:
-            for score in score_types:
+            for score in SCORE_TYPES:
                 for subfold in ['plots/', 'graphs/']:
                     #for i_plot, plot_dir in enumerate(SUB_DIRS):
                     source_name = (
                         PATH_BEST
                         + PATH_DISTRIB[i_type_best] # 2/gaussian etc.
-                        + PATH_OUTPUTS              # TYPE_PG-mean_std
+                        + PATH_OUTPUTS              # PG_TYPE-mean_std
                         + score + "/"               # max_inertia etc or ''
                         + subfold                   # 'plots/','graphs/' or ['']
                         + name_fig                  # std_1-1_slope_1.0 etc
@@ -173,7 +178,7 @@ def rename_best():
 def re_plot_saved_graph():
     for i_type_best in range(len(best)):
         for name_fig in best[i_type_best]:
-            for score_type in score_types:
+            for score_type in SCORE_TYPES:
 
                 # ------------------------------------
                 # Find and copy data of best examples
@@ -209,7 +214,7 @@ def re_plot_saved_graph():
                 g.save(dest_name_graph + name_fig)
 
                 # Same thing with weights
-                if weights is not None and TYPE_PG == 'Naive':
+                if weights is not None:
                     g, fig, axs = plot_pg_mean_std(xvalues, members, weights=weights)
                     fig.savefig(dest_name_fig + name_fig +"_with_weights.png")
                     g.save(dest_name_graph + name_fig +"_with_weights")
@@ -218,7 +223,7 @@ def main():
 
     for i_type_best in range(len(best)):
         for name_fig in best[i_type_best]:
-            for score_type in score_types:
+            for score_type in SCORE_TYPES:
 
 
                 # ------------------------------------
@@ -246,7 +251,8 @@ def main():
                 g, fig, axs = plot_pg_mean_std(
                     xvalues = xvalues,
                     members = members,
-                    score_type = score_type)
+                    score_type = score_type
+                )
                 dest_name_parent = (
                     PATH_BEST
                     + PATH_DISTRIB[i_type_best]
@@ -262,12 +268,13 @@ def main():
                 g.save(dest_name_graph + name_fig)
 
                 # Same thing with weights
-                if weights is not None and TYPE_PG == 'Naive':
+                if weights is not None:
                     g, fig, axs = plot_pg_mean_std(
-                    xvalues = xvalues,
-                    members = members,
-                    score_type = score_type,
-                    weights = weights)
+                        xvalues = xvalues,
+                        members = members,
+                        score_type = score_type,
+                        weights = weights
+                    )
                     fig.savefig(dest_name_fig + name_fig +"_with_weights.png")
                     g.save(dest_name_graph + name_fig +"_with_weights")
 
