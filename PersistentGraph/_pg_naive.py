@@ -42,15 +42,15 @@ def _sort_dist_matrix(
     return idx[::-1]
 
 
-def compute_score(pg, X=None, clusters=None, t=None):
-    if pg._score_type == 'max_diameter':
-        score = 0
-        for members in clusters:
-            score_i = np.abs(
-                np.amax(X[members])-np.amin(X[members])
-            ) / pg._weights[t]
-            score = max(score_i, score)
-        return np.around(score, pg._precision)
+# def compute_score(pg, X=None, clusters=None, t=None):
+    # if pg._score_type == 'max_diameter':
+    #     score = 0
+    #     for members in clusters:
+    #         score_i = np.abs(
+    #             np.amax(X[members])-np.amin(X[members])
+    #         ) / pg._weights[t]
+    #         score = max(score_i, score)
+    #     return np.around(score, pg._precision)
 
 
 def get_model_parameters(
@@ -106,7 +106,7 @@ def graph_initialization(pg):
             info = info,
             t = t,
             members = members,
-            scores = [scores[t], None],
+            scores = [pg._worst_scores[t], None],
             local_step = 0
         )
 
@@ -114,7 +114,7 @@ def graph_initialization(pg):
 
         pg._local_steps[t].append({
             'param' : {"n_clusters" : 1},
-            'score' : scores[t],
+            'score' : pg._worst_scores[t],
         })
 
         pg._nb_local_steps[t] += 1
@@ -124,7 +124,7 @@ def graph_initialization(pg):
             print(" ========= ", t, " ========= ")
             print(
                 "n_clusters: ", 1,
-                "   score: ", scores[t]
+                "   score: ", pg._worst_scores[t]
             )
 
 def compute_extremum_scores(pg):
@@ -215,7 +215,8 @@ def clustering_model(
                         ],
                     'brotherhood_size' : n_clusters
                     })
-            score = compute_score(pg, X=X, clusters=clusters, t=t)
+            #score = compute_score(pg, X=X, clusters=clusters, t=t)
+            score = fit_predict_kw['distance_matrix'][i, j]
             step_info = {'score' : score, '(i,j)' : (i,j)}
 
             model_kw['idx'] = k + idx + 1

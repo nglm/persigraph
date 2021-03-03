@@ -25,16 +25,16 @@ def check_all(
 
 def check_O1_range(variable, var_name: str = 'Variable'):
     condition = lambda x : (x >= 0 and x <= 1)
-    msg_cond =  "should be within 0-1 range"
+    msg_cond =  " should be within 0-1 range"
     check_condition(condition, variable, var_name, msg_cond)
 
 def check_positive(variable, var_name: str = 'Variable'):
     condition = lambda x : (x >= 0)
-    msg_cond =  "should be >= 0"
+    msg_cond =  " should be >= 0"
     check_condition(condition, variable, var_name, msg_cond)
 
 def check_all_positive(iterable, var_name: str = 'Variable'):
     condition = lambda x : (x >= 0)
-    msg_cond =  "should be >= 0"
+    msg_cond =  " should be >= 0"
     check_all(condition, iterable, var_name, msg_cond)
 

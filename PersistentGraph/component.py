@@ -83,7 +83,7 @@ class Component():
             # If score_birth is ``None`` or 0 it means that the component is
             # alive since the very beginning
             if self.scores[0] is None:
-                ratio_birth = 0
+                ratio_birth = 0.
             else:
                 ratio_birth = euclidean(self.scores[0], score_bounds[0]) / norm
 
@@ -92,7 +92,7 @@ class Component():
             # If score_death is ``None`` it means that the component is not
             # dead at the end
             if self.scores[1] is None:
-                ratio_death = 1
+                ratio_death = 1.
             else:
                 ratio_death = euclidean(self.scores[1], score_bounds[0]) / norm
 

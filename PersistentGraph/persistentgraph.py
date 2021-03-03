@@ -3,6 +3,7 @@ from typing import List, Sequence, Union, Any, Dict
 from bisect import bisect, bisect_right, insort
 import time
 import pickle
+from scipy.spatial.distance import euclidean
 
 from PersistentGraph import Vertex
 from PersistentGraph import Edge
@@ -174,7 +175,7 @@ class PersistentGraph():
         self._sorted_steps = {
             'time_steps' : [],
             'local_step_nums' : [],
-            'scores' : [],
+            'ratio_scores' : [],
             'params' : [],
         }
 
@@ -312,13 +313,14 @@ class PersistentGraph():
         return (
             self.better_score(score1, score2, or_equal)
             != self._score_is_improving
+            or (score1 == score2 and or_equal)
         )
 
     def _is_relevant_score(
         self,
         previous_score,
         score,
-        or_equal = False,
+        or_equal = True,
     ):
         # # Case if it is the first step
         # if previous_score is None:
@@ -382,7 +384,26 @@ class PersistentGraph():
         else:
             return score2
 
+    def _compute_ratio_score(
+        self,
+        score,
+        score_bounds = None,
+        ):
+        """
+        Inspired by the similar method in component
+        """
+        if score_bounds is None or score is None:
+            ratio_score = None
+        else:
+            # Normalizer so that ratios are within 0-1 range
+            norm = euclidean(score_bounds[0], score_bounds[1])
 
+            if score is None:
+                ratio_score = 1
+            else:
+                ratio_score = euclidean(score, score_bounds[0]) / norm
+
+        return ratio_score
 
     def _add_vertex(
         self,
@@ -458,49 +479,54 @@ class PersistentGraph():
         # If v_start is dead before v_end is even born
         # Or if v_end is dead before v_start is even born
         if (
-            self._is_earlier_score(v_start.scores[1], v_end.scores[0])
-            or self._is_earlier_score(v_end.scores[1], v_start.scores[0])
+            v_start.score_ratios[1] <= v_end.score_ratios[0]
+            or v_end.score_ratios[1] <= v_start.score_ratios[0]
         ):
             if not self._quiet:
-                print("v_start scores: ", v_start.scores)
-                print("v_end scores: ", v_end.scores)
+                print("v_start scores: ", v_start.score_ratios)
+                print("v_end scores: ", v_end.score_ratios)
                 print("WARNING: Vertices are not contemporaries")
         # Create the edge
-        argbirth = self.argworst(v_start.scores[0], v_end.scores[0])
-        argdeath = self.argbest(v_start.scores[1], v_end.scores[1])
+        argbirth = np.argmax([v_start.score_ratios[0], v_end.score_ratios[0]])
+        argdeath = np.argmin([v_start.score_ratios[1], v_end.score_ratios[1]])
         # This if condition is what solved the problem of ratio birth > 1
         # That happens
-        if v_start.scores[1] is None and v_end.scores[1] is None:
-            if self._score_is_improving:
-                argdeath = self.argbest(
-                    self._best_scores[t],
-                    self._best_scores[t+1]
-                )
-            else:
-                argdeath = self.argworst(
-                    self._worst_scores[t],
-                    self._worst_scores[t+1]
-                )
+        # if v_start.scores[1] is None and v_end.scores[1] is None:
+        #     if self._score_is_improving:
+        #         argdeath = self.argbest(
+        #             self._best_scores[t],
+        #             self._best_scores[t+1]
+        #         )
+        #     else:
+        #         argdeath = self.argworst(
+        #             self._worst_scores[t],
+        #             self._worst_scores[t+1]
+        #         )
 
+        # Note that score birth and death might not be consistent but
+        # The most important thing is the ratios which must be consistent
         score_birth = [v_start.scores[0], v_end.scores[0]][argbirth]
         score_death = [v_start.scores[1], v_end.scores[1]][argdeath]
-        if (self._is_earlier_score(score_death, score_birth)):
+
+        ratio_birth = [v_start.score_ratios[0], v_end.score_ratios[0]][argbirth]
+        ratio_death = [v_start.score_ratios[1], v_end.score_ratios[1]][argdeath]
+        if (ratio_death <= ratio_birth):
             if not self._quiet:
                 print(
-                    "WARNING: score death earlier than score birth!",
-                    score_death, score_birth
+                    "WARNING: ratio death smaller than ratio birth!",
+                    ratio_death, ratio_birth
                 )
 
-        if self._score_is_improving:
-            score_bounds = (
-                self._worst_scores[t+argdeath],
-                self._best_scores[t+argdeath]
-            )
-        else:
-            score_bounds = (
-                self._best_scores[t+argdeath],
-                self._worst_scores[t+argdeath]
-            )
+        # if self._score_is_improving:
+        #     score_bounds = (
+        #         self._worst_scores[t+argdeath],
+        #         self._best_scores[t+argdeath]
+        #     )
+        # else:
+        #     score_bounds = (
+        #         self._best_scores[t+argdeath],
+        #         self._worst_scores[t+argdeath]
+        #     )
 
         e = Edge(
             v_start = v_start,
@@ -509,7 +535,8 @@ class PersistentGraph():
             num = self._nb_edges[t],
             members = members,
             scores = [score_birth, score_death],
-            score_bounds = score_bounds,
+            #score_bounds = score_bounds,
+            score_ratios = [ratio_birth, ratio_death],
             total_nb_members = self.N,
         )
 
@@ -617,6 +644,14 @@ class PersistentGraph():
                 # We want the local step's global step to be equal or inferior
                 # to the step given
                 s -= 1
+        s = bisect_right(
+            self._v_at_step[t]['global_step_nums'],
+            step,
+            hi = self._nb_local_steps[t],
+        )
+        # We want the local step's global step to be equal or inferior
+        # to the step given
+        s -= 1
 
         return s
 
@@ -663,6 +698,10 @@ class PersistentGraph():
                 # We want the local step's global step to be equal or inferior
                 # to the step given
                 s -= 1
+        s = bisect_right(self._e_at_step[t]['global_step_nums'], step)
+        # We want the local step's global step to be equal or inferior
+        # to the step given
+        s -= 1
         return s
 
     def get_alive_vertices(
@@ -988,12 +1027,22 @@ class PersistentGraph():
             )
         # -------------------- Compute ratios ----------------------
         for t, v_t in enumerate(self._vertices):
+            # Bounds order depends on score_is_improving
             if self._score_is_improving:
                 score_bounds = (self._worst_scores[t], self._best_scores[t])
             else:
                 score_bounds = (self._best_scores[t], self._worst_scores[t])
+
+            # Ratios for vertices
             for v in v_t:
                 v.compute_ratio_scores(score_bounds = score_bounds)
+
+            # Ratios for local step scores
+            for l_step in range(self._nb_local_steps[t]):
+                score = self._local_steps[t][l_step]['score']
+                ratio_score = self._compute_ratio_score(score, score_bounds)
+                self._local_steps[t][l_step]['ratio_score'] = ratio_score
+
     def _sort_steps(self):
 
         # ====================== Initialization ==============================
@@ -1002,10 +1051,12 @@ class PersistentGraph():
             step_t = np.zeros(self.T, dtype=int)
         else:
             step_t = -1 * np.ones(self.T, dtype=int)
+        # step_t = -1 * np.ones(self.T, dtype=int)
+        # step_t = np.zeros(self.T, dtype=int)
 
         # Find the score of the first algorithm step at each time step
         candidate_scores = np.array([
-            self._local_steps[t][0]["score"]
+            self._local_steps[t][0]["ratio_score"]
             for t in range(self.T)
         ])
         # candidate_time_steps[i] is the time step of candidate_scores[i]
@@ -1022,6 +1073,7 @@ class PersistentGraph():
                 idx_candidate = -1
             else:
                 idx_candidate = 0
+            idx_candidate = 0
             t = candidate_time_steps[idx_candidate]
 
             # Only for the first local step
@@ -1033,13 +1085,13 @@ class PersistentGraph():
                     "Step ", i, " = ",
                     ' t: ', t,
                     'local step_num: ', step_t[t],
-                    ' score: ', candidate_scores[idx_candidate]
+                    ' ratio_score: %.4f ' %candidate_scores[idx_candidate]
                 )
 
             # ==================== Update sorted_steps =======================
             self._sorted_steps['time_steps'].append(t)
             self._sorted_steps['local_step_nums'].append(step_t[t])
-            self._sorted_steps['scores'].append(
+            self._sorted_steps['ratio_scores'].append(
                 candidate_scores[idx_candidate]
             )
             self._sorted_steps['params'].append(
@@ -1060,7 +1112,7 @@ class PersistentGraph():
             # 2. Insertion if there are more local steps available:
             step_t[t] += 1
             if step_t[t] < self._nb_local_steps[t]:
-                next_score = self._local_steps[t][step_t[t]]["score"]
+                next_score = self._local_steps[t][step_t[t]]["ratio_score"]
                 idx_insert = bisect(candidate_scores, next_score)
                 candidate_scores.insert(idx_insert, next_score)
                 candidate_time_steps.insert(idx_insert, t)
@@ -1083,7 +1135,7 @@ class PersistentGraph():
         for s in range(self.nb_steps):
             # Find the next time step
             t = self._sorted_steps['time_steps'][s]
-            score =  self._sorted_steps['scores'][s]
+            score =  self._sorted_steps['ratio_scores'][s]
             # Find the next local step at this time step
             local_step_nums[t] = self._sorted_steps['local_step_nums'][s]
             local_s = local_step_nums[t]

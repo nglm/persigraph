@@ -20,7 +20,7 @@ members = np.array([
 ])
 
 model_type = "KMeans"
-model_type = "Naive"
+#model_type = "Naive"
 
 g = PersistentGraph(
     members,
@@ -51,6 +51,8 @@ for t in range(g.T):
 
 for t in range(g.T):
     print(' ============== ', t, ' ============== ')
+    print(' ----- ratio_scores ----- ')
+    print("local_s['ratio_score'], local_s['score']: ", [(local_s['ratio_score'], local_s['score']) for local_s in g.local_steps[t] ])
     print(' ----- vertices ----- ')
     print("v.info['params']: ",  [ (v.info['params']) for v in g.vertices[t] ])
     print("v.scores: ",  [ (v.scores) for v in g.vertices[t] ])
@@ -65,7 +67,9 @@ for t in range(g.T):
 print([v.num for v in g.vertices[0]])
 print("---- Alive Vertices -------")
 for s in range(g.nb_steps):
-    print("s=",s, g.get_alive_vertices(steps=s))
+    "ratio=",g.sorted_steps['ratio_scores'][s]
+for s in range(g.nb_steps):
+    print("s=",s ,g.get_alive_vertices(steps=s))
 print("---- Alive edges -------")
 for s in range(g.nb_steps):
     print("s=",s, g.get_alive_edges(steps=s))
