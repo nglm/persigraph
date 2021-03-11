@@ -857,7 +857,10 @@ class PersistentGraph():
 
                 # Consider this step only if it improves the score
                 previous_score = self._local_steps[t][local_step]['score']
-                if self._is_relevant_score(previous_score, score):
+                #if self._is_relevant_score(previous_score, score):
+                if self._is_relevant_score(
+                    previous_score, score, or_equal=False
+                ):
 
                     # -------------- New step ---------------
                     local_step += 1
@@ -912,6 +915,12 @@ class PersistentGraph():
                                 self._members_v_distrib[t][local_step][members] = v_alive_key
                                 # No need to check v_alive anymore for the
                                 # next cmpt
+
+                                # Update brotherhood size to the smallest one
+                                v_alive.info['brotherhood_size'] = min(
+                                    n_clusters, v_alive.info['brotherhood_size']
+                                    )
+
                                 del alive_vertices[i]
                                 break
                         if to_create:
