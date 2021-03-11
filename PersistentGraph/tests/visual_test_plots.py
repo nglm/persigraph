@@ -28,12 +28,14 @@ g = PersistentGraph(
     score_type = 'max_variance',
     zero_type = 'uniform',
     model_type = model_type,
+    k_max=2,
     )
 print(members.shape)
 g.construct_graph(
     verbose=2,
     pre_prune = False,
-    post_prune = False)
+    post_prune = False,
+)
 print("number of vertices: ", [len(vt) for vt in g.vertices])
 print("number of edges: ", [len(et) for et in g.edges])
 # #print([[ (e.nb_members, e.score) for e in et] for et in g.vertices])
@@ -93,6 +95,5 @@ plt.figure()
 for m in g.members:
     plt.plot(m)
 
-plt.figure()
 k_plots(g)
 plt.show()

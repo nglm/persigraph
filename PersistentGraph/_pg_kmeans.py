@@ -18,7 +18,12 @@ def get_model_parameters(
         "x_squared_norms" : row_norms_X,
         'X' : copy_X,
         }
-    model_kw = {}
+    # Default kw values
+    model_kw = {
+        'max_iter' : 100,
+        'n_init' : 10,
+        'tol' : 1e-3,
+    }
     return model_kw, fit_predict_kw
 
 
@@ -67,7 +72,7 @@ def compute_score(pg, model=None, X=None, clusters=None):
 
 def graph_initialization(pg):
     """
-    Initialize the graph with N components at each time step
+    Initialize the graph with k_max components at each time step
     """
     for t in range(pg.T):
 
@@ -78,27 +83,43 @@ def graph_initialization(pg):
         pg._v_at_step[t]['v'].append([])
         pg._v_at_step[t]['global_step_nums'].append(None)
 
-        # ======= Create one vertex per member and time step =======
-        for i in range(pg.N):
-            info = {
-                'type' : 'KMeans',
-                'params' : [pg._members[i,t], 0.], #mean, std
-                'brotherhood_size' : pg.N
-            }
-            v = pg._add_vertex(
-                info = info,
-                t = t,
-                members = [i],
-                scores = [0, None],
-                local_step = 0
+        # No need to compute kmeans if we just want as many clusters as members
+        if pg.k_max == pg.N:
+            clusters_info = []
+            clusters = []
+            step_info = {'score' : 0}
+            # ======= Create one vertex per member and time step =======
+            for i in range(pg.N):
+                clusters_info.append({
+                    'type' : 'KMeans',
+                    'params' : [pg._members[i,t], 0.], #mean, std
+                    'brotherhood_size' : pg.k_max
+                })
+                clusters.append([i])
+
+        # Otherwise we really need to call kmeans
+        else:
+            X = pg._members[:,t].reshape(-1,1)
+            model_kw, fit_predict_kw = get_model_parameters(pg, X)
+            model_kw['n_clusters'] = pg.k_max
+            clusters, clusters_info, step_info, model_kw = clustering_model(
+                pg, X, model_kw, fit_predict_kw,
             )
+        for i_cluster in range(pg.k_max):
+            v = pg._add_vertex(
+                    info = clusters_info[i_cluster],
+                    t = t,
+                    members = clusters[i_cluster],
+                    scores = [step_info['score'], None],
+                    local_step = 0
+                )
 
         # ========== Finalize initialization step ==================
 
-        pg._local_steps[t].append({
-            'param' : {"n_clusters" : pg.N},
-            'score' : 0,
-        })
+        pg._local_steps[t].append(
+            {**{'param' : {"n_clusters" : pg.k_max}},
+             **step_info
+            })
 
         pg._nb_local_steps[t] += 1
         pg._nb_steps += 1
@@ -106,8 +127,8 @@ def graph_initialization(pg):
         if pg._verbose:
             print(" ========= ", t, " ========= ")
             print(
-                "n_clusters: ", pg.N,
-                "   score: ", 0
+                "n_clusters: ", pg.k_max,
+                "   score: ", step_info['score'],
             )
 
 def compute_extremum_scores(pg):
@@ -168,22 +189,14 @@ def clustering_model(
     model_kw : Dict = {},
     fit_predict_kw : Dict = {},
     ):
-
-    # Default kw values
-    max_iter = model_kw.pop('max_iter', 100)
-    n_init = model_kw.pop('n_init', 10)
-    tol = model_kw.pop('tol', 1e-3)
     n_clusters = model_kw.pop('n_clusters')
     model = kmeans_custom(
         n_clusters = n_clusters,
-        max_iter = max_iter,
-        tol = tol,
-        n_init = n_init,
         copy_x = False,
         **model_kw,
     )
     labels = model.fit_predict(**fit_predict_kw)
-    if model.n_iter_ == max_iter:
+    if model.n_iter_ == model_kw['max_iter']:
         raise ValueError('Kmeans did not converge')
     clusters_info = []
     clusters = []

@@ -458,7 +458,7 @@ def plot_as_graph(
     threshold_l:float = 0.00,
     fig = None,
     ax = None,
-    fig_kw: dict = {"figsize" : (24,12)},
+    fig_kw: dict = {"figsize" : (20,12)},
     ax_kw: dict = {'xlabel' : "Time (h)",
                    'ylabel' : "Temperature (°C)"}
 ):
@@ -470,7 +470,7 @@ def plot_as_graph(
         #ax.set_facecolor("whitesmoke")
         #ax.set_title(title)
     #ax.set_facecolor("whitesmoke")
-    color_list = get_list_colors(g.N)
+    color_list = get_list_colors(g.k_max)
     if s is None:
         title = "All steps"
         for t in range(g.T):
@@ -526,13 +526,21 @@ def plot_as_graph(
 
 
 
-def k_plots(g, k_max=8):
+def k_plots(
+    g,
+    k_max=8,
+    fig = None,
+    ax = None,
+    fig_kw: dict = {"figsize" : (5,3)},
+    ax_kw: dict = {'xlabel' : "Time (h)",
+                   'ylabel' : "Life span"}
+):
     """
     Spaghetti plots of ratio scores for each number of clusters
     """
-    k_max = min(k_max, g.N)
+    k_max = min(k_max, g.k_max)
     r_scores = []
-    life_span = {k : [] for k in range(1,g.N+1)}
+    life_span = {k : [] for k in range(1,g.k_max+1)}
 
     # Extract ratio scores for each k and each t
     for t in range(g.T):
@@ -551,18 +559,22 @@ def k_plots(g, k_max=8):
         # Its length should therefore be N+1
         r_scores[-1] += (abs(g._n_clusters_range[-1] - k_prev)+1)*[1]
 
-        for i in range(g.N):
+        # Compute life span for each k and each t
+        for i in range(g.k_max):
             life_span[g._n_clusters_range[i]].append(
                 r_scores[-1][i+1] - r_scores[-1][i]
                 )
 
-    # Compute life span for each k and each t
+    # Plot all this
+    if ax is None:
+        fig, ax = plt.subplots(**fig_kw)
     for k in range(1,k_max+1):
-        plt.plot(
+        ax.plot(
             g.time_axis, life_span[k],
             c=COLOR_BREWER_RGBA[k], label='k='+str(k)
             )
-        plt.legend()
+        ax.legend()
+    return fig, ax, life_span
 
 
 

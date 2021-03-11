@@ -80,11 +80,6 @@ def test_decreasing_distance():
             assert dist_matrix[t_sup,i_sup,j_sup] >= dist_matrix[t,i,j]
 
 
-# def test_nb_vertices():
-#     g = PersistentGraph(members)
-#     g.construct_graph()
-#     for t in range(g.T):
-#         assert g.nb_vertices[t] <= g.nb_vertices_max
 
 # def test_members():
 #     g = PersistentGraph(members_nc)

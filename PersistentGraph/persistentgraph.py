@@ -35,6 +35,7 @@ class PersistentGraph():
         score_type: str = 'inertia',
         zero_type: str = 'uniform',
         model_type: str = 'KMeans',
+        k_max : int = None,
         name: str = None,
     ):
         """
@@ -58,7 +59,6 @@ class PersistentGraph():
         :param score_is_improving: Is the score improving throughout the
         algorithm steps? (Is, ``score_birth`` 'worse' than ``score_death``),
         defaults to False
-        FIXME: OUTDATED IMPLEMENTATION
         :type score_is_improving: bool, optional
 
         :param precision: Score precision, defaults to 13
@@ -146,16 +146,20 @@ class PersistentGraph():
         # True if we should remove vertices with short life span
         self._post_prune = False
         self._post_prune_threshold = 0
+        if k_max is None:
+            self._k_max = self.N
+        else:
+            self._k_max = max(int(k_max), 1)
         # Determines how to cluster the members
         self._model_type = model_type
         # True if the score is improving with respect to the algo step
         if model_type == "Naive":
             self._score_is_improving = True
             # To know if we start with N clusters or 1
-            self._n_clusters_range = range(1,self.N+1)
+            self._n_clusters_range = range(1, self.k_max + 1)
         else:
             self._score_is_improving = score_is_improving
-            self._n_clusters_range = range(self.N, 0,-1)
+            self._n_clusters_range = range(self.k_max, 0,-1)
         # Score type, determines how to measure how good a model is
         self._set_score_type(score_type)
         # Determines how to measure the score of the 0th component
@@ -1170,6 +1174,7 @@ class PersistentGraph():
 
     def construct_graph(
         self,
+        k_max : int = None,
         pre_prune: bool = False,
         pre_prune_threshold: float = 0.30,
         post_prune: bool = False,
@@ -1187,8 +1192,8 @@ class PersistentGraph():
 
         self._compute_extremum_scores()
 
-        if self._verbose :
-            print(" ========= Initialization ========= ")
+        # if self._verbose :
+        #     print(" ========= Initialization ========= ")
 
         self._graph_initialization()
 
@@ -1263,6 +1268,11 @@ class PersistentGraph():
         return self._d
 
     @property
+    def k_max(self):
+        return self._k_max
+
+
+    @property
     def members(self) -> np.ndarray:
         """Original data, ensemble of time series
 
@@ -1312,15 +1322,6 @@ class PersistentGraph():
         :rtype: np.ndarray[int], shape: T
         """
         return np.copy(self._nb_vertices)
-
-    @property
-    def nb_vertices_max(self) -> int:
-        """
-        Max number of vertices created at each time step
-
-        :rtype: int
-        """
-        return int(self.N*(self.N+1)/2)
 
     @property
     def nb_edges(self) -> np.ndarray:
