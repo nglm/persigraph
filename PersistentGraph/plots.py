@@ -476,14 +476,14 @@ def plot_as_graph(
         for t in range(g.T):
             if show_vertices:
                 ax = plot_vertices(
-                    g, t, g.vertices[t],
+                    g, t, g._vertices[t],
                     threshold_m=threshold_m, threshold_l=threshold_l,
                     color_list = color_list,
                     ax=ax,
                 )
             if show_edges and (t < g.T-1):
                 ax = plot_edges(
-                    g, t, g.edges[t],
+                    g, t, g._edges[t],
                     threshold_m=threshold_m, threshold_l=threshold_l,
                     color_list = color_list,
                     show_std = show_std,
@@ -523,6 +523,49 @@ def plot_as_graph(
     ax.set_ylabel(ax_kw['ylabel'])
     ax.set_title(title)
     return fig, ax
+
+
+
+def k_plots(g, k_max=8):
+    """
+    Spaghetti plots of ratio scores for each number of clusters
+    """
+    k_max = min(k_max, g.N)
+    r_scores = []
+    life_span = {k : [] for k in range(1,g.N+1)}
+
+    # Extract ratio scores for each k and each t
+    for t in range(g.T):
+
+        # init
+        k_prev = g._n_clusters_range[0]
+        r_scores.append([g._local_steps[t][0]['ratio_score']])
+
+        for step in g._local_steps[t]:
+            k_curr = step['param']['n_clusters']
+            # Note: there might be some 'holes' when steps are ignored
+            # their r_score will then all be 'step['ratio_score']'
+            r_scores[-1] += abs(k_curr - k_prev)*[step['ratio_score']]
+            k_prev = k_curr
+
+        # Its length should therefore be N+1
+        r_scores[-1] += (abs(g._n_clusters_range[-1] - k_prev)+1)*[1]
+
+        for i in range(g.N):
+            life_span[g._n_clusters_range[i]].append(
+                r_scores[-1][i+1] - r_scores[-1][i]
+                )
+
+    # Compute life span for each k and each t
+    for k in range(1,k_max+1):
+        plt.plot(
+            g.time_axis, life_span[k],
+            c=COLOR_BREWER_RGBA[k], label='k='+str(k)
+            )
+        plt.legend()
+
+
+
 
 
 def __init_make_gif():

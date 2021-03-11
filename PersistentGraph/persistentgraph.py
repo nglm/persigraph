@@ -151,8 +151,11 @@ class PersistentGraph():
         # True if the score is improving with respect to the algo step
         if model_type == "Naive":
             self._score_is_improving = True
+            # To know if we start with N clusters or 1
+            self._n_clusters_range = range(1,self.N+1)
         else:
             self._score_is_improving = score_is_improving
+            self._n_clusters_range = range(self.N, 0,-1)
         # Score type, determines how to measure how good a model is
         self._set_score_type(score_type)
         # Determines how to measure the score of the 0th component
@@ -799,10 +802,7 @@ class PersistentGraph():
 
 
     def _construct_vertices(self):
-        if self._model_type == "KMeans":
-            cluster_range = range(self.N-1, 0,-1)
-        elif self._model_type == "Naive":
-            cluster_range = range(2,self.N+1)
+
 
         for t in range(self.T):
             if self._verbose:
@@ -817,7 +817,9 @@ class PersistentGraph():
                 )
 
             local_step = 0
-            for n_clusters in cluster_range:
+
+            # each 1st local step is already done in 'graph_initialization'
+            for n_clusters in self._n_clusters_range[1:]:
 
                 # Update model_kw
                 model_kw['n_clusters'] = n_clusters
@@ -989,10 +991,10 @@ class PersistentGraph():
         while candidate_ratios:
 
             # ==== Find the candidate score with its associated time step ====
-            if self._score_is_improving:
-                idx_candidate = -1
-            else:
-                idx_candidate = 0
+            # if self._score_is_improving:
+            #     idx_candidate = -1
+            # else:
+            #     idx_candidate = 0
             idx_candidate = 0
             t = candidate_time_steps[idx_candidate]
 
@@ -1378,6 +1380,14 @@ class PersistentGraph():
         return self._sorted_steps
 
     @property
+    def n_clusters_range(self):
+        """
+        [summary]
+        """
+        return self._n_clusters_range
+
+
+    @property
     def parameters(self) -> dict:
         """
         Parameters of the graph
@@ -1385,12 +1395,9 @@ class PersistentGraph():
         :rtype: dict
         """
         dic = {
+            "model_type" : self._model_type,
             "zero_type" : self._zero_type,
             "score_type" : self._score_type,
             "score_is_improving": self._score_is_improving,
-            "pre-prune" : self._pre_prune,
-            "pre_prune_threshold" : self._pre_prune_threshold,
-            "post-prune" : self._post_prune,
-            "post_prune_threshold" : self._post_prune_threshold,
         }
         return dic
