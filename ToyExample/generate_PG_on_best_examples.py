@@ -20,10 +20,10 @@ from PersistentGraph.plots import *
 # Parameters
 # ---------------------------------------------------------
 
-PG_TYPE = 'Naive'
+PG_TYPE = 'KMeans'
 
 SCORE_TYPES = [
-    'max_inertia',
+    'max_variance'
     ]
 
 if PG_TYPE == 'Naive':
@@ -40,7 +40,7 @@ PATH_OUTPUTS = "PG/" +PG_TYPE+"-mean_std/"
 PATH_GIF = "GIF/"
 PATH_DISTRIB = ["2/gaussian/", "3/gaussian/", "N/gaussian/", "2/uniform/"]
 FIG_SIZE = (5,5)
-FIG_SIZE2 = (14,8)
+FIG_SIZE2 = (21,8)
 
 
 best_2_gaussian = [
@@ -87,9 +87,16 @@ def plot_pg_mean_std(
     score_type=None,
     weights=None
 ):
+    # gridspec_kw={
+    #     'width_ratios': [3, 1, 3],
+    #     #'height_ratios': [3, 1, 3],
+    #     }
+    fig = plt.figure(figsize = FIG_SIZE2, tight_layout=True)
+    gs = fig.add_gridspec(nrows=2, ncols=5)
 
 
-    fig, axs = plt.subplots(ncols=2, figsize = FIG_SIZE2, sharey=True, tight_layout=True)
+
+    # fig, axs = plt.subplots(ncols=3, figsize = FIG_SIZE2, sharey=True, tight_layout=True, gridspec_kw=gridspec_kw )
 
     # ------------------------------------
     # Construct graph
@@ -104,33 +111,42 @@ def plot_pg_mean_std(
             zero_type = 'uniform',
             model_type = PG_TYPE,
             weights=weights,
+            k_max = 8,
         )
         g.construct_graph(
             verbose=True,
         )
 
     # Plot Graph
-    _, axs[0] = plot_as_graph(
-        g, show_vertices=True, show_edges=True,ax=axs[0],
+    ax0 = fig.add_subplot(gs[:, 0:2])
+    _, ax0 = plot_as_graph(
+        g, show_vertices=True, show_edges=True,ax=ax0,
         show_std=True)
-    axs[0].set_title("Graph method")
-    axs[0].set_xlabel("Time")
-    axs[0].set_ylabel("Values")
+    ax0.set_title("Graph method")
+    ax0.set_xlabel("Time")
+    ax0.set_ylabel("Values")
+
+    # k_plot
+    ax1 = fig.add_subplot(gs[0, 2])
+    _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
+    ax1.set_xlabel("Time")
+    ax1.set_ylabel("Relevance")
 
     # ------------------------------------
     # Current 'mean and std' method
     # ------------------------------------
     mean = np.mean(members, axis = 0)
     std = np.std(members, axis = 0)
-    axs[1].plot(mean, label = 'Mean', color='r', lw=1)
-    axs[1].plot(mean+std, label = 'std', color='r', lw=0.5, ls='--')
-    axs[1].plot(mean-std, color='r', lw=0.5, ls='--')
-    axs[1].set_title("Mean and standard deviation method")
-    axs[1].set_xlabel("Time")
-    axs[1].set_ylabel("Values")
-    axs[1].legend()
+    ax2 = fig.add_subplot(gs[:, 3:], sharey=ax0)
+    ax2.plot(mean, label = 'Mean', color='r', lw=1)
+    ax2.plot(mean+std, label = 'std', color='r', lw=0.5, ls='--')
+    ax2.plot(mean-std, color='r', lw=0.5, ls='--')
+    ax2.set_title("Mean and standard deviation method")
+    ax2.set_xlabel("Time")
+    ax2.set_ylabel("Values")
+    ax2.legend()
 
-    return g, fig, axs
+    return g, fig, fig.axes
 
 def rename_best():
     for i_type_best in range(len(best)):

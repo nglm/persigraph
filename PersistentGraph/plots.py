@@ -330,12 +330,24 @@ def plot_gaussian_edges(
         #     [(f(e.life_span)*c1 + (1-f(e.life_span))*c2)
         #     for e in edges]
         # ).reshape((-1, 4)) / 255
+
+        # colors = np.asarray(
+        #     [color_list[
+        #         np.amax([
+        #             e.v_start.info['brotherhood_size'],
+        #             e.v_end.info['brotherhood_size']
+        #             ])
+        #         ] for e in edges]
+        # ).reshape((-1, 4))
         colors = np.asarray(
             [color_list[
-                np.amax([
+                [
                     e.v_start.info['brotherhood_size'],
                     e.v_end.info['brotherhood_size']
-                    ])
+                ][np.argmax([
+                    e.v_start.life_span,
+                    e.v_end.life_span,
+                ])]
                 ] for e in edges]
         ).reshape((-1, 4))
         colors[:,3] = alphas
@@ -526,7 +538,7 @@ def plot_as_graph(
 
 
 
-def k_plots(
+def k_plot(
     g,
     k_max=8,
     fig = None,
@@ -574,10 +586,24 @@ def k_plots(
             c=COLOR_BREWER_RGBA[k], label='k='+str(k)
             )
         ax.legend()
+        ax.set_ylim([0,1])
     return fig, ax, life_span
 
 
+# def bar(
+#     g,
+#     fig = None,
+#     ax = None,
+#     fig_kw: dict = {"figsize" : (5,0.5)},
+#     ax_kw: dict = {'xlabel' : "Time (h)",
+#                    'ylabel' : "Life span"}
+# ):
+#     """
+#     Spaghetti plots of ratio scores for each number of clusters
+#     """
+#     k_max = min(k_max, g.k_max)
 
+#     return fig, ax, bar
 
 
 def __init_make_gif():

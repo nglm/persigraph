@@ -90,6 +90,7 @@ def main():
                     score_type = SCORE_TYPE,
                     zero_type = ZERO_TYPE,
                     model_type = PG_TYPE,
+                    k_max = 8,
             )
             g.construct_graph(
                 verbose=True,

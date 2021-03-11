@@ -95,5 +95,5 @@ plt.figure()
 for m in g.members:
     plt.plot(m)
 
-k_plots(g)
+k_plot(g)
 plt.show()
