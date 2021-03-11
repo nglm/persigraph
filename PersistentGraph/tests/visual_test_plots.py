@@ -20,7 +20,7 @@ members = np.array([
 ])
 
 model_type = "KMeans"
-model_type = "Naive"
+#model_type = "Naive"
 
 g = PersistentGraph(
     members,
@@ -82,8 +82,8 @@ for t in range(g.T):
     print('--- ', t, '-----')
     print(g.local_steps[t])
 
-# for s in range(g.nb_steps):
-#     fig, ax = plot_as_graph(g,s, show_vertices=True)
+for s in range(g.nb_steps):
+    fig, ax = plot_as_graph(g,s, show_vertices=True)
 
 fig, ax = plot_as_graph(
     g, show_vertices=True,

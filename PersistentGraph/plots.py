@@ -79,29 +79,21 @@ from PIL import ImageColor
 
 # See https://colorbrewer2.org/#type=qualitative&scheme=Set1&n=8
 COLOR_BREWER = [
+    "#ffff33", # Yellow
     "#377eb8", # Blue
-    "#ff7f00", # Orange
-    "#4daf4a", # Green
-    "#984ea3", # Purple
     "#a65628", # Brown
+    "#984ea3", # Purple
+    "#4daf4a", # Green
+    "#ff7f00", # Orange
     "#f781bf", # Pink
     "#e41a1c", # Red
-    "#ffff33", # Yellow
 ]
 
-COLOR_BREWER_RGB = [np.array(ImageColor.getcolor(c, "RGB"))/255 for c in COLOR_BREWER]
-
+COLOR_BREWER_RGB = [
+    np.array(ImageColor.getcolor(c, "RGB"))/255 for c in COLOR_BREWER
+    ]
 COLOR_BREWER_RGBA = [np.r_[c, np.ones(1)] for c in COLOR_BREWER_RGB]
 
-# We will try to use color brewer instead
-# def get_list_colors(
-#     N,
-#     seed: int = 22
-# ):
-#     cm = plt.get_cmap('tab10', lut=N)
-#     list_colors = [cm(i) for i in range(N)]
-#     random.Random(seed).shuffle(list_colors)
-#     return list_colors
 
 def get_list_colors(
     N: int,

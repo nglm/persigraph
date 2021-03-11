@@ -949,7 +949,7 @@ class PersistentGraph():
                 "nb steps: ", self._nb_steps,
                 "\nnb_local_steps: ", self._nb_local_steps
             )
-        # -------------------- Compute ratios ----------------------
+    def _compute_ratios(self):
         for t, v_t in enumerate(self._vertices):
             # Bounds order depends on score_is_improving
             if self._score_is_improving:
@@ -967,16 +967,12 @@ class PersistentGraph():
                 ratio_score = self._compute_ratio_score(score, score_bounds)
                 self._local_steps[t][l_step]['ratio_score'] = ratio_score
 
+
     def _sort_steps(self):
 
         # ====================== Initialization ==============================
         # Current local step (i.e step_t[i] represents the ith step at t)
-        # if self._score_is_improving:
-        #     step_t = np.zeros(self.T, dtype=int)
-        # else:
-        #     step_t = -1 * np.ones(self.T, dtype=int)
         step_t = -1 * np.ones(self.T, dtype=int)
-        # step_t = np.zeros(self.T, dtype=int)
 
         # Find the ratio of the first algorithm step at each time step
         candidate_ratios = np.array([
@@ -1201,6 +1197,8 @@ class PersistentGraph():
         t_end = time.time()
         if self._verbose:
             print('Vertices constructed in %.2f s' %(t_end - t_start))
+
+        self._compute_ratios()
 
         if post_prune:
             t_start = time.time()
