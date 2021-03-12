@@ -331,25 +331,30 @@ def plot_gaussian_edges(
         #     for e in edges]
         # ).reshape((-1, 4)) / 255
 
-        # colors = np.asarray(
-        #     [color_list[
-        #         np.amax([
-        #             e.v_start.info['brotherhood_size'],
-        #             e.v_end.info['brotherhood_size']
-        #             ])
-        #         ] for e in edges]
-        # ).reshape((-1, 4))
         colors = np.asarray(
             [color_list[
-                [
+                np.amax([
                     e.v_start.info['brotherhood_size'],
                     e.v_end.info['brotherhood_size']
-                ][np.argmax([
-                    e.v_start.life_span,
-                    e.v_end.life_span,
-                ])]
+                    ])
                 ] for e in edges]
         ).reshape((-1, 4))
+
+        colors = np.asarray(
+            [color_list[e.v_start.info['brotherhood_size']] for e in edges]
+        ).reshape((-1, 4))
+
+        # colors = np.asarray(
+        #     [color_list[
+        #         [
+        #             e.v_start.info['brotherhood_size'],
+        #             e.v_end.info['brotherhood_size']
+        #         ][np.argmax([
+        #             e.v_start.life_span,
+        #             e.v_end.life_span,
+        #         ])]
+        #         ] for e in edges]
+        # ).reshape((-1, 4))
         colors[:,3] = alphas
 
         lw = np.asarray([

@@ -4,6 +4,7 @@ import os
 from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
+from netCDF4 import Dataset
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 sys.path.insert(1, os.path.join(sys.path[0], '../..'))
@@ -18,16 +19,16 @@ from PersistentGraph.plots import *
 # Parameters
 # ---------------------------------------------------------
 
-PG_TYPE = 'Naive'
+PG_TYPE = 'KMeans'
 
-SCORE_TYPE = 'max_inertia'
+SCORE_TYPE = 'max_variance'
 if PG_TYPE == 'Naive':
     SCORE_TYPE = 'max_diameter'
 
 
 ZERO_TYPE = 'uniform'
 
-var_names = ['t2m']
+var_names = ['tcwv']
 
 # Absolute path to the files
 # type: str
@@ -61,10 +62,13 @@ def main():
     for weights in weights_range:
         for filename in LIST_FILENAMES:
 
+            # To get the right variable names and units
+            nc = Dataset(PATH_DATA + filename,'r')
+
             list_var, list_names, time = preprocess_data(
                 filename = filename,
                 path_data = PATH_DATA,
-                var_names=['t2m'],
+                var_names=var_names,
                 ind_time=None,
                 ind_members=None,
                 ind_long=[0],
@@ -76,7 +80,9 @@ def main():
 
             if weights:
                 weights_file = (
-                    "/home/natacha/Documents/tmp/figs/global_variation_t2m/all_forecasts_max_distance.txt"
+                    "/home/natacha/Documents/tmp/figs/global_variation_"
+                    + var_names[0] +'/'
+                    + "all_forecasts_max_distance.txt"
                 )
                 weights_values = np.loadtxt(weights_file)
             else:
@@ -99,8 +105,17 @@ def main():
             # ---------------------------
             # Plot entire graph
             # ---------------------------
+            ax_kw = {
+                'xlabel' : "Time (h)",
+                'ylabel' :  (
+                    nc.variables[var_names[0]].long_name
+                    + ' (' + nc.variables[var_names[0]].units + ')'
+                )
+                }
+
             fig, ax = plot_as_graph(
-                g, show_vertices=True, show_edges=True, show_std = True
+                g, show_vertices=True, show_edges=True, show_std = True,
+                ax_kw=ax_kw
             )
 
             fig_suptitle = (

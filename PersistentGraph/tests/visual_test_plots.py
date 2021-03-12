@@ -20,7 +20,7 @@ members = np.array([
 ])
 
 model_type = "KMeans"
-model_type = "Naive"
+#model_type = "Naive"
 
 g = PersistentGraph(
     members,
@@ -28,7 +28,7 @@ g = PersistentGraph(
     score_type = 'max_variance',
     zero_type = 'uniform',
     model_type = model_type,
-    k_max=2,
+    k_max=None,
     )
 print(members.shape)
 g.construct_graph(

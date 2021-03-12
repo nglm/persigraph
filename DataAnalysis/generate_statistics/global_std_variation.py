@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-#FIXME: 2020/12 Make sure it is still working after the clean-up
 import sys
 import os
 from os import listdir, makedirs
@@ -25,9 +24,6 @@ from utils.plt import from_list_to_subplots
 # type: str
 path_data = "/home/natacha/Documents/Work/Data/Bergen/"
 
-# Choose the path where the figs will be saved
-# type: str
-path_fig = "/home/natacha/Documents/tmp/figs/global_variation_t2m/"
 
 # Choose which variables should be ploted
 # type: List(str)
@@ -38,7 +34,14 @@ path_fig = "/home/natacha/Documents/tmp/figs/global_variation_t2m/"
 # --- 10m-winds in East and North direction (“u10”, “v10”)
 # --- total water vapour in the entire column above the grid point (“tcwv”)
 # if None: var_names = ["t2m","d2m","msl","u10","v10","tcwv"]
-var_names=["t2m"]
+var_names=["tcwv"]
+
+# Choose the path where the figs will be saved
+# type: str
+path_fig = (
+    "/home/natacha/Documents/tmp/figs/global_variation_"
+    + var_names[0] + "/")
+
 # Choose which instants should be ploted
 # type: ndarray(int)
 ind_time=None
@@ -47,10 +50,10 @@ ind_time=None
 ind_members=None
 # Choose which longitude should be ploted
 # type: ndarray(int)
-ind_long=np.arange(21)
+ind_long=None
 # Choose which latitude should be ploted
 # type: ndarray(int)
-ind_lat=np.arange(21)
+ind_lat=None
 
 # Choose which files should be used
 list_filenames = listdir(path_data)
@@ -67,7 +70,6 @@ for op in type_op:
         print(filename)
         file_std = []
 
-        print(filename)
         f = path_data + filename
         nc = Dataset(f,'r')
 
@@ -87,18 +89,24 @@ for op in type_op:
 
         list_var = [np.swapaxes(var, 0,1) for var in list_var]
         list_var = [np.squeeze(var) for var in list_var]
+        members = list_var[0]
 
-        t2m = list_var[0]
+
+        if ind_long is None:
+            ind_long= np.arange(nc.variables["longitude"].size)
+        if ind_lat is None:
+            ind_lat= np.arange(nc.variables["latitude"].size)
+
         for i_lon in range(len(ind_long)):
             for i_lat in range(len(ind_lat)):
                 if op == "std":
                     global_op_val.append(
-                        np.std(t2m[:,:, i_lon, i_lat], axis = 0)
+                        np.std(members[:,:, i_lon, i_lat], axis = 0)
                     )
                 elif  op == "max_distance":
                     global_op_val.append(
-                        np.amax(t2m[:,:, i_lon, i_lat], axis = 0)
-                        - np.amin(t2m[:,:, i_lon, i_lat], axis = 0)
+                        np.amax(members[:,:, i_lon, i_lat], axis = 0)
+                        - np.amin(members[:,:, i_lon, i_lat], axis = 0)
                     )
 
     global_op_val = np.array(global_op_val)
@@ -111,7 +119,7 @@ for op in type_op:
     time -= time[0]
 
     fig_suptitle = (
-        "Global variation of " + op +" for variable t2m"
+        "Global variation of " + op +" for variable " + var_names[0]
     )
 
     xlabel = "Time (h)"
