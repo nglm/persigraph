@@ -7,11 +7,13 @@ from matplotlib.path import Path
 import time
 import random
 from math import exp
-from PersistentGraph.analysis import sort_components_by
-from PersistentGraph import Vertex
-from PersistentGraph import Edge
 from typing import List
 from PIL import ImageColor
+
+from PersistentGraph.analysis import sort_components_by, get_k_life_span, get_relevant_k
+from PersistentGraph import Vertex
+from PersistentGraph import Edge
+
 
 # =========================================================================
 # TODO!
@@ -110,7 +112,7 @@ def get_list_colors(
     list_colors = []
     for i in range(1 + N//n_cb) :
         list_colors += COLOR_BREWER_RGBA
-    return list_colors[:N]
+    return list_colors[:(N+1)]
 
 
 
@@ -476,17 +478,12 @@ def plot_as_graph(
     fig = None,
     ax = None,
     fig_kw: dict = {"figsize" : (20,12)},
-    ax_kw: dict = {'xlabel' : "Time (h)",
-                   'ylabel' : "Temperature (°C)"}
+    ax_kw: dict = {},
 ):
     if ax is None:
         fig, ax = plt.subplots(**fig_kw)
         ax.autoscale()
-        ax.set_xlabel(ax_kw['xlabel'])
-        ax.set_ylabel(ax_kw['ylabel'])
-        #ax.set_facecolor("whitesmoke")
-        #ax.set_title(title)
-    #ax.set_facecolor("whitesmoke")
+
     color_list = get_list_colors(g.k_max)
     if s is None:
         title = "All steps"
@@ -536,79 +533,124 @@ def plot_as_graph(
                     ax=ax,
                 )
     ax.autoscale()
-    ax.set_xlabel(ax_kw['xlabel'])
-    ax.set_ylabel(ax_kw['ylabel'])
+    ax.set_xlabel(ax_kw.pop('xlabel', "Time (h)"))
+    ax.set_ylabel(ax_kw.pop('ylabel', ""))
+    ax.set_xlim([g.time_axis[0],g.time_axis[-1]])
     ax.set_title(title)
     return fig, ax
+
+
 
 
 
 def k_plot(
     g,
     k_max=8,
+    life_span=None,
     fig = None,
     ax = None,
     fig_kw: dict = {"figsize" : (5,3)},
-    ax_kw: dict = {'xlabel' : "Time (h)",
-                   'ylabel' : "Life span"}
+    ax_kw: dict = {},
 ):
     """
     Spaghetti plots of ratio scores for each number of clusters
     """
     k_max = min(k_max, g.k_max)
-    r_scores = []
-    life_span = {k : [] for k in range(1,g.k_max+1)}
+    colors = get_list_colors(g.N)
+    if life_span is None:
+        life_span = get_k_life_span(g, k_max)
 
-    # Extract ratio scores for each k and each t
-    for t in range(g.T):
-
-        # init
-        k_prev = g._n_clusters_range[0]
-        r_scores.append([g._local_steps[t][0]['ratio_score']])
-
-        for step in g._local_steps[t]:
-            k_curr = step['param']['n_clusters']
-            # Note: there might be some 'holes' when steps are ignored
-            # their r_score will then all be 'step['ratio_score']'
-            r_scores[-1] += abs(k_curr - k_prev)*[step['ratio_score']]
-            k_prev = k_curr
-
-        # Its length should therefore be N+1
-        r_scores[-1] += (abs(g._n_clusters_range[-1] - k_prev)+1)*[1]
-
-        # Compute life span for each k and each t
-        for i in range(g.k_max):
-            life_span[g._n_clusters_range[i]].append(
-                r_scores[-1][i+1] - r_scores[-1][i]
-                )
-
-    # Plot all this
     if ax is None:
         fig, ax = plt.subplots(**fig_kw)
     for k in range(1,k_max+1):
         ax.plot(
             g.time_axis, life_span[k],
-            c=COLOR_BREWER_RGBA[k], label='k='+str(k)
+            c=colors[k], label='k='+str(k)
             )
         ax.legend()
+        ax.set_xlabel(ax_kw.pop('xlabel', 'Time (h)'))
+        ax.set_xlabel(ax_kw.pop('ylabel', 'Life span'))
         ax.set_ylim([0,1])
     return fig, ax, life_span
 
+def _draw_arrow(
+    g,
+    ax,
+    k,
+    t_start,
+    t_end,
+    offset_arrow = -40,
+    offset_text = -55,
+):
+    colors = get_list_colors(g.N)
+    x_start = (
+        (g.time_axis[t_start] - g.time_axis[0])
+        / (g.time_axis[-1] - g.time_axis[0])
+    )
+    x_end = (
+        (g.time_axis[t_end] - g.time_axis[0])
+        / (g.time_axis[-1] - g.time_axis[0])
+    )
+    x_mid = (x_end + x_start) / 2
 
-# def bar(
-#     g,
-#     fig = None,
-#     ax = None,
-#     fig_kw: dict = {"figsize" : (5,0.5)},
-#     ax_kw: dict = {'xlabel' : "Time (h)",
-#                    'ylabel' : "Life span"}
-# ):
-#     """
-#     Spaghetti plots of ratio scores for each number of clusters
-#     """
-#     k_max = min(k_max, g.k_max)
+    if t_start == t_end:
+        arrowstyle = '|-|, widthA=.5, widthB=.5'
+    else:
+        arrowstyle = '|-|'
 
-#     return fig, ax, bar
+    # Arrow
+    ax.annotate(
+        '',
+        xy=(x_start, offset_arrow),
+        xycoords=('axes fraction', 'axes points'),
+        #xytext=(x_end+0.001, 0),
+        xytext=(x_end, 0),
+        textcoords=('axes fraction', 'offset points'),
+        arrowprops=dict(arrowstyle=arrowstyle, color=colors[k]),
+    )
+
+    # Text
+    ax.annotate(
+        k,
+        xy=(x_mid, offset_text),
+        xycoords=('axes fraction', 'axes points'),
+        xytext=(-4, 0),
+        textcoords=('offset points', 'offset points'),
+        color=colors[k]
+    )
+
+def annot_ax(
+    g,
+    ax,
+    relevant_k = None,
+    k_max = 8,
+    arrow_kw = {}
+):
+    k_max = min(k_max, g.k_max)
+    # For each time step, get the most relevant number of cluster
+    if relevant_k is None:
+        relevant_k = get_relevant_k(g, k_max=k_max)
+
+    # init
+    t_start = 0
+    k_curr, _ = relevant_k[0]
+    for t, (k, _) in enumerate(relevant_k[1:]):
+        if k != k_curr:
+            t_end = t
+            _draw_arrow(
+                g, ax = ax, k=k_curr, t_start=t_start, t_end=t_end,
+            )
+            k_curr = k
+            t_start = t
+    # last arrow if not already done
+    _draw_arrow(
+        g, ax = ax, k = k_curr, t_start = t_start, t_end = -1
+    )
+
+    return ax
+
+
+
 
 
 def __init_make_gif():

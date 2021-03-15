@@ -9,7 +9,6 @@ from shutil import copy2, copyfile
 import matplotlib.pyplot as plt
 import sys
 sys.path.append("..")
-from PersistentGraph.plots import *
 from os.path import isfile
 from matplotlib.animation import FuncAnimation, PillowWriter
 
@@ -23,7 +22,7 @@ from PersistentGraph.plots import *
 PG_TYPE = 'KMeans'
 
 SCORE_TYPES = [
-    'max_variance'
+    'max_inertia'
     ]
 
 if PG_TYPE == 'Naive':
@@ -87,16 +86,9 @@ def plot_pg_mean_std(
     score_type=None,
     weights=None
 ):
-    # gridspec_kw={
-    #     'width_ratios': [3, 1, 3],
-    #     #'height_ratios': [3, 1, 3],
-    #     }
+
     fig = plt.figure(figsize = FIG_SIZE2, tight_layout=True)
     gs = fig.add_gridspec(nrows=2, ncols=5)
-
-
-
-    # fig, axs = plt.subplots(ncols=3, figsize = FIG_SIZE2, sharey=True, tight_layout=True, gridspec_kw=gridspec_kw )
 
     # ------------------------------------
     # Construct graph
@@ -125,19 +117,21 @@ def plot_pg_mean_std(
     ax0.set_title("Graph method")
     ax0.set_xlabel("Time")
     ax0.set_ylabel("Values")
+    ax0 = annot_ax(g, ax=ax0)
 
     # k_plot
-    ax1 = fig.add_subplot(gs[0, 2])
+    ax1 = fig.add_subplot(gs[0, 2], sharex=ax0)
     _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
     ax1.set_xlabel("Time")
     ax1.set_ylabel("Relevance")
+    ax1.set_title('Number of clusters: relevance')
 
     # ------------------------------------
     # Current 'mean and std' method
     # ------------------------------------
     mean = np.mean(members, axis = 0)
     std = np.std(members, axis = 0)
-    ax2 = fig.add_subplot(gs[:, 3:], sharey=ax0)
+    ax2 = fig.add_subplot(gs[:, 3:], sharey=ax0, sharex=ax0)
     ax2.plot(mean, label = 'Mean', color='r', lw=1)
     ax2.plot(mean+std, label = 'std', color='r', lw=0.5, ls='--')
     ax2.plot(mean-std, color='r', lw=0.5, ls='--')
@@ -284,7 +278,7 @@ def main():
                 g.save(dest_name_graph + name_fig)
 
                 # Same thing with weights
-                if weights is not None:
+                if weights is not None and PG_TYPE == 'Naive':
                     g, fig, axs = plot_pg_mean_std(
                         xvalues = xvalues,
                         members = members,

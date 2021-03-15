@@ -30,6 +30,12 @@ ZERO_TYPE = 'uniform'
 
 var_names = ['tcwv']
 
+# Use
+# - 'inside' if you want graph and k_plots on the same fig
+# - 'outside' if you want 2 figs
+# - anything else if you don't want it
+show_k_plot = 'inside'
+
 # Absolute path to the files
 # type: str
 PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
@@ -62,6 +68,27 @@ def main():
     for weights in weights_range:
         for filename in LIST_FILENAMES:
 
+            # --------------------------------------------
+            # ----- Prepare folders and paths ------------
+            # --------------------------------------------
+
+            path_fig = PATH_FIG_PARENT + "plots/"
+            name_fig = path_fig + filename[:-3]
+            if weights:
+                name_fig += "_weights.png"
+            else:
+                name_fig += '.png'
+            makedirs(path_fig, exist_ok = True)
+
+            path_graph = PATH_FIG_PARENT + "graphs/"
+            makedirs(path_graph, exist_ok = True)
+            name_graph = path_graph + filename[:-3]
+
+            # ---------------------------
+            # Load and preprocess data
+            # ---------------------------
+
+
             # To get the right variable names and units
             nc = Dataset(PATH_DATA + filename,'r')
 
@@ -88,6 +115,10 @@ def main():
             else:
                 weights_values = None
 
+            # ---------------------------
+            # Construct graph
+            # ---------------------------
+
             g = PersistentGraph(
                     time_axis = time,
                     members = members,
@@ -102,9 +133,29 @@ def main():
                 verbose=True,
             )
 
-            # ---------------------------
-            # Plot entire graph
-            # ---------------------------
+            # ---------------------------------
+            # Plot entire graph (with k_plot)
+            # ---------------------------------
+
+            ax0 = None
+            fig0 = None
+            if show_k_plot == 'inside' or show_k_plot == 'outside':
+                if show_k_plot == 'inside':
+                    fig0 = plt.figure(figsize = (25,15), tight_layout=True)
+                    gs = fig0.add_gridspec(nrows=2, ncols=3)
+                    ax0 = fig0.add_subplot(gs[:, 0:2])
+                    ax1 = fig0.add_subplot(gs[0, 2], sharex=ax0)
+                else:
+                    ax1 = None
+                fig1, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
+                ax1_title = 'Number of clusters: relevance'
+                ax1.set_title(ax1_title)
+                ax1.set_xlabel("Time")
+                ax1.set_ylabel("Relevance")
+
+                if show_k_plot == 'outside':
+                    fig1.savefig(name_fig + "_k_plots")
+
             ax_kw = {
                 'xlabel' : "Time (h)",
                 'ylabel' :  (
@@ -113,36 +164,25 @@ def main():
                 )
                 }
 
-            fig, ax = plot_as_graph(
+            fig0, ax0 = plot_as_graph(
                 g, show_vertices=True, show_edges=True, show_std = True,
-                ax_kw=ax_kw
+                ax_kw=ax_kw, ax = ax0, fig=fig0,
             )
 
-            fig_suptitle = (
-                filename
-                + "\nEntire graph, variable " + str(var_names[0])
-            )
+            ax0_title = 'Entire graph'
+            ax0.set_title(ax0_title)
 
+            fig_suptitle = (filename + "\n" +str(var_names[0]))
             if weights:
-                fig_suptitle += "_weights"
+                fig_suptitle += ", with weights"
+            fig0.suptitle(fig_suptitle)
 
-            ax.set_title(fig_suptitle)
+
             # ---------------------------
             # Save plot and graph
             # ---------------------------
-            path_fig = PATH_FIG_PARENT + "plots/"
-            name_fig = path_fig + filename[:-3]
-            if weights:
-                name_fig += "_weights.png"
-            else:
-                name_fig += '.png'
-            makedirs(path_fig, exist_ok = True)
-            fig.savefig(name_fig)
+            fig0.savefig(name_fig)
             plt.close()
-
-            path_graph = PATH_FIG_PARENT + "graphs/"
-            makedirs(path_graph, exist_ok = True)
-            name_graph = path_graph + filename[:-3]
             g.save(name_graph)
 
 main()
