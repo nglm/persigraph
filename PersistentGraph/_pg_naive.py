@@ -8,6 +8,7 @@ from utils.kmeans import kmeans_custom
 from utils.sorted_lists import insert_no_duplicate
 from scipy.spatial.distance import sqeuclidean, cdist
 
+# FIXME: Strange unimodality appears sometime
 
 
 def _sort_dist_matrix(
