@@ -5,10 +5,10 @@ import time
 import pickle
 from scipy.spatial.distance import euclidean
 
-from PersistentGraph import Vertex
-from PersistentGraph import Edge
-from PersistentGraph import _pg_kmeans, _pg_naive
-from utils.sorted_lists import (
+from . import Vertex
+from . import Edge
+from . import _pg_kmeans, _pg_naive
+from ..utils.sorted_lists import (
     insert_no_duplicate, concat_no_duplicate, reverse_bisect_right
 )
 

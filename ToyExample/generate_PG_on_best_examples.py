@@ -8,12 +8,12 @@ from os import makedirs
 from shutil import copy2, copyfile
 import matplotlib.pyplot as plt
 import sys
-sys.path.append("..")
+
 from os.path import isfile
 from matplotlib.animation import FuncAnimation, PillowWriter
 
-from PersistentGraph import PersistentGraph
-from PersistentGraph.plots import *
+from ..PersistentGraph import PersistentGraph
+from ..PersistentGraph.plots import *
 
 # ---------------------------------------------------------
 # Parameters

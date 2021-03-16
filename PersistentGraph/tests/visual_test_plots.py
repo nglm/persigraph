@@ -5,11 +5,8 @@ def warn(*args, **kwargs):
 import warnings
 warnings.warn = warn
 
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '../..'))
-
-from PersistentGraph import PersistentGraph
-from PersistentGraph.plots import *
+from .. import PersistentGraph
+from ..plots import *
 
 
 members = np.array([

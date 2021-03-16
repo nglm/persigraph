@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
-import sys
-import os
 from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-sys.path.insert(1, os.path.join(sys.path[0], '../..'))
-
-from DataAnalysis.statistics import preprocess_data
-from PersistentGraph import PersistentGraph
-from PersistentGraph.plots import *
+from ...DataAnalysis.statistics import preprocess_data
+from .. import PersistentGraph
+from ..plots import *
 
 
 
@@ -21,7 +16,7 @@ from PersistentGraph.plots import *
 
 PG_TYPE = 'KMeans'
 
-SCORE_TYPE = 'max_variance'
+SCORE_TYPE = 'inertia'
 if PG_TYPE == 'Naive':
     SCORE_TYPE = 'max_diameter'
 

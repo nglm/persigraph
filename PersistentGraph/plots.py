@@ -10,9 +10,9 @@ from math import exp
 from typing import List
 from PIL import ImageColor
 
-from PersistentGraph.analysis import sort_components_by, get_k_life_span, get_relevant_k, get_relevant_components
-from PersistentGraph import Vertex
-from PersistentGraph import Edge
+from .analysis import sort_components_by, get_k_life_span, get_relevant_k, get_relevant_components
+from . import Vertex
+from . import Edge
 
 
 # =========================================================================

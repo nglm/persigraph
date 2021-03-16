@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict
-from utils.kmeans import kmeans_custom, row_norms
+from ..utils.kmeans import kmeans_custom, row_norms
 from scipy.spatial.distance import sqeuclidean, cdist
 
 def get_model_parameters(

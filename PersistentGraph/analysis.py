@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 from gudhi import bottleneck_distance
 from typing import List, Dict, Tuple
 
-from utils.lists import flatten
-from utils.sorted_lists import has_element
-from PersistentGraph.vertex import Vertex
-from PersistentGraph.edge import Edge
-from PersistentGraph.component import Component
+from ..utils.lists import flatten
+from ..utils.sorted_lists import has_element
+from .vertex import Vertex
+from .edge import Edge
+from .component import Component
 
 
 def stats(components: List[List[Component]]) -> Dict[str, float]:

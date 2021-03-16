@@ -21,9 +21,10 @@ from netCDF4 import Dataset
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
 from scipy.stats import norm, kurtosis
-from utils.plt import get_nrows_ncols_from_nplots, get_subplot_indices
-from utils.npy import running_mean
-from utils.lists import get_indices_element
+
+from ..utils.plt import get_nrows_ncols_from_nplots, get_subplot_indices
+from ..utils.npy import running_mean
+from ..utils.lists import get_indices_element
 
 
 def moving_average(

@@ -1,12 +1,13 @@
 from math import ceil, floor, sqrt
 import matplotlib
 import matplotlib.pyplot as plt
-from utils.npy import unpack_2d_dimensions
 import numpy as np
 from scipy.stats import norm
 import seaborn as sns
 import pandas as pd
 from matplotlib.lines import Line2D
+
+from ..utils.npy import unpack_2d_dimensions
 
 # FIXME: remove xlabels and ylabels in the middle when xaxis and xaxis are
 # not shared

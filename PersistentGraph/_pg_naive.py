@@ -3,10 +3,11 @@ from sklearn.metrics import pairwise_distances
 from typing import List, Sequence, Union, Any, Dict
 from math import isnan
 from bisect import insort
-
-from utils.kmeans import kmeans_custom
-from utils.sorted_lists import insert_no_duplicate
 from scipy.spatial.distance import sqeuclidean, cdist
+
+from ..utils.kmeans import kmeans_custom
+from ..utils.sorted_lists import insert_no_duplicate
+
 
 # FIXME: Strange unimodality appears sometime
 

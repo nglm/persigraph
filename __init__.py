@@ -1,5 +1,4 @@
-import PersistentGraph
-import PG_Naive
-import ToyExample
-import DataAnalysis
-import utils
+from . import PersistentGraph
+from . import ToyExample
+from . import DataAnalysis
+from . import utils
