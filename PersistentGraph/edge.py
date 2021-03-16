@@ -3,6 +3,9 @@ from PersistentGraph import Vertex
 from typing import Sequence, List
 
 class Edge(Component):
+    """
+    Graph Component that link 2 vertices of a PersistentGraph
+    """
 
     def __init__(
         self,

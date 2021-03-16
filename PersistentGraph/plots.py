@@ -10,7 +10,7 @@ from math import exp
 from typing import List
 from PIL import ImageColor
 
-from PersistentGraph.analysis import sort_components_by, get_k_life_span, get_relevant_k
+from PersistentGraph.analysis import sort_components_by, get_k_life_span, get_relevant_k, get_relevant_components
 from PersistentGraph import Vertex
 from PersistentGraph import Edge
 
@@ -253,6 +253,7 @@ def plot_gaussian_vertices(
     lw_max=15,
     f=linear,
     color_list = get_list_colors(51),
+    max_opacity=False,
     ax=None,
 ):
     if vertices:
@@ -262,11 +263,16 @@ def plot_gaussian_vertices(
         # colors = np.asarray(
         #     [(f(v.life_span)*c1 + (1-f(v.life_span))*c2) for v in vertices]
         # ).reshape((-1, 4)) / 255
+
+        # The color of a vertex is the color of its smallest brotherhood size
         colors = np.asarray(
-            [color_list[v.info['brotherhood_size']] for v in vertices]
+            [color_list[v.info['brotherhood_size'][0]] for v in vertices]
         ).reshape((-1, 4))
 
-        colors[:,3] = alphas
+        if max_opacity:
+            colors[:,3] = 1
+        else:
+            colors[:,3] = alphas
 
         lw = np.asarray([
             f(v.ratio_members, range0_1=False, f0=lw_min, f1=lw_max)
@@ -324,6 +330,7 @@ def plot_gaussian_edges(
     f=linear,
     color_list = get_list_colors(51),
     show_std = False,
+    max_opacity=False,
     ax=None,
 ):
     if edges:
@@ -333,17 +340,19 @@ def plot_gaussian_edges(
         #     for e in edges]
         # ).reshape((-1, 4)) / 255
 
-        colors = np.asarray(
-            [color_list[
-                np.amax([
-                    e.v_start.info['brotherhood_size'],
-                    e.v_end.info['brotherhood_size']
-                    ])
-                ] for e in edges]
-        ).reshape((-1, 4))
 
+        # colors = np.asarray(
+        #     [color_list[
+        #         np.amax([
+        #             e.v_start.info['brotherhood_size'],
+        #             e.v_end.info['brotherhood_size']
+        #             ])
+        #         ] for e in edges]
+        # ).reshape((-1, 4))
+
+        # The color of an edge is the color of its start vertex
         colors = np.asarray(
-            [color_list[e.v_start.info['brotherhood_size']] for e in edges]
+            [color_list[e.v_start.info['brotherhood_size'][0]] for e in edges]
         ).reshape((-1, 4))
 
         # colors = np.asarray(
@@ -357,14 +366,17 @@ def plot_gaussian_edges(
         #         ])]
         #         ] for e in edges]
         # ).reshape((-1, 4))
-        colors[:,3] = alphas
+
+        if max_opacity:
+            colors[:,3] = 1
+        else:
+            colors[:,3] = alphas
 
         lw = np.asarray([
             f(e.ratio_members, range0_1=False, f0=lw_min, f1=lw_max)
             for e in edges
         ])
 
-        colors[:,3] = alphas
         lines = __edges_lines(g, edges)
         lines = LineCollection(
             lines,
@@ -393,6 +405,7 @@ def plot_vertices(
     lw_min=0.5,
     lw_max=20,
     f=sigmoid,
+    max_opacity=False,
     ax=None,
 ):
 
@@ -415,6 +428,7 @@ def plot_vertices(
         lw_min=lw_min,
         lw_max=lw_max,
         f=f,
+        max_opacity=max_opacity,
         ax=ax,
     )
     # ax = plot_uniform_vertices(
@@ -438,6 +452,7 @@ def plot_edges(
     color_list = get_list_colors(51),
     show_std = False,
     f=sigmoid,
+    max_opacity=False,
     ax=None,
 ):
 
@@ -461,6 +476,7 @@ def plot_edges(
         lw_max=lw_max,
         show_std = show_std,
         f=f,
+        max_opacity=max_opacity,
         ax=ax,
     )
     #ax = plot_uniform_edges()
@@ -475,6 +491,7 @@ def plot_as_graph(
     show_std: bool = True,
     threshold_m:int = 0,
     threshold_l:float = 0.00,
+    max_opacity: bool = False,
     fig = None,
     ax = None,
     fig_kw: dict = {"figsize" : (20,12)},
@@ -492,14 +509,14 @@ def plot_as_graph(
                 ax = plot_vertices(
                     g, t, g._vertices[t],
                     threshold_m=threshold_m, threshold_l=threshold_l,
-                    color_list = color_list,
+                    color_list = color_list, max_opacity=max_opacity,
                     ax=ax,
                 )
             if show_edges and (t < g.T-1):
                 ax = plot_edges(
                     g, t, g._edges[t],
                     threshold_m=threshold_m, threshold_l=threshold_l,
-                    color_list = color_list,
+                    color_list = color_list, max_opacity=max_opacity,
                     show_std = show_std,
                     ax=ax
                 )
@@ -516,7 +533,7 @@ def plot_as_graph(
                 ax = plot_vertices(
                     g, t, vertices,
                     threshold_m=threshold_m, threshold_l=threshold_l,
-                    color_list = color_list,
+                    color_list = color_list, max_opacity=max_opacity,
                     ax=ax
                 )
             if (t < g.T-1) and show_edges:
@@ -528,7 +545,7 @@ def plot_as_graph(
                 ax = plot_edges(
                     g, t, edges,
                     threshold_m=threshold_m, threshold_l=threshold_l,
-                    color_list = color_list,
+                    color_list = color_list, max_opacity=max_opacity,
                     show_std = show_std,
                     ax=ax,
                 )
@@ -569,7 +586,7 @@ def k_plot(
             )
         ax.legend()
         ax.set_xlabel(ax_kw.pop('xlabel', 'Time (h)'))
-        ax.set_xlabel(ax_kw.pop('ylabel', 'Life span'))
+        ax.set_ylabel(ax_kw.pop('ylabel', 'Life span'))
         ax.set_ylim([0,1])
     return fig, ax, life_span
 
@@ -627,7 +644,7 @@ def annot_ax(
     arrow_kw = {}
 ):
     k_max = min(k_max, g.k_max)
-    # For each time step, get the most relevant number of cluster
+    # For each time step, get the most relevant number of clusters
     if relevant_k is None:
         relevant_k = get_relevant_k(g, k_max=k_max)
 
@@ -650,7 +667,110 @@ def annot_ax(
     return ax
 
 
+def plot_most_revelant_components(
+    g,
+    relevant_components = None,
+    k_max = 8,
+    show_vertices: bool = True,
+    show_edges: bool = True,
+    show_std: bool = True,
+    threshold_m:int = 0,
+    threshold_l:float = 0.00,
+    max_opacity:bool = True,
+    fig = None,
+    ax = None,
+    fig_kw: dict = {"figsize" : (20,12)},
+    ax_kw: dict = {},
+):
+    k_max = min(k_max, g.k_max)
+    # For each time step, get the most relevant number of clusters
+    if relevant_components is None:
+        vertices, edges = get_relevant_components(g, k_max=k_max)
+    else:
+        vertices, edges = relevant_components
 
+    if ax is None:
+        fig, ax = plt.subplots(**fig_kw)
+        ax.autoscale()
+
+    color_list = get_list_colors(k_max)
+    for t in range(g.T):
+        if show_vertices:
+            ax = plot_vertices(
+                g, t, vertices[t],
+                threshold_m=threshold_m, threshold_l=threshold_l,
+                color_list = color_list, max_opacity=max_opacity,
+                ax=ax,
+            )
+        if show_edges and (t < g.T-1):
+            ax = plot_edges(
+                g, t, edges[t],
+                threshold_m=threshold_m, threshold_l=threshold_l,
+                color_list = color_list, max_opacity=max_opacity,
+                show_std = show_std,
+                ax=ax
+            )
+    ax.autoscale()
+    ax.set_xlabel(ax_kw.pop('xlabel', "Time (h)"))
+    ax.set_ylabel(ax_kw.pop('ylabel', ""))
+    ax.set_xlim([g.time_axis[0], g.time_axis[-1]])
+    ax.set_title('Only most relevant components')
+    return fig, ax
+
+
+def plot_overview(
+    g,
+    relevant_components = None,
+    k_max = 8,
+    show_vertices: bool = True,
+    show_edges: bool = True,
+    show_std: bool = True,
+    threshold_m:int = 0,
+    threshold_l:float = 0.00,
+    max_opacity:bool = True,
+    fig = None,
+    ax = None,
+    fig_kw: dict = {},
+    ax_kw: dict = {},
+):
+    if fig is None:
+        fig = plt.figure(
+            figsize = fig_kw.pop('figsize', (40,12)), tight_layout=True
+        )
+    gs = fig.add_gridspec(nrows=2, ncols=5)
+
+    # Plot entire graph
+    ax0 = fig.add_subplot(gs[:, 0:2])
+    _, ax0 = plot_as_graph(
+        g, show_vertices=show_vertices, show_edges=show_edges,
+        show_std=show_std, ax=ax0)
+    ax0.set_title("Entire graph")
+    ax0.set_xlabel("Time (h)")
+    ax0.set_ylabel("Values")
+
+    # Arrows on entire graph
+    ax0 = annot_ax(g, ax=ax0)
+
+    # k_plot
+    ax1 = fig.add_subplot(gs[0, 2], sharex=ax0)
+    _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
+    #ax1.set_xlabel("Time")
+    ax1.set_ylabel("Relevance")
+    ax1.set_title('Number of clusters: relevance')
+
+    # most relevant components
+    ax2 = fig.add_subplot(gs[:, 3:], sharey=ax0, sharex=ax0)
+    _, ax2 = plot_most_revelant_components(
+        g, k_max=k_max, show_vertices=show_vertices,
+        show_edges=show_edges, show_std=show_std, max_opacity=True, ax=ax2)
+    ax2.set_title("Most relevant components")
+    #ax2.set_xlabel("Time")
+    ax2.set_ylabel("Values")
+
+    # Arrows on most relevant components
+    ax2 = annot_ax(g, ax=ax2)
+
+    return fig, fig.axes
 
 
 def __init_make_gif():
@@ -684,6 +804,7 @@ def __update_make_gif(
         threshold_l = threshold_l,
         ax = ax,
     )
+
 
 def make_gif(
     g,

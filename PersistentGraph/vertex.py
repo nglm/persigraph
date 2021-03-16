@@ -37,7 +37,7 @@ class Vertex(Component):
         """
         Check if 2 vertices are equal
 
-        ..note:: Assume that ``members`` is an ordered list
+        Assume that ``members`` is an ordered list
 
         :param v: vertex to compare to
         :type v: Vertex

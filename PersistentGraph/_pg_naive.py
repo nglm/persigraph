@@ -88,7 +88,7 @@ def graph_initialization(pg):
         info = {
             'type' : 'Naive',
             'params' : [mean[t], std[t], 0], #mean, std, rep
-            'brotherhood_size' : 1
+            'brotherhood_size' : [1]
         }
         v = pg._add_vertex(
             info = info,
@@ -203,7 +203,7 @@ def clustering_model(
                         np.std(X[members]),
                         rep[i_cluster]
                         ],
-                    'brotherhood_size' : n_clusters
+                    'brotherhood_size' : [n_clusters]
                     })
             score = fit_predict_kw['distance_matrix'][i, j]
             step_info = {'score' : score, '(i,j)' : (i,j)}

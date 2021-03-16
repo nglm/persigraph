@@ -512,23 +512,22 @@ class PersistentGraph():
                     ratio_death, ratio_birth
                 )
 
-        if ratio_death > ratio_birth:
-            e = Edge(
-                v_start = v_start,
-                v_end = v_end,
-                t = t,
-                num = self._nb_edges[t],
-                members = members,
-                scores = [score_birth, score_death],
-                score_ratios = [ratio_birth, ratio_death],
-                total_nb_members = self.N,
-            )
+        e = Edge(
+            v_start = v_start,
+            v_end = v_end,
+            t = t,
+            num = self._nb_edges[t],
+            members = members,
+            scores = [score_birth, score_death],
+            score_ratios = [ratio_birth, ratio_death],
+            total_nb_members = self.N,
+        )
 
-            # Update the graph with the new edge
-            self._nb_edges[t] += 1
-            self._edges[t].append(e)
-            insort(self._e_at_step[t]['e'][-1], e.num)
-            return e
+        # Update the graph with the new edge
+        self._nb_edges[t] += 1
+        self._edges[t].append(e)
+        insort(self._e_at_step[t]['e'][-1], e.num)
+        return e
 
 
     def _kill_vertices(
@@ -917,10 +916,10 @@ class PersistentGraph():
                                 # next cmpt
 
                                 # Update brotherhood size to the smallest one
-                                v_alive.info['brotherhood_size'] = min(
-                                    n_clusters, v_alive.info['brotherhood_size']
-                                    )
-
+                                insort(
+                                    v_alive.info['brotherhood_size'],
+                                    n_clusters
+                                )
                                 del alive_vertices[i]
                                 break
                         if to_create:
@@ -974,7 +973,7 @@ class PersistentGraph():
 
             # Ratios for vertices
             for v in v_t:
-                v.compute_ratio_scores(score_bounds = score_bounds)
+                v._compute_ratio_scores(score_bounds = score_bounds)
 
             # Ratios for local step scores
             for l_step in range(self._nb_local_steps[t]):

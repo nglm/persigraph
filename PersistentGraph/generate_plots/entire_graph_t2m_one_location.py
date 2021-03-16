@@ -31,10 +31,12 @@ ZERO_TYPE = 'uniform'
 var_names = ['tcwv']
 
 # Use
+# - 'overview' if you want the overview plot (entire graph + k_plot +
+# most relevant components)
 # - 'inside' if you want graph and k_plots on the same fig
 # - 'outside' if you want 2 figs
-# - anything else if you don't want it
-show_k_plot = 'inside'
+# - anything else if you just want the entire graph
+show_k_plot = 'overview'
 
 # Absolute path to the files
 # type: str
@@ -74,10 +76,6 @@ def main():
 
             path_fig = PATH_FIG_PARENT + "plots/"
             name_fig = path_fig + filename[:-3]
-            if weights:
-                name_fig += "_weights.png"
-            else:
-                name_fig += '.png'
             makedirs(path_fig, exist_ok = True)
 
             path_graph = PATH_FIG_PARENT + "graphs/"
@@ -164,23 +162,36 @@ def main():
                 )
                 }
 
-            fig0, ax0 = plot_as_graph(
-                g, show_vertices=True, show_edges=True, show_std = True,
-                ax_kw=ax_kw, ax = ax0, fig=fig0,
-            )
-
-            ax0_title = 'Entire graph'
-            ax0.set_title(ax0_title)
-
             fig_suptitle = (filename + "\n" +str(var_names[0]))
+
+            # If overview:
+            if show_k_plot == 'overview':
+                fig0, ax0 = plot_overview(
+                    g, k_max=8, show_vertices=True, show_edges=True,
+                    show_std = True, ax_kw=ax_kw, ax = ax0, fig=fig0,
+                )
+                name_fig += '_overview'
+
+            else:
+                fig0, ax0 = plot_as_graph(
+                    g, show_vertices=True, show_edges=True, show_std = True,
+                    ax_kw=ax_kw, ax = ax0, fig=fig0,
+                )
+
+                ax0_title = 'Entire graph'
+                ax0.set_title(ax0_title)
+
+
             if weights:
                 fig_suptitle += ", with weights"
+                name_fig += '_weights'
             fig0.suptitle(fig_suptitle)
 
 
             # ---------------------------
             # Save plot and graph
-            # ---------------------------
+            # ---------------------------.
+            name_fig += '.png'
             fig0.savefig(name_fig)
             plt.close()
             g.save(name_graph)

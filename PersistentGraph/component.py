@@ -5,6 +5,9 @@ from utils.sorted_lists import has_element, get_common_elements, bisect_search
 import numpy as np
 
 class Component():
+    """
+    Base class for Vertex and Edge, components of a PersistentGraph
+    """
 
     key_incr:int = 0
 
@@ -25,7 +28,7 @@ class Component():
         self.scores = scores
         self.compute_ratio_members(total_nb_members = total_nb_members)
         if score_ratios is None:
-            self.compute_ratio_scores(score_bounds = score_bounds)
+            self._compute_ratio_scores(score_bounds = score_bounds)
         else:
             self.score_ratios = score_ratios
 
@@ -34,14 +37,16 @@ class Component():
     def reset_key_incr(self):
         Component.key_incr = 0
 
-    def has_member(self, m: int):
+    def has_member(self, m: int) -> bool:
         """
         Check if a member belongs to the component
 
-        Component.members must be sorted
+        Assume that Component.members are sorted
 
         :param m: index of the member to find
         :type m: int
+        :return: True if self has this member, False otherwise
+        :rtype: List[int]
         """
         return has_element(self.__members, m, len_l = self.nb_members)
 
@@ -52,7 +57,7 @@ class Component():
         """
         Return the common members between self and cmpt
 
-        Component.members must be sorted
+        Assume that Component.members are sorted
 
         :param cmpt: Component to compare to
         :type cmpt: Component
@@ -69,7 +74,7 @@ class Component():
             check_O1_range(ratio_members, 'Ratio members')
             self.__ratio_members = ratio_members
 
-    def compute_ratio_scores(
+    def _compute_ratio_scores(
         self,
         score_bounds = None,
         ):

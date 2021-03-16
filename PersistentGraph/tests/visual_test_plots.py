@@ -87,10 +87,16 @@ for t in range(g.T):
 # for s in range(g.nb_steps):
 #     fig, ax = plot_as_graph(g,s, show_vertices=True)
 
-fig, ax = plot_as_graph(
+# fig, ax = plot_as_graph(
+#     g, show_vertices=True,
+#     show_edges=True,
+#     show_std = True)
+
+fig, ax = plot_overview(
     g, show_vertices=True,
     show_edges=True,
     show_std = True)
+
 plt.figure()
 for m in g.members:
     plt.plot(m)

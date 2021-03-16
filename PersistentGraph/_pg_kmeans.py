@@ -93,7 +93,7 @@ def graph_initialization(pg):
                 clusters_info.append({
                     'type' : 'KMeans',
                     'params' : [pg._members[i,t], 0.], #mean, std
-                    'brotherhood_size' : pg.k_max
+                    'brotherhood_size' : [pg.k_max]
                 })
                 clusters.append([i])
 
@@ -213,7 +213,7 @@ def clustering_model(
                 float(model.cluster_centers_[label_i]),
                 float(np.std(X[members])),
                 ],
-            'brotherhood_size' : n_clusters
+            'brotherhood_size' : [n_clusters]
         })
 
     score = compute_score(
