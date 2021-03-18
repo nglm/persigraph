@@ -3,14 +3,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 from netCDF4 import Dataset
 
-
-
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-sys.path.insert(1, os.path.join(sys.path[0], '../../'))
-
-from persistentgraph import PersistentGraph
-from DataAnalysis.statistics import extract_variables
+from TopEns.PersistentGraph import PersistentGraph
+from TopEns.DataAnalysis.statistics import extract_variables
 
 members = np.array([
     (0. ,1., 2., 1.,0.),
@@ -19,7 +13,7 @@ members = np.array([
     (0 ,-0.5, -0.5, -0.5, -1),
 ])
 
-nc = Dataset("tests/ec.ens.2020012900.sfc.meteogram.nc","r")
+nc = Dataset("PersistentGraph/tests/ec.ens.2020012900.sfc.meteogram.nc","r")
 (list_var, var_names) = extract_variables(nc, var_names=["t2m"], ind_lat=np.array([0]), ind_long=np.array([0]))
 members_nc = np.transpose(list_var[0].squeeze())
 
@@ -68,7 +62,7 @@ def test_decreasing_distance():
     """
     Test that we take the distances in decreasing order
     """
-    g = PersistentGraph(members)
+    g = PersistentGraph(members, k_max=5)
     g.construct_graph()
     steps = g.steps
     dist_matrix = g.distance_matrix
@@ -102,7 +96,7 @@ def test_decreasing_distance():
 #             assert np.amax(values) == np.amax(g.members[:,t])
 
 def test_increment_nb_vertex():
-    g = PersistentGraph(members)
+    g = PersistentGraph(members, k_max=5)
     g.construct_graph()
     M_v = g.M_v
     for s in range(1,g.nb_steps):

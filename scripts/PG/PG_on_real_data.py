@@ -191,4 +191,5 @@ def main():
             plt.close()
             g.save(name_graph)
 
-main()
+if __name__ == "__main__":
+    main()

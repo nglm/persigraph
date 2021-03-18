@@ -1,10 +1,12 @@
 import unittest
-from DataAnalysis.statistics import *
+
 from netCDF4 import Dataset
 import numpy as np
 import sys
 from contextlib import contextmanager
 from io import StringIO
+
+from TopEns.DataAnalysis.statistics import *
 
 
 nc = Dataset('/home/natacha/Documents/Work/Data/Bergen/ec.ens.2020011400.sfc.meteogram.nc','r')

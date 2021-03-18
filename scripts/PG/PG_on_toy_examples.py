@@ -346,6 +346,7 @@ def make_gif_best():
                 # Save
                 ani.save(dest_name + name_fig +"_with_weights.gif", writer=writer)
 
-main()
-rename_best()
-#make_gif_best()
+if __name__ == "__main__":
+    main()
+    rename_best()
+    #make_gif_best()
