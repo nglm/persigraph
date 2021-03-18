@@ -4,24 +4,14 @@ import os
 from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
+from netCDF4 import Dataset
 
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-sys.path.insert(1, os.path.join(sys.path[0], '../..'))
-
-from statistics import preprocess_data
-from utils.plt import from_list_to_subplots
+from ..statistics import preprocess_data
+from ...utils.plt import from_list_to_subplots
 
 # ---------------------------------------------------------
 # Parameters:
 # ---------------------------------------------------------
-
-# Absolute path to the files
-# type: str
-PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
-
-# Choose the path where the figs will be saved
-# type: str
-PATH_FIG= "/home/natacha/Documents/tmp/figs/all_members_first_location/"
 
 # Choose which variables should be ploted
 # type: List(str)
@@ -32,7 +22,21 @@ PATH_FIG= "/home/natacha/Documents/tmp/figs/all_members_first_location/"
 # --- 10m-winds in East and North direction (“u10”, “v10”)
 # --- total water vapour in the entire column above the grid point (“tcwv”)
 # if None: var_names = ["t2m","d2m","msl","u10","v10","tcwv"]
-var_names=['t2m']
+var_names=['tcwv']
+
+# Absolute path to the files
+# type: str
+PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
+
+# Choose the path where the figs will be saved
+# type: str
+PATH_FIG= (
+    "/home/natacha/Documents/tmp/figs/all_members_first_location/"
+    + var_names[0] + '/'
+)
+
+
+
 # Choose which instants should be ploted
 # type: ndarray(int)
 ind_time=None
@@ -56,6 +60,9 @@ LIST_FILENAMES = [
 ]
 for filename in LIST_FILENAMES:
 
+    # To get the right variable names and units
+    nc = Dataset(PATH_DATA + filename,'r')
+
     list_var, list_names, time = preprocess_data(
         filename = filename,
         path_data = PATH_DATA,
@@ -74,7 +81,10 @@ for filename in LIST_FILENAMES:
     if to_standardize:
         ylabel = "Standardized values (1)"
     else:
-        ylabel = ""
+        ylabel = (
+            nc.variables[var_names[0]].long_name
+            + ' (' + nc.variables[var_names[0]].units + ')'
+        )
 
     dict_kwargs = {
         "fig_suptitle" : fig_suptitle,

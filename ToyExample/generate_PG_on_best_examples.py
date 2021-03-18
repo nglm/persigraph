@@ -22,7 +22,7 @@ from ..PersistentGraph.plots import *
 PG_TYPE = 'KMeans'
 
 SCORE_TYPES = [
-    'max_inertia'
+    'max_variance'
     ]
 
 if PG_TYPE == 'Naive':
