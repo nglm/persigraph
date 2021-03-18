@@ -20,6 +20,7 @@ class PersistentGraph():
         'variance',
         'min_variance',
         'max_variance',
+        'max_diameter',
         ]
 
     _SCORES_TO_MAXIMIZE = []

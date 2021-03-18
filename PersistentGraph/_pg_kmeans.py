@@ -1,7 +1,8 @@
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict
+
 from ..utils.kmeans import kmeans_custom, row_norms
-from scipy.spatial.distance import sqeuclidean, cdist
+
 
 def get_model_parameters(
         pg,
@@ -27,48 +28,6 @@ def get_model_parameters(
     return model_kw, fit_predict_kw
 
 
-def compute_score(pg, model=None, X=None, clusters=None):
-    if pg._score_type == 'inertia':
-        return np.around(model.inertia_, pg._precision)
-    elif pg._score_type == 'max_inertia':
-        score = 0
-        for i_cluster, members in enumerate(clusters):
-            score = max(
-                score,
-                np.sum(cdist(
-                    X[members],
-                    np.mean(X[members]).reshape(-1, 1) ,
-                    metric='sqeuclidean'
-                    )
-                ))
-            return np.around(score, pg._precision)
-    elif pg._score_type == 'min_inertia':
-        score = np.inf
-        for i_cluster, members in enumerate(clusters):
-            score = min(
-                score,
-                np.sum(cdist(
-                    X[members],
-                    np.mean(X[members]).reshape(-1, 1) ,
-                    metric='sqeuclidean'
-                    )
-                ))
-            return np.around(score, pg._precision)
-    elif pg._score_type == 'variance':
-        score = 0
-        for i_cluster, members in enumerate(clusters):
-            score += len(members)/pg.N * np.var(X[members])
-        return np.around(score, pg._precision)
-    elif pg._score_type == 'max_variance':
-        score = 0
-        for i_cluster, members in enumerate(clusters):
-            score = max(np.var(X[members]), score)
-        return np.around(score, pg._precision)
-    elif pg._score_type == 'min_variance':
-        score = np.inf
-        for i_cluster, members in enumerate(clusters):
-            score = min(np.var(X[members]), score)
-        return np.around(score, pg._precision)
 
 def graph_initialization(pg):
     """
