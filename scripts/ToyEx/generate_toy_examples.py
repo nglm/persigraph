@@ -91,7 +91,7 @@ def plot_true_distribution(
             ax.plot(xvalues, center-scale_values, c=color, lw=0.5, ls='--')
         elif distrib_type[i_center] == np.random.uniform:
             radius_values = param_values[i_center]['high']
-            ax.plot(xvalues, center+radius_values, c=color, lw=0.5, ls='--', label='bounds')
+            ax.plot(xvalues, center+radius_values, c=color, lw=0.5, ls='--', label='uniform')
             ax.plot(xvalues, center-radius_values, c=color, lw=0.5, ls='--')
 
     ax.set_xlabel("Time")

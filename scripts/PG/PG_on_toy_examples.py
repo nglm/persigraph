@@ -22,14 +22,14 @@ from ...PersistentGraph.plots import *
 PG_TYPE = 'KMeans'
 
 SCORE_TYPES = [
-    'max_variance'
+    'max_diameter'
     ]
 
 if PG_TYPE == 'Naive':
     SCORE_TYPES = ['max_diameter']
 
 
-ZERO_TYPE = 'uniform'
+ZERO_TYPE = 'bounds'
 
 
 PATH_FIG_PARENT = "/home/natacha/Documents/tmp/figs/toyexamples/"
@@ -100,7 +100,7 @@ def plot_pg_mean_std(
             members = members,
             score_is_improving = False,
             score_type = score_type,
-            zero_type = 'uniform',
+            zero_type = ZERO_TYPE,
             model_type = PG_TYPE,
             weights=weights,
             k_max = 8,

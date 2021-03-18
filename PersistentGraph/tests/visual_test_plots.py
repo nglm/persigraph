@@ -22,8 +22,8 @@ def main():
     g = PersistentGraph(
         members,
         time_axis = np.arange(5),
-        score_type = 'max_variance',
-        zero_type = 'uniform',
+        score_type = 'max_inertia',
+        zero_type = 'bounds',
         model_type = model_type,
         k_max=None,
         )

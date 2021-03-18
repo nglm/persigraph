@@ -34,7 +34,7 @@ class PersistentGraph():
         score_is_improving: bool = False,
         precision: int = 13,
         score_type: str = 'inertia',
-        zero_type: str = 'uniform',
+        zero_type: str = 'bounds',
         model_type: str = 'KMeans',
         k_max : int = None,
         name: str = None,

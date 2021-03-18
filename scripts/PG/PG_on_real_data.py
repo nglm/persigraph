@@ -16,12 +16,12 @@ from ...PersistentGraph.plots import *
 
 PG_TYPE = 'KMeans'
 
-SCORE_TYPE = 'inertia'
+SCORE_TYPE = 'max_inertia'
 if PG_TYPE == 'Naive':
     SCORE_TYPE = 'max_diameter'
 
 
-ZERO_TYPE = 'uniform'
+ZERO_TYPE = 'bounds'
 
 var_names = ['tcwv']
 
