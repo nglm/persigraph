@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 
-import sys
-import os
 from os import listdir, makedirs
 import numpy as np
 from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-sys.path.insert(1, os.path.join(sys.path[0], '../..'))
-
-from statistics import extract_variables, standardize, get_list_std, get_list_average_values
-from utils.lists import get_indices_element
-from utils.plt import from_list_to_subplots
+from ...DataAnalysis.statistics import extract_variables, standardize, get_list_std, get_list_average_values
+from ...utils.lists import get_indices_element
+from ...utils.plt import from_list_to_subplots
 
 
 

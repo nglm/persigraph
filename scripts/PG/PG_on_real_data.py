@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 
 from ...DataAnalysis.statistics import preprocess_data
-from .. import PersistentGraph
-from ..plots import *
+from ...PersistentGraph import PersistentGraph
+from ...PersistentGraph.plots import *
 
 
 

@@ -1,12 +1,11 @@
 import numpy as np
 from sklearn.decomposition import PCA
-import sys, os
 from os import listdir, makedirs
 import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage
 
-from ..DataAnalysis.statistics import preprocess_data
-from ..utils.plt import plot_mean_and_std
+from ...DataAnalysis.statistics import preprocess_data
+from ...utils.plt import plot_mean_and_std
 
 
 

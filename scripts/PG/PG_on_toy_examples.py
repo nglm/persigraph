@@ -12,8 +12,8 @@ import sys
 from os.path import isfile
 from matplotlib.animation import FuncAnimation, PillowWriter
 
-from ..PersistentGraph import PersistentGraph
-from ..PersistentGraph.plots import *
+from ...PersistentGraph import PersistentGraph
+from ...PersistentGraph.plots import *
 
 # ---------------------------------------------------------
 # Parameters

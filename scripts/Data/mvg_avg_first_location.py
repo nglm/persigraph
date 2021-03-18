@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-import sys
-import os
+
+
 from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 
-from ..statistics import preprocess_data
+from ...DataAnalysis.statistics import preprocess_data, moving_average
 from ...utils.plt import from_list_to_subplots
+
 
 # ---------------------------------------------------------
 # Parameters:
@@ -26,16 +27,11 @@ var_names=['tcwv']
 
 # Absolute path to the files
 # type: str
-PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
+PATH_DATA= "/home/natacha/Documents/Work/Data/Bergen/"
 
 # Choose the path where the figs will be saved
 # type: str
-PATH_FIG= (
-    "/home/natacha/Documents/tmp/figs/all_members_first_location/"
-    + var_names[0] + '/'
-)
-
-
+PATH_FIG = "/home/natacha/Documents/tmp/figs/moving_avg_first_location/"
 
 # Choose which instants should be ploted
 # type: ndarray(int)
@@ -50,6 +46,9 @@ ind_long=np.array([0])
 # type: ndarray(int)
 ind_lat=np.array([0])
 
+# Choose which time window should be applied
+list_windows = [1, 2 , 4, 6, 8, 10]
+
 to_standardize = False
 
 # Choose which files should be used
@@ -58,6 +57,8 @@ LIST_FILENAMES = [
     fname for fname in LIST_FILENAMES
     if fname.startswith("ec.ens.") and  fname.endswith(".nc")
 ]
+
+
 for filename in LIST_FILENAMES:
 
     # To get the right variable names and units
@@ -74,34 +75,49 @@ for filename in LIST_FILENAMES:
         to_standardize = to_standardize,
         )
 
-    fig_suptitle = "Bergen Forecast: " + filename[:-3] + "\n First grid point, All members"
-    list_ax_titles = ["Variable: " + name for name in list_names]
-    xlabel = "Time (h)"
+    list_list_avg_var = moving_average(
+        list_var = list_var,   # List(ndarray(n_time, n_members [, n_long, n_lat])
+        list_windows = list_windows,
+    )
 
-    if to_standardize:
-        ylabel = "Standardized values (1)"
-    else:
-        ylabel = (
+    # One variable at a time
+    for i,list_avg_var in enumerate(list_list_avg_var):
+
+        fig_suptitle = (
+            "Bergen Forecast: " + filename[:-3]
+            + "\n Variable: " + list_names[i]
+            + " First grid point, All members"
+            )
+        list_ax_titles = [
+            "Moving average \n time_window = "
+            + str(t) +" times steps ie " + str(t*6) + "h" for t in list_windows]
+        xlabel = "Time (h)"
+        if to_standardize:
+            ylabel = "Standardized values (1)"
+        else:
+            ylabel = (
             nc.variables[var_names[0]].long_name
             + ' (' + nc.variables[var_names[0]].units + ')'
         )
 
-    dict_kwargs = {
-        "fig_suptitle" : fig_suptitle,
-        "list_ax_titles" : list_ax_titles,
-        "list_xlabels" : xlabel,
-        "list_ylabels" : ylabel,
-    }
 
-    fig, axs = from_list_to_subplots(
-        list_yvalues=list_var,  # List[ndarray([n_lines, ] n_values )]
-        list_xvalues=time, #ndarray(n_values)
-        plt_type = "plot",
-        dict_kwargs = dict_kwargs,
-        show=False,
+        dict_kwargs = {
+            "fig_suptitle" : fig_suptitle,
+            "list_ax_titles" : list_ax_titles,
+            "list_xlabels" : xlabel,
+            "list_ylabels" : ylabel,
+        }
+
+        fig, axs = from_list_to_subplots(
+            list_yvalues=list_avg_var,  # List[ndarray([n_lines, ] n_values )]
+            list_xvalues=time, #ndarray(n_values)
+            plt_type = "plot",
+            dict_kwargs = dict_kwargs,
+            show=False,
         )
 
-    name_fig = PATH_FIG+ filename[:-3] + ".png"
-    makedirs(PATH_FIG, exist_ok = True)
-    plt.savefig(name_fig)
-    plt.close()
+        path_fig_tmp = PATH_FIG+ list_names[i] +"/"
+        makedirs(path_fig_tmp, exist_ok = True)
+        name_fig = path_fig_tmp + filename[:-3] + ".png"
+        plt.savefig(name_fig)
+        plt.close()

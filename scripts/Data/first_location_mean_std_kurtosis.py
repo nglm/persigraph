@@ -2,18 +2,18 @@
 
 #FIXME: 2020/12 Make sure it is still working after the clean-up
 
-import sys
-import os
+
+
 from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
 
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 
-from statistics import preprocess_data, get_list_stats
-from utils.lists import get_indices_element
-from utils.plt import from_list_to_subplots
+
+
+from ...DataAnalysis.statistics import preprocess_data, get_list_stats
+from ...utils.lists import get_indices_element
+from ...utils.plt import from_list_to_subplots
 
 # ---------------------------------------------------------
 # Parameters:

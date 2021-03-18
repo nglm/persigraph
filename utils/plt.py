@@ -7,7 +7,7 @@ import seaborn as sns
 import pandas as pd
 from matplotlib.lines import Line2D
 
-from ..utils.npy import unpack_2d_dimensions
+from .npy import unpack_2d_dimensions
 
 # FIXME: remove xlabels and ylabels in the middle when xaxis and xaxis are
 # not shared
