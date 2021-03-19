@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.linalg import norm
 from scipy.spatial.distance import sqeuclidean, cdist, euclidean
 from sklearn.metrics import pairwise_distances
 
@@ -10,6 +11,10 @@ SCORES_TO_MINIMIZE = [
         'min_variance',
         'max_variance',
         'max_diameter',
+        'max_MedDevMean',
+        'max_MedDevMed',
+        'MedDevMean',
+        'weighted_inertia',
         ]
 
 SCORES_TO_MAXIMIZE = []
@@ -42,10 +47,20 @@ def compute_score(pg, model=None, X=None, clusters=None):
             for i_cluster, members in enumerate(clusters):
                 score += np.sum(cdist(
                         X[members],
-                        np.mean(X[members]).reshape(-1, 1) ,
+                        np.mean(X[members], keepdims=True) ,
                         metric='sqeuclidean'
                         )
                     )
+    # ------------------------------------------------------------------
+    if pg._score_type == 'weighted_inertia':
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score += pg.N/len(members)*np.sum(cdist(
+                    X[members],
+                    np.mean(X[members], keepdims=True) ,
+                    metric='sqeuclidean'
+                    )
+                )
 
     # ------------------------------------------------------------------
     elif pg._score_type == 'max_inertia':
@@ -55,7 +70,7 @@ def compute_score(pg, model=None, X=None, clusters=None):
                 score,
                 np.sum(cdist(
                     X[members],
-                    np.mean(X[members]).reshape(-1, 1) ,
+                    np.mean(X[members], keepdims=True) ,
                     metric='sqeuclidean'
                     )
                 ))
@@ -68,7 +83,7 @@ def compute_score(pg, model=None, X=None, clusters=None):
                 score,
                 np.sum(cdist(
                     X[members],
-                    np.mean(X[members]).reshape(-1, 1) ,
+                    np.mean(X[members], keepdims=True) ,
                     metric='sqeuclidean'
                     )
                 ))
@@ -92,15 +107,44 @@ def compute_score(pg, model=None, X=None, clusters=None):
             score = min(np.var(X[members]), score)
 
     # ------------------------------------------------------------------
+    elif pg._score_type == 'max_MedDevMean':
+        # Max median deviation
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score = max(
+                np.median(norm(X[members] - np.mean(X[members]))),
+                score
+            )
+    # ------------------------------------------------------------------
+    elif pg._score_type == 'max_MedDevMed':
+        # Max median deviation
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score = max(
+                np.median(norm(X[members] - np.median(X[members]))),
+                score
+            )
+
+    # ------------------------------------------------------------------
     elif pg._score_type == 'max_diameter':
+        # WARNING: Max diameter should be used with weights + shared
+        # score bounds!
         score = 0
         for i_cluster, members in enumerate(clusters):
             score = max(
                 np.amax(pairwise_distances(X[members])),
                 score
             )
+    elif pg._score_type == 'MedDevMean':
+        # WARNING: Max diameter should be used with weights + shared
+        # score bounds!
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score += (pg.N/len(members) *
+                np.median(norm(X[members] - np.mean(X[members])))
+            )
+
     else:
-        #TODO: not implemented yet:
         raise ValueError(
                 "Choose an available score_type"
                 + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
@@ -117,7 +161,7 @@ def compute_zero_scores(pg):
         mins = np.amin(pg._members, axis = 0)
         maxs = np.amax(pg._members, axis = 0)
 
-    elif pg._zero_type == 'var':
+    else:
         # I'm not sure if this type should be used at all actually.....
         # Get the parameters of the uniform distrib using mean and variance
         var = np.var(pg._members, axis = 0)
@@ -133,11 +177,12 @@ def compute_zero_scores(pg):
     )
 
     # Compute the score of that distribution
+    members = [[i for i in range(pg.N)]]
     for t in range(pg.T):
         pg._zero_scores[t] = compute_score(
             pg=pg,
-            X= values[t].reshape(-1,1),
-            clusters= [[i for i in range(pg.N)]]
+            X = values[t].reshape(-1,1),
+            clusters= members
         )
 
 

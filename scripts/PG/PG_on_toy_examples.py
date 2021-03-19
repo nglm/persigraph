@@ -17,7 +17,7 @@ from ...PersistentGraph.plots import *
 PG_TYPE = 'KMeans'
 
 SCORE_TYPES = [
-    'max_inertia'
+    'weighted_inertia'
     ]
 
 if PG_TYPE == 'Naive':

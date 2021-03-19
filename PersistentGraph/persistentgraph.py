@@ -143,7 +143,7 @@ class PersistentGraph():
         if k_max is None:
             self._k_max = self.N
         else:
-            self._k_max = max(int(k_max), 1)
+            self._k_max = min(max(int(k_max), 1), self.N)
         # Determines how to cluster the members
         self._model_type = model_type
         # True if the score is improving with respect to the algo step
@@ -739,13 +739,14 @@ class PersistentGraph():
                             "Score worse than 0 component: ",
                             self._zero_scores[t]," VS ", score
                         )
-                    break
+                    #break
+                    continue
 
                 # Consider this step only if it improves the score
                 previous_score = self._local_steps[t][local_step]['score']
                 if _is_relevant_score(
                     self, previous_score, score, or_equal=True
-                ):
+                ) or True:
 
                     # -------------- New step ---------------
                     local_step += 1
