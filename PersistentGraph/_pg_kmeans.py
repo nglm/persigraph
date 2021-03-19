@@ -35,14 +35,8 @@ def graph_initialization(pg):
     """
     Initialize the graph with k_max components at each time step
     """
+    cluster_data = [[] for _ in range(pg.T)]
     for t in range(pg.T):
-
-        # Initialization
-        pg._members_v_distrib[t].append(
-            np.zeros(pg.N, dtype = int)
-        )
-        pg._v_at_step[t]['v'].append([])
-        pg._v_at_step[t]['global_step_nums'].append(None)
 
         # No need to compute kmeans if we just want as many clusters as members
         if pg.k_max == pg.N:
@@ -66,14 +60,8 @@ def graph_initialization(pg):
             clusters, clusters_info, step_info, model_kw = clustering_model(
                 pg, X, model_kw, fit_predict_kw,
             )
-        for i_cluster in range(pg.k_max):
-            v = pg._add_vertex(
-                    info = clusters_info[i_cluster],
-                    t = t,
-                    members = clusters[i_cluster],
-                    scores = [step_info['score'], None],
-                    local_step = 0
-                )
+
+        cluster_data[t] = [clusters, clusters_info]
 
         # ========== Finalize initialization step ==================
 
@@ -91,6 +79,8 @@ def graph_initialization(pg):
                 "n_clusters: ", pg.k_max,
                 "   score: ", step_info['score'],
             )
+
+    return cluster_data
 
 def compute_extremum_scores(pg):
 

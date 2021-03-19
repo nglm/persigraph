@@ -68,6 +68,8 @@ def graph_initialization(pg):
     Initialize the graph with 1 components at each time step (mean)
 
     """
+    cluster_data = [[] for _ in range(pg.T)]
+
     # Start inialization
     mean = np.mean(pg._members, axis=0)
     std = np.std(pg._members, axis=0)
@@ -77,31 +79,19 @@ def graph_initialization(pg):
                 np.abs(maxs-mins) / pg._weights, pg._precision
             )
 
-    members = [i for i in range(pg.N)]
+    clusters = [i for i in range(pg.N)]
 
     for t in range(pg.T):
 
-        # Initialization
-        pg._members_v_distrib[t].append(
-            np.zeros(pg.N, dtype = int)
-        )
-        pg._v_at_step[t]['v'].append([])
-        pg._v_at_step[t]['global_step_nums'].append(None)
 
         # ======= Create one vertex per time step =======
 
-        info = {
+        cluster_info = {
             'type' : 'Naive',
             'params' : [mean[t], std[t], 0], #mean, std, rep
             'brotherhood_size' : [1]
         }
-        v = pg._add_vertex(
-            info = info,
-            t = t,
-            members = members,
-            scores = [pg._worst_scores[t], None],
-            local_step = 0
-        )
+        cluster_data[t] = [clusters, clusters_info]
 
         # ========== Finalize initialization step ==================
 
@@ -119,6 +109,8 @@ def graph_initialization(pg):
                 "n_clusters: ", 1,
                 "   score: ", pg._worst_scores[t]
             )
+
+    return cluster_data
 
 def compute_extremum_scores(pg):
     """

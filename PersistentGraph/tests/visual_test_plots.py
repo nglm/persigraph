@@ -48,10 +48,10 @@ def main():
     g = PersistentGraph(
         members,
         time_axis = np.arange(members.shape[1]),
-        score_type = 'weighted_inertia',
+        score_type = 'max_inertia',
         zero_type = 'bounds',
         model_type = model_type,
-        k_max=20,
+        k_max=10,
         )
     print(members.shape)
     g.construct_graph(

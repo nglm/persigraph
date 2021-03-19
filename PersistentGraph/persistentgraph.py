@@ -9,7 +9,7 @@ from . import Vertex
 from . import Edge
 from . import _pg_kmeans, _pg_naive
 from ._scores import (
-    set_score_type, better_score, _is_relevant_score, _compute_ratio_score
+    set_score_type, _compute_ratio_score, worst_score, best_score
 )
 from ..utils.sorted_lists import (
     insert_no_duplicate, concat_no_duplicate, reverse_bisect_right
@@ -677,9 +677,9 @@ class PersistentGraph():
         Initialize the graph with N components at each time step
         """
         if self._model_type == "KMeans":
-            _pg_kmeans.graph_initialization(self)
+            return _pg_kmeans.graph_initialization(self)
         elif self._model_type == "Naive":
-            _pg_naive.graph_initialization(self)
+            return _pg_naive.graph_initialization(self)
 
 
     def _compute_extremum_scores(self):
@@ -691,10 +691,26 @@ class PersistentGraph():
 
     def _construct_vertices(self):
 
+        init_clusters = self._graph_initialization()
+
+        # TODO: use bisect right or left in order to favor the
+        # lower number of clusters
+        if self._maximize:
+            sort_fc = reverse_bisect_right
+        else:
+            sort_fc = bisect_right
 
         for t in range(self.T):
             if self._verbose:
                 print(" ========= ", t, " ========= ")
+
+            # ----------------------------------------------------------
+            # Create clusters
+            # ----------------------------------------------------------
+
+            # temporary variable to help sort the local steps
+            local_scores = [self._local_steps[t][0]['score']]
+            cluster_data = [init_clusters[t]]
 
             X = self._members[:, t].reshape(-1,1)
             # Get clustering model parameters required by the
@@ -703,8 +719,6 @@ class PersistentGraph():
                     X = X,
                     t = t,
                 )
-
-            local_step = 0
 
             # each 1st local step is already done in 'graph_initialization'
             for n_clusters in self._n_clusters_range[1:]:
@@ -728,135 +742,151 @@ class PersistentGraph():
                     if not self._quiet:
                         print(str(ve))
                     continue
+
                 score = step_info['score']
 
-                # If the score is worse than the 0th component, stop there
-                if better_score(
-                    self, self._zero_scores[t], score, or_equal=False
-                ):
-                    if self._verbose:
-                        print(
-                            "Score worse than 0 component: ",
-                            self._zero_scores[t]," VS ", score
-                        )
-                    #break
-                    continue
+                # Find where should we insert this future local step
+                idx = sort_fc(local_scores, score)
+                local_scores.insert(idx, score)
+                cluster_data.insert(idx, [clusters, clusters_info])
+                self._local_steps[t].insert(
+                    idx,
+                    {**{'param' : {"n_clusters" : n_clusters}},
+                        **step_info
+                    }
+                )
 
-                # Consider this step only if it improves the score
-                previous_score = self._local_steps[t][local_step]['score']
-                if _is_relevant_score(
-                    self, previous_score, score, or_equal=True
-                ) or True:
+                if self._verbose:
+                    msg = "n_clusters: " + str(n_clusters)
+                    for (key,item) in step_info.items():
+                        msg += "  " + key + ":  " + str(item)
+                    print(msg)
 
-                    # -------------- New step ---------------
-                    local_step += 1
-                    if self._verbose:
-                        msg = "n_clusters: " + str(n_clusters)
-                        for (key,item) in step_info.items():
-                            msg += "  " + key + ":  " + str(item)
-                        print(msg)
+                self._nb_steps += 1
+                self._nb_local_steps[t] += 1
 
-                    self._local_steps[t].append(
-                        {**{'param' : {"n_clusters" : n_clusters}},
-                         **step_info
-                        })
-                    self._members_v_distrib[t].append(
-                        np.zeros(self.N, dtype = int)
-                    )
-                    self._v_at_step[t]['v'].append([])
-                    self._v_at_step[t]['global_step_nums'].append(None)
-                    self._nb_steps += 1
-                    self._nb_local_steps[t] += 1
+            # ----------------------------------------------------------
+            # Score bounds
+            # ----------------------------------------------------------
+            self._worst_scores[t] = worst_score(
+                self, self._zero_scores[t], self._local_steps[t][-1]['score']
+            )
+            self._best_scores[t] = best_score(
+                self, self._zero_scores[t], self._local_steps[t][0]['score']
+            )
 
-                    # ------- Update vertices: Kill and Create ---------
-                    # For each new component, check if it already exists
-                    # Then kill and create vertices accordingly
 
-                    # Alive vertices
-                    alive_vertices = self._v_at_step[t]['v'][local_step-1][:]
-                    v_to_kill = []
-                    nb_v_created = 0
-                    for i_cluster in range(n_clusters):
+            # ----------------------------------------------------------
+            # Construct vertices
+            # ----------------------------------------------------------
 
-                        to_create = True
-                        members = clusters[i_cluster]
 
-                        # IF i_cluster already exists in alive_vertices
-                        # THEN 'to_create' is then 'False'
-                        # And update 'v_at_step' and 'members_v_distrib'
-                        # ELSE, kill the former vertex of each of its members
-                        # And create a new vertex
-                        for i, v_alive_key in enumerate(alive_vertices):
-                            v_alive = self._vertices[t][v_alive_key]
-                            if (v_alive.is_equal_to(
-                                members = members,
-                                time_step = t,
-                                v_type = self._model_type
-                            )):
-                                to_create = False
-                                insort(
-                                    self._v_at_step[t]['v'][local_step],
-                                    v_alive_key
-                                )
-                                self._members_v_distrib[t][local_step][members] = v_alive_key
-                                # No need to check v_alive anymore for the
-                                # next cmpt
+            for local_s, (clusters, clusters_info) in enumerate(cluster_data):
+                n_clusters = len(clusters)
+                score = self._local_steps[t][local_s]['score']
 
-                                # Update brotherhood size to the smallest one
-                                insort(
-                                    v_alive.info['brotherhood_size'],
-                                    n_clusters
-                                )
-                                del alive_vertices[i]
-                                break
-                        if to_create:
-                            # For each of its members, find their former vertex
-                            # and kill them
-                            nb_v_created += 1
-                            for m in members:
-                                insert_no_duplicate(
-                                    v_to_kill,
-                                    self._members_v_distrib[t][local_step-1][m]
-                                )
+                # ---------------- Preliminary ---------------------
+                self._members_v_distrib[t].append(
+                    np.zeros(self.N, dtype = int)
+                )
+                self._v_at_step[t]['v'].append([])
+                self._v_at_step[t]['global_step_nums'].append(None)
 
-                            # --- Creating a new vertex ----
-                            # NOTE: score_death is not set yet
-                            # it will be set at the step at which v dies
-                            v = self._add_vertex(
-                                info = clusters_info[i_cluster],
-                                t = t,
-                                members = members,
-                                scores = [score, None],
-                                local_step = local_step,
+
+                # ------- Update vertices: Kill and Create ---------
+                # For each new component, check if it already exists
+                # Then kill and create vertices accordingly
+
+                # Alive vertices
+                if local_s == 0:
+                    alive_vertices = []
+                else:
+                    alive_vertices = self._v_at_step[t]['v'][local_s-1][:]
+                v_to_kill = []
+                nb_v_created = 0
+                for i_cluster in range(n_clusters):
+
+                    to_create = True
+                    members = clusters[i_cluster]
+
+                    # IF i_cluster already exists in alive_vertices
+                    # THEN 'to_create' is then 'False'
+                    # And update 'v_at_step' and 'members_v_distrib'
+                    # ELSE, kill the former vertex of each of its members
+                    # And create a new vertex
+                    for i, v_key in enumerate(alive_vertices):
+                        v_alive = self._vertices[t][v_key]
+                        if (v_alive.is_equal_to(
+                            members = members,
+                            time_step = t,
+                            v_type = self._model_type
+                        )):
+                            to_create = False
+                            insort(
+                                self._v_at_step[t]['v'][local_s],
+                                v_key
+                            )
+                            self._members_v_distrib[t][local_s][members] = v_key
+
+                            # Update brotherhood size to the smallest one
+                            insort(
+                                v_alive.info['brotherhood_size'],
+                                n_clusters
                             )
 
-                    # -----------  Kill Vertices -------------
-                    self._kill_vertices(
-                        t = t,
-                        vertices = v_to_kill,
-                        score_death = score,
-                    )
-                    if self._verbose == 2:
-                        print("  ", nb_v_created, ' vertices created\n  ',
-                              v_to_kill, ' killed')
+                            # No need to check v_alive anymore for the
+                            # next cmpt
+                            del alive_vertices[i]
+                            break
 
-                elif self._verbose:
-                    print("n_clusters: ", n_clusters,
-                          "Score not good enough:", score,
-                          "VS", previous_score)
+                    if to_create:
+                        # For each of its members, find their former vertex
+                        # and kill them
+                        nb_v_created += 1
+                        for m in members:
+                            if local_s > 0:
+                                insert_no_duplicate(
+                                    v_to_kill,
+                                    self._members_v_distrib[t][local_s-1][m]
+                                )
+
+                        # --- Creating a new vertex ----
+                        # NOTE: score_death is not set yet
+                        # it will be set at the step at which v dies
+                        v = self._add_vertex(
+                            info = clusters_info[i_cluster],
+                            t = t,
+                            members = members,
+                            scores = [score, None],
+                            local_step = local_s,
+                        )
+
+                # -----------  Kill Vertices -------------
+                self._kill_vertices(
+                    t = t,
+                    vertices = v_to_kill,
+                    score_death = score,
+                )
+                if self._verbose == 2:
+                    print("  ", nb_v_created, ' vertices created\n  ',
+                            v_to_kill, ' killed')
 
         if self._verbose:
             print(
                 "nb steps: ", self._nb_steps,
                 "\nnb_local_steps: ", self._nb_local_steps
             )
+
+
     def _compute_ratios(self):
+        # TODO: Put this inside construct vertices
         for t, v_t in enumerate(self._vertices):
             # Bounds order depends on score_is_improving
-            if self._score_is_improving:
-                score_bounds = (self._worst_scores[t], self._best_scores[t])
-            else:
-                score_bounds = (self._best_scores[t], self._worst_scores[t])
+            # if self._score_is_improving:
+            #     score_bounds = (self._worst_scores[t], self._best_scores[t])
+            # else:
+            #     score_bounds = (self._best_scores[t], self._worst_scores[t])
+            score_bounds = (self._best_scores[t], self._worst_scores[t])
 
             # Ratios for vertices
             for v in v_t:
@@ -1089,8 +1119,6 @@ class PersistentGraph():
 
         # if self._verbose :
         #     print(" ========= Initialization ========= ")
-
-        self._graph_initialization()
 
         t_start = time.time()
         if self._verbose:
