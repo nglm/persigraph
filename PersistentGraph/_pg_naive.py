@@ -8,7 +8,7 @@ from scipy.spatial.distance import sqeuclidean, cdist
 from ..utils.sorted_lists import insert_no_duplicate
 
 
-# FIXME: Strange unimodality appears sometime
+# TODO: Separate score computations
 
 
 def _sort_dist_matrix(
@@ -73,8 +73,12 @@ def graph_initialization(pg):
     std = np.std(pg._members, axis=0)
     maxs = np.amax(pg._members, axis=0)
     mins = np.amin(pg._members, axis=0)
-    scores = np.abs(maxs-mins) / pg._weights
+    scores = np.around(
+                np.abs(maxs-mins) / pg._weights, pg._precision
+            )
+
     members = [i for i in range(pg.N)]
+
     for t in range(pg.T):
 
         # Initialization
@@ -127,7 +131,9 @@ def compute_extremum_scores(pg):
         pg._zero_scores = np.inf*np.ones(pg.T)
     maxs = np.amax(pg._members, axis=0)
     mins = np.amin(pg._members, axis=0)
-    worst_score = np.max(np.abs(maxs-mins) / pg._weights)
+    worst_score = np.around(
+                np.max(np.abs(maxs-mins) / pg._weights), pg._precision
+            )
     pg._worst_scores = np.ones(pg.T) * worst_score
     pg._best_scores = np.zeros(pg.T)
     pg._norm_bounds = np.abs(pg._best_scores - pg._worst_scores)
@@ -206,7 +212,9 @@ def clustering_model(
                         ],
                     'brotherhood_size' : [n_clusters]
                     })
-            score = fit_predict_kw['distance_matrix'][i, j]
+            score = np.around(
+                fit_predict_kw['distance_matrix'][i, j], pg._precision
+            )
             step_info = {'score' : score, '(i,j)' : (i,j)}
 
             model_kw['idx'] = k + idx + 1

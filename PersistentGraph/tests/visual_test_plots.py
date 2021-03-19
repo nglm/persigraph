@@ -1,14 +1,19 @@
 import numpy as np
-
-def warn(*args, **kwargs):
-    pass
 import warnings
-warnings.warn = warn
+from netCDF4 import Dataset
 
 from .. import PersistentGraph
 from ..plots import *
+from ...DataAnalysis.statistics import preprocess_data
+
+
+def warn(*args, **kwargs):
+    pass
+
 
 def main():
+    warnings.warn = warn
+
     members = np.array([
         (0.1 ,  1.,    2.05,   1.1,   0.1 ),
         (0.005,    0,     0,    0,    0.005 ),
@@ -16,16 +21,37 @@ def main():
         (0.05,  -0.4,  -0.6, -0.5, -1),
     ])
 
+    PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
+    # To get the right variable names and units
+    filename = 'ec.ens.2020020200.sfc.meteogram.nc'
+    nc = Dataset(PATH_DATA + filename,'r')
+    var_names = ['tcwv']
+
+    list_var, list_names, time = preprocess_data(
+        filename = filename,
+        path_data = PATH_DATA,
+        var_names= var_names,
+        ind_time=None,
+        ind_members=None,
+        ind_long=[0],
+        ind_lat=[0],
+        to_standardize = False,
+        )
+
+    members = list_var[0]
+
     model_type = "KMeans"
-    #model_type = "Naive"
+    model_type = "Naive"
+
+
 
     g = PersistentGraph(
         members,
-        time_axis = np.arange(5),
+        time_axis = np.arange(members.shape[1]),
         score_type = 'max_variance',
         zero_type = 'bounds',
         model_type = model_type,
-        k_max=None,
+        k_max=4,
         )
     print(members.shape)
     g.construct_graph(

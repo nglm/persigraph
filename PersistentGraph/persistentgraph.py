@@ -731,7 +731,9 @@ class PersistentGraph():
                 score = step_info['score']
 
                 # If the score is worse than the 0th component, stop there
-                if better_score(self, self._zero_scores[t], score):
+                if better_score(
+                    self, self._zero_scores[t], score, or_equal=False
+                ):
                     if self._verbose:
                         print(
                             "Score worse than 0 component: ",

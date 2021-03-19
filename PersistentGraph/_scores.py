@@ -155,8 +155,11 @@ def _is_relevant_score(
     score,
     or_equal = True,
 ):
-    curr_is_better = better_score(pg, score, previous_score, or_equal=or_equal)
-    res = curr_is_better == pg._score_is_improving
+    curr_is_better = better_score(pg, score, previous_score, or_equal=False)
+    res = (
+        (curr_is_better == pg._score_is_improving)
+        or (or_equal and previous_score == score)
+    )
     return res
 
 def better_score(pg, score1, score2, or_equal=False):
