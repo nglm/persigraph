@@ -14,7 +14,7 @@ from ...PersistentGraph.plots import *
 # Parameters
 # ---------------------------------------------------------
 
-PG_TYPE = 'KMeans'
+PG_TYPE = 'Naive'
 
 SCORE_TYPE = 'max_diameter'
 if PG_TYPE == 'Naive':

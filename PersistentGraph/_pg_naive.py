@@ -5,7 +5,6 @@ from math import isnan
 from bisect import insort
 from scipy.spatial.distance import sqeuclidean, cdist
 
-from ..utils.kmeans import kmeans_custom
 from ..utils.sorted_lists import insert_no_duplicate
 
 

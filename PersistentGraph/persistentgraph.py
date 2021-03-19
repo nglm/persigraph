@@ -3,12 +3,14 @@ from typing import List, Sequence, Union, Any, Dict
 from bisect import bisect, bisect_right, insort
 import time
 import pickle
-from scipy.spatial.distance import euclidean
+
 
 from . import Vertex
 from . import Edge
 from . import _pg_kmeans, _pg_naive
-from ._scores import set_score_type
+from ._scores import (
+    set_score_type, better_score, _is_relevant_score, _compute_ratio_score
+)
 from ..utils.sorted_lists import (
     insert_no_duplicate, concat_no_duplicate, reverse_bisect_right
 )
@@ -295,101 +297,6 @@ class PersistentGraph():
 
         return clusters, clusters_info, step_info, model_kw
 
-    def _is_earlier_score(self, score1, score2, or_equal=True):
-        return (
-            self.better_score(score1, score2, or_equal)
-            != self._score_is_improving
-            or (score1 == score2 and or_equal)
-        )
-
-    def _is_relevant_score(
-        self,
-        previous_score,
-        score,
-        or_equal = True,
-    ):
-        # # Case if it is the first step
-        # if previous_score is None:
-        #     res = True
-        # # General case
-        # else:
-        curr_is_better = self.better_score(
-            score, previous_score, or_equal=or_equal
-            )
-        res = curr_is_better == self._score_is_improving
-            # and self._pre_prune
-            # and (
-            #     abs(score-previous_score)
-            #     / abs(self.worst_score(previous_score, score))
-            #     > self._pre_prune_threshold
-            #     )
-            # or (not self._pre_prune and
-            #     self.better_score(score, previous_score))
-
-        return res
-
-    def better_score(self, score1, score2, or_equal=False):
-        # None means that the score has not been reached yet
-        # So None is better if score is improving
-        if score1 is None:
-            return self._score_is_improving
-        elif score2 is None:
-            return not self._score_is_improving
-        elif score1 == score2:
-            return or_equal
-        elif score1 > score2:
-            return self._maximize
-        elif score1 < score2:
-            return not self._maximize
-        else:
-            print(score1, score2)
-            raise ValueError("Better score not determined")
-
-
-    def argbest(self, score1, score2):
-        if self.better_score(score1, score2):
-            return 0
-        else:
-            return 1
-
-    def best_score(self, score1, score2):
-        if self.argbest(score1, score2) == 0:
-            return score1
-        else:
-            return score2
-
-    def argworst(self, score1, score2):
-        if self.argbest(score1, score2) == 0:
-            return 1
-        else:
-            return 0
-
-    def worst_score(self, score1, score2):
-        if self.argworst(score1, score2) == 0:
-            return score1
-        else:
-            return score2
-
-    def _compute_ratio_score(
-        self,
-        score,
-        score_bounds = None,
-        ):
-        """
-        Inspired by the similar method in component
-        """
-        if score_bounds is None or score is None:
-            ratio_score = None
-        else:
-            # Normalizer so that ratios are within 0-1 range
-            norm = euclidean(score_bounds[0], score_bounds[1])
-
-            if score is None:
-                ratio_score = 1
-            else:
-                ratio_score = euclidean(score, score_bounds[0]) / norm
-
-        return ratio_score
 
     def _add_vertex(
         self,
@@ -824,7 +731,7 @@ class PersistentGraph():
                 score = step_info['score']
 
                 # If the score is worse than the 0th component, stop there
-                if self.better_score(self._zero_scores[t], score):
+                if better_score(self, self._zero_scores[t], score):
                     if self._verbose:
                         print(
                             "Score worse than 0 component: ",
@@ -834,9 +741,8 @@ class PersistentGraph():
 
                 # Consider this step only if it improves the score
                 previous_score = self._local_steps[t][local_step]['score']
-                #if self._is_relevant_score(previous_score, score):
-                if self._is_relevant_score(
-                    previous_score, score, or_equal=False
+                if _is_relevant_score(
+                    self, previous_score, score, or_equal=True
                 ):
 
                     # -------------- New step ---------------
@@ -956,7 +862,7 @@ class PersistentGraph():
             # Ratios for local step scores
             for l_step in range(self._nb_local_steps[t]):
                 score = self._local_steps[t][l_step]['score']
-                ratio_score = self._compute_ratio_score(score, score_bounds)
+                ratio_score = _compute_ratio_score( score, score_bounds)
                 self._local_steps[t][l_step]['ratio_score'] = ratio_score
 
 

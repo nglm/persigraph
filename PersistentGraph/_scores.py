@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.spatial.distance import sqeuclidean, cdist
+from scipy.spatial.distance import sqeuclidean, cdist, euclidean
 from sklearn.metrics import pairwise_distances
 
 SCORES_TO_MINIMIZE = [
@@ -30,7 +30,6 @@ def set_score_type(pg, score_type):
                 + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
             )
         pg._score_type = score_type
-
 
 def compute_score(pg, model=None, X=None, clusters=None):
 
@@ -111,9 +110,6 @@ def compute_score(pg, model=None, X=None, clusters=None):
 
 
 def compute_zero_scores(pg):
-    # inertia_scores = ['inertia', 'max_inertia', 'min_inertia']
-    # variance_scores = ['variance', 'max_variance', 'min_variance']
-    # diameter_scores = ['max_diameter']
     pg._zero_scores = np.zeros(pg.T)
     if pg._zero_type == 'bounds':
 
@@ -122,6 +118,7 @@ def compute_zero_scores(pg):
         maxs = np.amax(pg._members, axis = 0)
 
     elif pg._zero_type == 'var':
+        # I'm not sure if this type should be used at all actually.....
         # Get the parameters of the uniform distrib using mean and variance
         var = np.var(pg._members, axis = 0)
         mean = np.mean(pg._members, axis = 0)
@@ -143,13 +140,83 @@ def compute_zero_scores(pg):
             clusters= [[i for i in range(pg.N)]]
         )
 
-        # if pg._score_type in inertia_scores:
-        #     pg._zero_scores = np.around(
-        #         pg.N * np.var(pg._members, axis = 0),
-        #         pg._precision
-        #     )
-        # elif pg._score_type in variance_scores:
-        #     pg._zero_scores = np.around(
-        #         np.var(pg._members, axis = 0),
-        #         pg._precision
-        #     )
+
+
+
+def _is_earlier_score(pg, score1, score2, or_equal=True):
+    return (
+        (better_score(pg, score1, score2, or_equal) != pg._score_is_improving)
+        or (score1 == score2 and or_equal)
+    )
+
+def _is_relevant_score(
+    pg,
+    previous_score,
+    score,
+    or_equal = True,
+):
+    curr_is_better = better_score(pg, score, previous_score, or_equal=or_equal)
+    res = curr_is_better == pg._score_is_improving
+    return res
+
+def better_score(pg, score1, score2, or_equal=False):
+    # None means that the score has not been reached yet
+    # So None is better if score is improving
+    if score1 is None:
+        return pg._score_is_improving
+    elif score2 is None:
+        return not pg._score_is_improving
+    elif score1 == score2:
+        return or_equal
+    elif score1 > score2:
+        return pg._maximize
+    elif score1 < score2:
+        return not pg._maximize
+    else:
+        print(score1, score2)
+        raise ValueError("Better score not determined")
+
+
+def argbest(pg, score1, score2):
+    if better_score(pg, score1, score2):
+        return 0
+    else:
+        return 1
+
+def best_score(pg, score1, score2):
+    if argbest(pg, score1, score2) == 0:
+        return score1
+    else:
+        return score2
+
+def argworst(pg, score1, score2):
+    if argbest(pg, score1, score2) == 0:
+        return 1
+    else:
+        return 0
+
+def worst_score(pg, score1, score2):
+    if argworst(pg, score1, score2) == 0:
+        return score1
+    else:
+        return score2
+
+def _compute_ratio_score(
+    score,
+    score_bounds = None,
+):
+    """
+    Inspired by the similar method in component
+    """
+    if score_bounds is None or score is None:
+        ratio_score = None
+    else:
+        # Normalizer so that ratios are within 0-1 range
+        norm = euclidean(score_bounds[0], score_bounds[1])
+
+        if score is None:
+            ratio_score = 1
+        else:
+            ratio_score = euclidean(score, score_bounds[0]) / norm
+
+    return ratio_score

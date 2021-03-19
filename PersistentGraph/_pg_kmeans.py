@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict
 
-from ._scores import compute_score, compute_zero_scores
+from ._scores import compute_score, compute_zero_scores, worst_score
 from ..utils.kmeans import kmeans_custom, row_norms
 
 
@@ -110,7 +110,7 @@ def compute_extremum_scores(pg):
             model_kw = model_kw,
             fit_predict_kw = fit_predict_kw,
         )
-        pg._worst_scores[t] = pg.worst_score(
+        pg._worst_scores[t] = worst_score(pg,
             step_info['score'],
             pg._zero_scores[t]
         )
