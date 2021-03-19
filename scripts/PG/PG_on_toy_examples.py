@@ -1,8 +1,3 @@
-# Find the xvalues and members of the best examples
-# plot graph output
-# plot mean + std method output
-# Save
-
 import numpy as np
 from os import makedirs
 from shutil import copy2, copyfile
@@ -22,7 +17,7 @@ from ...PersistentGraph.plots import *
 PG_TYPE = 'KMeans'
 
 SCORE_TYPES = [
-    'max_diameter'
+    'max_inertia'
     ]
 
 if PG_TYPE == 'Naive':

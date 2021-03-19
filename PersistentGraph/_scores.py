@@ -2,6 +2,36 @@ import numpy as np
 from scipy.spatial.distance import sqeuclidean, cdist
 from sklearn.metrics import pairwise_distances
 
+SCORES_TO_MINIMIZE = [
+        'inertia',
+        'max_inertia',
+        'min_inertia',
+        'variance',
+        'min_variance',
+        'max_variance',
+        'max_diameter',
+        ]
+
+SCORES_TO_MAXIMIZE = []
+
+
+def set_score_type(pg, score_type):
+    if pg._model_type == "Naive":
+        pg._maximize = False
+        pg._score_type = "max_diameter"
+    else:
+        if score_type in SCORES_TO_MAXIMIZE:
+            pg._maximize = True
+        elif score_type in SCORES_TO_MINIMIZE:
+            pg._maximize = False
+        else:
+            raise ValueError(
+                "Choose an available score_type"
+                + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
+            )
+        pg._score_type = score_type
+
+
 def compute_score(pg, model=None, X=None, clusters=None):
 
     # ------------------------------------------------------------------
@@ -43,11 +73,12 @@ def compute_score(pg, model=None, X=None, clusters=None):
                     metric='sqeuclidean'
                     )
                 ))
+
     # ------------------------------------------------------------------
-    elif pg._score_type == 'variance':
+    elif pg._score_type in ['variance', 'distortion']:
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score += len(members)/pg.N * np.var(X[members])
+            score += len(members-1)/pg.N * np.var(X[members])
 
     # ------------------------------------------------------------------
     elif pg._score_type == 'max_variance':
@@ -71,7 +102,10 @@ def compute_score(pg, model=None, X=None, clusters=None):
             )
     else:
         #TODO: not implemented yet:
-        raise NotImplementedError(pg._score_type + ': not implemented score')
+        raise ValueError(
+                "Choose an available score_type"
+                + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
+            )
 
     return np.around(score, pg._precision)
 

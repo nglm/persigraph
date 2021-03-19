@@ -16,7 +16,7 @@ from ...PersistentGraph.plots import *
 
 PG_TYPE = 'KMeans'
 
-SCORE_TYPE = 'max_inertia'
+SCORE_TYPE = 'max_diameter'
 if PG_TYPE == 'Naive':
     SCORE_TYPE = 'max_diameter'
 

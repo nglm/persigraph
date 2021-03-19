@@ -8,22 +8,13 @@ from scipy.spatial.distance import euclidean
 from . import Vertex
 from . import Edge
 from . import _pg_kmeans, _pg_naive
+from ._scores import set_score_type
 from ..utils.sorted_lists import (
     insert_no_duplicate, concat_no_duplicate, reverse_bisect_right
 )
 
 class PersistentGraph():
-    _SCORES_TO_MINIMIZE = [
-        'inertia',
-        'max_inertia',
-        'min_inertia',
-        'variance',
-        'min_variance',
-        'max_variance',
-        'max_diameter',
-        ]
 
-    _SCORES_TO_MAXIMIZE = []
 
 
     def __init__(
@@ -162,7 +153,7 @@ class PersistentGraph():
             self._score_is_improving = score_is_improving
             self._n_clusters_range = range(self.k_max, 0,-1)
         # Score type, determines how to measure how good a model is
-        self._set_score_type(score_type)
+        set_score_type(self, score_type)
         # Determines how to measure the score of the 0th component
         self._zero_type = zero_type
         # Total number of iteration of the algorithm
@@ -247,21 +238,7 @@ class PersistentGraph():
         self._verbose = False
         self._quiet = False
 
-    def _set_score_type(self, score_type):
-        if self._model_type == "Naive":
-            self._maximize = False
-            self._score_type = "max_diameter"
-        else:
-            if score_type in self._SCORES_TO_MAXIMIZE:
-                self._maximize = True
-            elif score_type in self._SCORES_TO_MINIMIZE:
-                self._maximize = False
-            else:
-                raise ValueError(
-                    "Choose an available score_type"
-                    + str(self._SCORES_TO_MAXIMIZE + self._SCORES_TO_MINIMIZE)
-                    )
-            self._score_type = score_type
+
 
 
     def _get_model_parameters(
