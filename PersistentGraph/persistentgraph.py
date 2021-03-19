@@ -695,10 +695,10 @@ class PersistentGraph():
 
         # TODO: use bisect right or left in order to favor the
         # lower number of clusters
-        if self._maximize:
-            sort_fc = reverse_bisect_right
-        else:
-            sort_fc = bisect_right
+        # if self._maximize:
+        #     sort_fc = reverse_bisect_right
+        # else:
+        #     sort_fc = bisect_right
 
         for t in range(self.T):
             if self._verbose:
@@ -709,8 +709,9 @@ class PersistentGraph():
             # ----------------------------------------------------------
 
             # temporary variable to help sort the local steps
-            local_scores = [self._local_steps[t][0]['score']]
             cluster_data = [init_clusters[t]]
+            worst_t = self._local_steps[t][0]['score']
+            best_t = self._local_steps[t][0]['score']
 
             X = self._members[:, t].reshape(-1,1)
             # Get clustering model parameters required by the
@@ -746,15 +747,25 @@ class PersistentGraph():
                 score = step_info['score']
 
                 # Find where should we insert this future local step
-                idx = sort_fc(local_scores, score)
-                local_scores.insert(idx, score)
-                cluster_data.insert(idx, [clusters, clusters_info])
-                self._local_steps[t].insert(
-                    idx,
+                # idx = sort_fc(local_scores, score)
+                # local_scores.insert(idx, score)
+                # cluster_data.insert(idx, [clusters, clusters_info])
+                # self._local_steps[t].insert(
+                #     idx,
+                #     {**{'param' : {"n_clusters" : n_clusters}},
+                #         **step_info
+                #     }
+                # )
+                # idx = sort_fc(local_scores, score)
+                #local_scores.append(score)
+                cluster_data.append([clusters, clusters_info])
+                self._local_steps[t].append(
                     {**{'param' : {"n_clusters" : n_clusters}},
                         **step_info
                     }
                 )
+                worst_t = worst_score(self, score, worst_t)
+                best_t = best_score(self, score, best_t)
 
                 if self._verbose:
                     msg = "n_clusters: " + str(n_clusters)
@@ -769,11 +780,26 @@ class PersistentGraph():
             # Score bounds
             # ----------------------------------------------------------
             self._worst_scores[t] = worst_score(
-                self, self._zero_scores[t], self._local_steps[t][-1]['score']
+                self, self._zero_scores[t], worst_t
             )
             self._best_scores[t] = best_score(
-                self, self._zero_scores[t], self._local_steps[t][0]['score']
+                self, self._zero_scores[t], best_t
             )
+            score_bounds = (self._best_scores[t], self._worst_scores[t])
+
+
+            # Ratios for local step scores
+            ratios = []
+            for l_step in range(self._nb_local_steps[t]):
+                score = self._local_steps[t][l_step]['score']
+                ratios.append(_compute_ratio_score(score, score_bounds))
+                self._local_steps[t][l_step]['ratio_score'] = ratios[-1]
+
+            sort_ratios = np.argsort(ratios)
+            # Sort local step with respect to ratios
+            self._local_steps[t] = [
+                self._local_steps[t][s] for s in sort_ratios
+            ]
 
 
             # ----------------------------------------------------------
@@ -881,22 +907,13 @@ class PersistentGraph():
     def _compute_ratios(self):
         # TODO: Put this inside construct vertices
         for t, v_t in enumerate(self._vertices):
-            # Bounds order depends on score_is_improving
-            # if self._score_is_improving:
-            #     score_bounds = (self._worst_scores[t], self._best_scores[t])
-            # else:
-            #     score_bounds = (self._best_scores[t], self._worst_scores[t])
             score_bounds = (self._best_scores[t], self._worst_scores[t])
 
             # Ratios for vertices
             for v in v_t:
                 v._compute_ratio_scores(score_bounds = score_bounds)
 
-            # Ratios for local step scores
-            for l_step in range(self._nb_local_steps[t]):
-                score = self._local_steps[t][l_step]['score']
-                ratio_score = _compute_ratio_score( score, score_bounds)
-                self._local_steps[t][l_step]['ratio_score'] = ratio_score
+
 
 
     def _sort_steps(self):
@@ -920,10 +937,6 @@ class PersistentGraph():
         while candidate_ratios:
 
             # ==== Find the candidate score with its associated time step ====
-            # if self._score_is_improving:
-            #     idx_candidate = -1
-            # else:
-            #     idx_candidate = 0
             idx_candidate = 0
             t = candidate_time_steps[idx_candidate]
 
@@ -1115,7 +1128,7 @@ class PersistentGraph():
         self._post_prune = post_prune
         self._post_prune_threshold = post_prune_threshold
 
-        self._compute_extremum_scores()
+        #self._compute_extremum_scores()
 
         # if self._verbose :
         #     print(" ========= Initialization ========= ")

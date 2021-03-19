@@ -59,7 +59,8 @@ def get_model_parameters(
         't' : t,
         }
     # idx is needed to know which i, j are the next candidates
-    model_kw = {'idx' : 0}
+    # rep is needed to know whether i and j are in the same vertex
+    model_kw = {'idx' : 0, 'rep' : [0 for _ in range(pg.N)]}
     return model_kw, fit_predict_kw
 
 
@@ -68,6 +69,10 @@ def graph_initialization(pg):
     Initialize the graph with 1 components at each time step (mean)
 
     """
+    # There is not really a zero score with the naive method
+    # instead we use a global worst score
+    pg._zero_scores = np.zeros(pg.T)
+
     cluster_data = [[] for _ in range(pg.T)]
 
     # Start inialization
@@ -78,19 +83,23 @@ def graph_initialization(pg):
     scores = np.around(
                 np.abs(maxs-mins) / pg._weights, pg._precision
             )
+    worst_score = np.amax(scores)
+    pg._zero_scores[:] = worst_score
+    pg._worst_scores[:] = worst_score
 
-    clusters = [i for i in range(pg.N)]
+
+    clusters = [[i for i in range(pg.N)]]
 
     for t in range(pg.T):
 
 
         # ======= Create one vertex per time step =======
 
-        cluster_info = {
+        clusters_info = [{
             'type' : 'Naive',
             'params' : [mean[t], std[t], 0], #mean, std, rep
             'brotherhood_size' : [1]
-        }
+        }]
         cluster_data[t] = [clusters, clusters_info]
 
         # ========== Finalize initialization step ==================
@@ -140,6 +149,7 @@ def clustering_model(
     ):
     t = fit_predict_kw['t']
     idx = model_kw['idx']
+    members_r = model_kw['rep']
     n_clusters = model_kw.pop('n_clusters')
     clusters = None
 
@@ -148,7 +158,7 @@ def clustering_model(
     for k, (i, j) in enumerate(fit_predict_kw['sorted_idx'][idx:]):
 
         # Iterate algo only if i_s and j_s are in the same vertex
-        if pg._members_v_distrib[t][-1][i] == pg._members_v_distrib[t][-1][j]:
+        if members_r[i] == members_r[j]:
 
             # End algo if the 2 farthest apart members are equal
             if fit_predict_kw['distance_matrix'][i, j] == 0:
@@ -157,18 +167,14 @@ def clustering_model(
             # =============== Fit & predict part =======================
 
             # We'll break this vertex into 2 vertices represented by i and j
-            v_to_break = pg._vertices[t][pg._members_v_distrib[t][-1][i]]
-            rep_to_break = v_to_break.info['params'][2]
-            v_to_break_j = pg._vertices[t][pg._members_v_distrib[t][-1][j]]
-            rep_to_break_j = v_to_break_j.info['params'][2]
+            rep_to_break = members_r[i]
 
             # Extract representatives of alive vertices
             rep = []
-            v_alive = [pg._vertices[t][v] for v in pg._v_at_step[t]['v'][-1]]
-            for v in v_alive:
+            for r in members_r:
                 # We want to remove rep_to_break from rep
-                if v.info['params'][2] != rep_to_break:
-                    insert_no_duplicate(rep, v.info['params'][2])
+                if r != rep_to_break:
+                    insert_no_duplicate(rep, r)
             # Now we want to add the new reps i,j replacing rep_to_break
             insort(rep, i)
             insort(rep, j)
@@ -210,6 +216,7 @@ def clustering_model(
             step_info = {'score' : score, '(i,j)' : (i,j)}
 
             model_kw['idx'] = k + idx + 1
+            model_kw['rep'] = members_r
             # Stop for loop
             break
     if clusters is None:

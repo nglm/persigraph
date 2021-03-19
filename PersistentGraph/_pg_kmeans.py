@@ -35,6 +35,7 @@ def graph_initialization(pg):
     """
     Initialize the graph with k_max components at each time step
     """
+    compute_zero_scores(pg)
     cluster_data = [[] for _ in range(pg.T)]
     for t in range(pg.T):
 

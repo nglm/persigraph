@@ -136,8 +136,6 @@ def compute_score(pg, model=None, X=None, clusters=None):
                 score
             )
     elif pg._score_type == 'MedDevMean':
-        # WARNING: Max diameter should be used with weights + shared
-        # score bounds!
         score = 0
         for i_cluster, members in enumerate(clusters):
             score += (pg.N/len(members) *

@@ -125,31 +125,29 @@ def get_k_life_span(
     :rtype: [type]
     """
     k_max = min(k_max, g.k_max)
-    r_scores = []
-    life_span = {k : [] for k in range(1,g.k_max+1)}
+
+    life_span = {k : [0 for _ in range(g.T)] for k in range(1,g.k_max+1)}
 
     # Extract ratio scores for each k and each t
     for t in range(g.T):
 
         # init
-        k_prev = g._n_clusters_range[0]
-        r_scores.append([g._local_steps[t][0]['ratio_score']])
+        r_scores = []
+        k_prev = None
 
-        for step in g._local_steps[t]:
+        for i, step in enumerate(g._local_steps[t]):
             k_curr = step['param']['n_clusters']
             # Note: there might be some 'holes' when steps are ignored
-            # their r_score will then all be 'step['ratio_score']'
-            r_scores[-1] += abs(k_curr - k_prev)*[step['ratio_score']]
+            # their r_score will then all be 0
+            r_scores.append(step['ratio_score'])
+
+            # Compute life span of the previous k visited
+            if i>0:
+                life_span[k_prev][t] = r_scores[-1] - r_scores[-2]
             k_prev = k_curr
 
-        # Its length should therefore be N+1
-        r_scores[-1] += (abs(g._n_clusters_range[-1] - k_prev)+1)*[1]
-
-        # Compute life span for each k and each t
-        for i in range(g.k_max):
-            life_span[g._n_clusters_range[i]].append(
-                r_scores[-1][i+1] - r_scores[-1][i]
-                )
+        # Last step
+        life_span[k_prev][t] = 1 - r_scores[-1]
     return life_span
 
 def get_relevant_k(
