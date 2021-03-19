@@ -171,8 +171,7 @@ def get_relevant_k(
     if life_span is None:
         life_span = get_k_life_span(g, k_max)
 
-    # Not at all an efficient way to do it...
-    #relevant_k = np.zeros((g.T, 2), dtype=float)
+    # list of t (k, life_span_k)
     relevant_k = [[0 for _ in range(2)] for _ in range(g.T)]
     for t in range(g.T):
         for k, life_span_k in life_span.items():

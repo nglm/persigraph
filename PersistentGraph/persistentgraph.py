@@ -693,12 +693,11 @@ class PersistentGraph():
 
         init_clusters = self._graph_initialization()
 
-        # TODO: use bisect right or left in order to favor the
-        # lower number of clusters
-        # if self._maximize:
-        #     sort_fc = reverse_bisect_right
-        # else:
-        #     sort_fc = bisect_right
+        # Use bisect right in order to favor the lower number of clusters
+        if self._maximize:
+            sort_fc = reverse_bisect_right
+        else:
+            sort_fc = bisect_right
 
         for t in range(self.T):
             if self._verbose:
@@ -710,8 +709,7 @@ class PersistentGraph():
 
             # temporary variable to help sort the local steps
             cluster_data = [init_clusters[t]]
-            worst_t = self._local_steps[t][0]['score']
-            best_t = self._local_steps[t][0]['score']
+            local_scores = []
 
             X = self._members[:, t].reshape(-1,1)
             # Get clustering model parameters required by the
@@ -747,25 +745,17 @@ class PersistentGraph():
                 score = step_info['score']
 
                 # Find where should we insert this future local step
-                # idx = sort_fc(local_scores, score)
-                # local_scores.insert(idx, score)
-                # cluster_data.insert(idx, [clusters, clusters_info])
-                # self._local_steps[t].insert(
-                #     idx,
-                #     {**{'param' : {"n_clusters" : n_clusters}},
-                #         **step_info
-                #     }
-                # )
-                # idx = sort_fc(local_scores, score)
-                #local_scores.append(score)
-                cluster_data.append([clusters, clusters_info])
-                self._local_steps[t].append(
+                idx = sort_fc(local_scores, score)
+                local_scores.insert(idx, score)
+                cluster_data.insert(idx, [clusters, clusters_info])
+                self._local_steps[t].insert(
+                    idx,
                     {**{'param' : {"n_clusters" : n_clusters}},
                         **step_info
                     }
                 )
-                worst_t = worst_score(self, score, worst_t)
-                best_t = best_score(self, score, best_t)
+                idx = sort_fc(local_scores, score)
+                local_scores.append(score)
 
                 if self._verbose:
                     msg = "n_clusters: " + str(n_clusters)
@@ -780,26 +770,20 @@ class PersistentGraph():
             # Score bounds
             # ----------------------------------------------------------
             self._worst_scores[t] = worst_score(
-                self, self._zero_scores[t], worst_t
+                self, self._zero_scores[t], local_scores[-1]
             )
             self._best_scores[t] = best_score(
-                self, self._zero_scores[t], best_t
+                self, self._zero_scores[t], local_scores[0]
             )
             score_bounds = (self._best_scores[t], self._worst_scores[t])
 
 
             # Ratios for local step scores
-            ratios = []
             for l_step in range(self._nb_local_steps[t]):
                 score = self._local_steps[t][l_step]['score']
-                ratios.append(_compute_ratio_score(score, score_bounds))
-                self._local_steps[t][l_step]['ratio_score'] = ratios[-1]
+                ratio = _compute_ratio_score(score, score_bounds)
+                self._local_steps[t][l_step]['ratio_score'] = ratio
 
-            sort_ratios = np.argsort(ratios)
-            # Sort local step with respect to ratios
-            self._local_steps[t] = [
-                self._local_steps[t][s] for s in sort_ratios
-            ]
 
 
             # ----------------------------------------------------------
