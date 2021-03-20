@@ -82,7 +82,7 @@ class Component():
             self.__ratio_scores = None
         else:
             # Normalizer so that ratios are within 0-1 range
-            norm = euclidean(score_bounds[0], score_bounds[1])
+            norm = np.abs(score_bounds[0] - score_bounds[1])
 
             # BIRTH
             # If score_birth is ``None`` or 0 it means that the component is
@@ -90,7 +90,7 @@ class Component():
             if self.scores[0] is None:
                 ratio_birth = 0.
             else:
-                ratio_birth = euclidean(self.scores[0], score_bounds[0]) / norm
+                ratio_birth = np.abs(self.scores[0] - score_bounds[0]) / norm
 
 
             # DEATH
@@ -99,7 +99,7 @@ class Component():
             if self.scores[1] is None:
                 ratio_death = 1.
             else:
-                ratio_death = euclidean(self.scores[1], score_bounds[0]) / norm
+                ratio_death = np.abs(self.scores[1] - score_bounds[0]) / norm
 
             self.score_ratios = [ratio_birth, ratio_death]
 

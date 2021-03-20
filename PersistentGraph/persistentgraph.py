@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict
-from bisect import bisect, bisect_right, insort
+from bisect import bisect, bisect_left, bisect_right, insort
 import time
 import pickle
 
@@ -9,10 +9,11 @@ from . import Vertex
 from . import Edge
 from . import _pg_kmeans, _pg_naive
 from ._scores import (
-    set_score_type, _compute_ratio_score, worst_score, best_score
+    _set_score_type, worst_score, best_score,
+    _compute_ratio_scores, _compute_score_bounds, _compute_zero_scores
 )
 from ..utils.sorted_lists import (
-    insert_no_duplicate, concat_no_duplicate, reverse_bisect_right
+    insert_no_duplicate, concat_no_duplicate, reverse_bisect_left
 )
 
 class PersistentGraph():
@@ -154,8 +155,11 @@ class PersistentGraph():
         else:
             self._score_is_improving = score_is_improving
             self._n_clusters_range = range(self.k_max, 0,-1)
+        self._score_is_improving = True
+        # To know if we start with N clusters or 1
+        self._n_clusters_range = range(1, self.k_max + 1)
         # Score type, determines how to measure how good a model is
-        set_score_type(self, score_type)
+        _set_score_type(self, score_type)
         # Determines how to measure the score of the 0th component
         self._zero_type = zero_type
         # Total number of iteration of the algorithm
@@ -324,6 +328,10 @@ class PersistentGraph():
         :rtype: Vertex
         """
 
+        if self._are_bounds_known:
+            score_bounds = (self._best_scores[t], self._worst_scores[t])
+        else:
+            score_bounds = None
         # Create the vertex
         num = self._nb_vertices[t]
         v = Vertex(
@@ -332,7 +340,7 @@ class PersistentGraph():
             num = num,
             members = members,
             scores = scores,
-            score_bounds = None,  # Unknown at that point
+            score_bounds = score_bounds,
             total_nb_members = self.N,
         )
 
@@ -438,6 +446,9 @@ class PersistentGraph():
                 vertices = [vertices]
             for v in vertices:
                 self._vertices[t][v].scores[1] = score_death
+                self._vertices[t][v]._compute_ratio_scores(
+                    (self._best_scores[t], self._worst_scores[t])
+                )
 
 
     def _keep_alive_edges(
@@ -672,32 +683,37 @@ class PersistentGraph():
             e_alive = e_alive[0]
         return e_alive
 
-    def _graph_initialization(self):
-        """
-        Initialize the graph with N components at each time step
-        """
-        if self._model_type == "KMeans":
-            return _pg_kmeans.graph_initialization(self)
-        elif self._model_type == "Naive":
-            return _pg_naive.graph_initialization(self)
+    # def _graph_initialization(self):
+    #     """
+    #     Initialize the graph with N components at each time step
+    #     """
+    #     if self._model_type == "KMeans":
+    #         return _pg_kmeans.graph_initialization(self)
+    #     elif self._model_type == "Naive":
+    #         return _pg_naive.graph_initialization(self)
 
 
-    def _compute_extremum_scores(self):
-        if self._model_type == "KMeans":
-            _pg_kmeans.compute_extremum_scores(self)
-        elif self._model_type == "Naive":
-            _pg_naive.compute_extremum_scores(self)
+    # def _compute_extremum_scores(self):
+    #     if self._model_type == "KMeans":
+    #         _pg_kmeans.compute_extremum_scores(self)
+    #     elif self._model_type == "Naive":
+    #         _pg_naive.compute_extremum_scores(self)
 
 
     def _construct_vertices(self):
+        _compute_zero_scores(self)
 
-        init_clusters = self._graph_initialization()
+        #init_clusters = self._graph_initialization()
 
         # Use bisect right in order to favor the lower number of clusters
         if self._maximize:
-            sort_fc = reverse_bisect_right
+            sort_fc = reverse_bisect_left
         else:
-            sort_fc = bisect_right
+            sort_fc = bisect_left
+
+        # temporary variable to help sort the local steps
+        cluster_data = [[] for _ in range(self.T)]
+        local_scores = [[] for _ in range(self.T)]
 
         for t in range(self.T):
             if self._verbose:
@@ -707,9 +723,9 @@ class PersistentGraph():
             # Create clusters
             # ----------------------------------------------------------
 
-            # temporary variable to help sort the local steps
-            cluster_data = [init_clusters[t]]
-            local_scores = []
+
+            #cluster_data = [init_clusters[t]]
+
 
             X = self._members[:, t].reshape(-1,1)
             # Get clustering model parameters required by the
@@ -720,7 +736,7 @@ class PersistentGraph():
                 )
 
             # each 1st local step is already done in 'graph_initialization'
-            for n_clusters in self._n_clusters_range[1:]:
+            for n_clusters in self._n_clusters_range:
 
                 # Update model_kw
                 model_kw['n_clusters'] = n_clusters
@@ -745,17 +761,15 @@ class PersistentGraph():
                 score = step_info['score']
 
                 # Find where should we insert this future local step
-                idx = sort_fc(local_scores, score)
-                local_scores.insert(idx, score)
-                cluster_data.insert(idx, [clusters, clusters_info])
+                idx = sort_fc(local_scores[t], score)
+                local_scores[t].insert(idx, score)
+                cluster_data[t].insert(idx, [clusters, clusters_info])
                 self._local_steps[t].insert(
                     idx,
                     {**{'param' : {"n_clusters" : n_clusters}},
                         **step_info
                     }
                 )
-                idx = sort_fc(local_scores, score)
-                local_scores.append(score)
 
                 if self._verbose:
                     msg = "n_clusters: " + str(n_clusters)
@@ -766,34 +780,21 @@ class PersistentGraph():
                 self._nb_steps += 1
                 self._nb_local_steps[t] += 1
 
-            # ----------------------------------------------------------
-            # Score bounds
-            # ----------------------------------------------------------
-            self._worst_scores[t] = worst_score(
-                self, self._zero_scores[t], local_scores[-1]
-            )
-            self._best_scores[t] = best_score(
-                self, self._zero_scores[t], local_scores[0]
-            )
-            score_bounds = (self._best_scores[t], self._worst_scores[t])
-
-
-            # Ratios for local step scores
-            for l_step in range(self._nb_local_steps[t]):
-                score = self._local_steps[t][l_step]['score']
-                ratio = _compute_ratio_score(score, score_bounds)
-                self._local_steps[t][l_step]['ratio_score'] = ratio
+        # --------------------------------------------------------------
+        # Score bounds
+        # --------------------------------------------------------------
+        _compute_score_bounds(self, local_scores)
+        _compute_ratio_scores(self)
 
 
 
-            # ----------------------------------------------------------
-            # Construct vertices
-            # ----------------------------------------------------------
-
-
-            for local_s, (clusters, clusters_info) in enumerate(cluster_data):
+        # --------------------------------------------------------------
+        # Construct vertices
+        # --------------------------------------------------------------
+        for t in range(self.T):
+            for step, (clusters, clusters_info) in enumerate(cluster_data[t]):
                 n_clusters = len(clusters)
-                score = self._local_steps[t][local_s]['score']
+                score = self._local_steps[t][step]['score']
 
                 # ---------------- Preliminary ---------------------
                 self._members_v_distrib[t].append(
@@ -808,10 +809,10 @@ class PersistentGraph():
                 # Then kill and create vertices accordingly
 
                 # Alive vertices
-                if local_s == 0:
+                if step == 0:
                     alive_vertices = []
                 else:
-                    alive_vertices = self._v_at_step[t]['v'][local_s-1][:]
+                    alive_vertices = self._v_at_step[t]['v'][step-1][:]
                 v_to_kill = []
                 nb_v_created = 0
                 for i_cluster in range(n_clusters):
@@ -833,10 +834,10 @@ class PersistentGraph():
                         )):
                             to_create = False
                             insort(
-                                self._v_at_step[t]['v'][local_s],
+                                self._v_at_step[t]['v'][step],
                                 v_key
                             )
-                            self._members_v_distrib[t][local_s][members] = v_key
+                            self._members_v_distrib[t][step][members] = v_key
 
                             # Update brotherhood size to the smallest one
                             insort(
@@ -854,10 +855,10 @@ class PersistentGraph():
                         # and kill them
                         nb_v_created += 1
                         for m in members:
-                            if local_s > 0:
+                            if step > 0:
                                 insert_no_duplicate(
                                     v_to_kill,
-                                    self._members_v_distrib[t][local_s-1][m]
+                                    self._members_v_distrib[t][step-1][m]
                                 )
 
                         # --- Creating a new vertex ----
@@ -868,7 +869,7 @@ class PersistentGraph():
                             t = t,
                             members = members,
                             scores = [score, None],
-                            local_step = local_s,
+                            local_step = step,
                         )
 
                 # -----------  Kill Vertices -------------
@@ -888,14 +889,14 @@ class PersistentGraph():
             )
 
 
-    def _compute_ratios(self):
-        # TODO: Put this inside construct vertices
-        for t, v_t in enumerate(self._vertices):
-            score_bounds = (self._best_scores[t], self._worst_scores[t])
+    # def _compute_ratios(self):
+    #     # TODO: Put this inside construct vertices
+    #     for t, v_t in enumerate(self._vertices):
+    #         score_bounds = (self._best_scores[t], self._worst_scores[t])
 
-            # Ratios for vertices
-            for v in v_t:
-                v._compute_ratio_scores(score_bounds = score_bounds)
+    #         # Ratios for vertices
+    #         for v in v_t:
+    #             v._compute_ratio_scores(score_bounds = score_bounds)
 
 
 
@@ -1125,7 +1126,7 @@ class PersistentGraph():
         if self._verbose:
             print('Vertices constructed in %.2f s' %(t_end - t_start))
 
-        self._compute_ratios()
+        #self._compute_ratios()
 
         if post_prune:
             t_start = time.time()

@@ -2,6 +2,7 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.spatial.distance import sqeuclidean, cdist, euclidean
 from sklearn.metrics import pairwise_distances
+from typing import List, Sequence, Union, Any, Dict
 
 SCORES_TO_MINIMIZE = [
         'inertia',
@@ -20,21 +21,21 @@ SCORES_TO_MINIMIZE = [
 SCORES_TO_MAXIMIZE = []
 
 
-def set_score_type(pg, score_type):
-    if pg._model_type == "Naive":
+def _set_score_type(pg, score_type):
+    if score_type in SCORES_TO_MAXIMIZE:
+        pg._maximize = True
+    elif score_type in SCORES_TO_MINIMIZE:
         pg._maximize = False
-        pg._score_type = "max_diameter"
     else:
-        if score_type in SCORES_TO_MAXIMIZE:
-            pg._maximize = True
-        elif score_type in SCORES_TO_MINIMIZE:
-            pg._maximize = False
-        else:
-            raise ValueError(
-                "Choose an available score_type"
-                + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
-            )
-        pg._score_type = score_type
+        raise ValueError(
+            "Choose an available score_type"
+            + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
+        )
+    if score_type in ['max_diameter']:
+        pg._global_bounds = True
+    else:
+        pg._global_bounds = False
+    pg._score_type = score_type
 
 def compute_score(pg, model=None, X=None, clusters=None):
 
@@ -138,9 +139,7 @@ def compute_score(pg, model=None, X=None, clusters=None):
     elif pg._score_type == 'MedDevMean':
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score += (pg.N/len(members) *
-                np.median(norm(X[members] - np.mean(X[members])))
-            )
+            score += np.median(norm(X[members] - np.mean(X[members])))
 
     else:
         raise ValueError(
@@ -151,7 +150,7 @@ def compute_score(pg, model=None, X=None, clusters=None):
     return np.around(score, pg._precision)
 
 
-def compute_zero_scores(pg):
+def _compute_zero_scores(pg):
     pg._zero_scores = np.zeros(pg.T)
     if pg._zero_type == 'bounds':
 
@@ -184,7 +183,80 @@ def compute_zero_scores(pg):
         )
 
 
+def _compute_score_bounds(
+    pg,
+    local_scores: List[float],
+) -> None:
+    """
+    Compare local_scores and zero_scores at t to find score bounds at t
 
+    :param pg: [description]
+    :type pg: [type]
+    :param local_scores: scores computed at a given time step
+    :type local_scores: List[float]
+    """
+    for t in range(pg.T):
+        pg._worst_scores[t] = worst_score(
+            pg, pg._zero_scores[t], local_scores[t][-1]
+        )
+        pg._best_scores[t] = best_score(
+            pg, pg._zero_scores[t], local_scores[t][0]
+        )
+    if pg._global_bounds:
+        worst_score_global = pg._worst_scores[0]
+        best_score_global = pg._best_scores[0]
+        for worst_t, best_t in zip(
+            pg._worst_scores[1:],
+            pg._best_scores[1:]
+        ):
+            worst_score_global = worst_score(
+                pg,
+                worst_score_global,
+                worst_t
+            )
+            worst_score_global = worst_score(
+                pg,
+                worst_score_global,
+                worst_t
+            )
+        pg._worst_scores[:] = worst_score_global
+        pg._best_scores[:] = best_score_global
+
+    pg._norm_bounds = np.abs(pg._worst_scores - pg._best_scores)
+    pg._are_bounds_known = True
+
+
+
+def _compute_ratio(
+    score,
+    score_bounds=None,
+):
+    """
+    Inspired by the similar method in component
+    """
+    if score_bounds is None:
+        ratio_score = None
+    else:
+        if score is None:
+            ratio_score = 1
+        else:
+            ratio_score = (
+                np.abs(score - score_bounds[0])
+                / np.abs(score_bounds[0] - score_bounds[1])
+            )
+    return ratio_score
+
+def _compute_ratio_scores(
+    pg,
+):
+    for t in range(pg.T):
+        score_bounds = (pg._best_scores[t], pg._worst_scores[t])
+
+        # Ratios for local step scores
+        for step in range(pg._nb_local_steps[t]):
+            score = pg._local_steps[t][step]['score']
+            ratio = _compute_ratio(score, score_bounds)
+            pg._local_steps[t][step]['ratio_score'] = ratio
 
 def _is_earlier_score(pg, score1, score2, or_equal=True):
     return (
@@ -209,9 +281,11 @@ def better_score(pg, score1, score2, or_equal=False):
     # None means that the score has not been reached yet
     # So None is better if score is improving
     if score1 is None:
-        return pg._score_is_improving
+        #return pg._score_is_improving
+        return score1
     elif score2 is None:
-        return not pg._score_is_improving
+        #return not pg._score_is_improving
+        return score2
     elif score1 == score2:
         return or_equal
     elif score1 > score2:
@@ -247,22 +321,3 @@ def worst_score(pg, score1, score2):
     else:
         return score2
 
-def _compute_ratio_score(
-    score,
-    score_bounds = None,
-):
-    """
-    Inspired by the similar method in component
-    """
-    if score_bounds is None or score is None:
-        ratio_score = None
-    else:
-        # Normalizer so that ratios are within 0-1 range
-        norm = euclidean(score_bounds[0], score_bounds[1])
-
-        if score is None:
-            ratio_score = 1
-        else:
-            ratio_score = euclidean(score, score_bounds[0]) / norm
-
-    return ratio_score
