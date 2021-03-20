@@ -173,6 +173,7 @@ def clustering_model(
         pg,
         X = X,
         clusters = clusters,
+        t = t,
     )
     step_info = {'score' : score}
 

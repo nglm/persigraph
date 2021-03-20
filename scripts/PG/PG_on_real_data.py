@@ -15,12 +15,9 @@ from ...PersistentGraph.plots import *
 # ---------------------------------------------------------
 
 PG_TYPE = 'Naive'
-PG_TYPE = 'KMeans'
+#PG_TYPE = 'KMeans'
 
-SCORE_TYPE = 'weighted_inertia'
-if PG_TYPE == 'Naive':
-    SCORE_TYPE = 'max_diameter'
-
+SCORE_TYPE = 'max_diameter'
 
 ZERO_TYPE = 'bounds'
 

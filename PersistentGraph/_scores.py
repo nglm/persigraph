@@ -37,7 +37,8 @@ def _set_score_type(pg, score_type):
         pg._global_bounds = False
     pg._score_type = score_type
 
-def compute_score(pg, model=None, X=None, clusters=None):
+def compute_score(pg, model=None, X=None, clusters=None, t=None):
+    # TODO: add weights for scores that requires global bounds
 
     # ------------------------------------------------------------------
     if pg._score_type == 'inertia':
@@ -132,7 +133,7 @@ def compute_score(pg, model=None, X=None, clusters=None):
         score = 0
         for i_cluster, members in enumerate(clusters):
             score = max(
-                np.amax(pairwise_distances(X[members])),
+                np.amax(pairwise_distances(X[members])) / pg._weights[t],
                 score
             )
     elif pg._score_type == 'MedDevMean':
@@ -178,7 +179,8 @@ def _compute_zero_scores(pg):
         pg._zero_scores[t] = compute_score(
             pg=pg,
             X = values[t].reshape(-1,1),
-            clusters= members
+            clusters= members,
+            t = t,
         )
 
 

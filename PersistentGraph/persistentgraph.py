@@ -240,7 +240,6 @@ class PersistentGraph():
 
 
 
-
     def _get_model_parameters(
         self,
         X,
@@ -250,6 +249,7 @@ class PersistentGraph():
             model_kw, fit_predict_kw = _pg_kmeans.get_model_parameters(
                 self,
                 X = X,
+                t = t,
             )
         elif self._model_type == "Naive":
             model_kw, fit_predict_kw = _pg_naive.get_model_parameters(
@@ -376,6 +376,7 @@ class PersistentGraph():
                 print("v_start scores: ", v_start.score_ratios)
                 print("v_end scores: ", v_end.score_ratios)
                 print("WARNING: Vertices are not contemporaries")
+            return None
         # Create the edge
         argbirth = np.argmax([v_start.score_ratios[0], v_end.score_ratios[0]])
         argdeath = np.argmin([v_start.score_ratios[1], v_end.score_ratios[1]])
