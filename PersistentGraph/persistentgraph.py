@@ -148,16 +148,19 @@ class PersistentGraph():
         # Determines how to cluster the members
         self._model_type = model_type
         # True if the score is improving with respect to the algo step
-        if model_type == "Naive":
-            self._score_is_improving = True
-            # To know if we start with N clusters or 1
-            self._n_clusters_range = range(1, self.k_max + 1)
-        else:
-            self._score_is_improving = score_is_improving
-            self._n_clusters_range = range(self.k_max, 0,-1)
+
+        # TODO: Clean this
+        # if model_type == "Naive":
+        #     self._score_is_improving = True
+        #     # To know if we start with N clusters or 1
+        #     self._n_clusters_range = range(1, self.k_max + 1)
+        # else:
+        #     self._score_is_improving = score_is_improving
+        #     self._n_clusters_range = range(self.k_max, 0,-1)
         self._score_is_improving = True
         # To know if we start with N clusters or 1
         self._n_clusters_range = range(1, self.k_max + 1)
+
         # Score type, determines how to measure how good a model is
         _set_score_type(self, score_type)
         # Determines how to measure the score of the 0th component

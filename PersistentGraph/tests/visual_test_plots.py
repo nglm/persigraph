@@ -38,7 +38,7 @@ def main():
         to_standardize = False,
         )
 
-    #members = list_var[0]
+    members = list_var[0]
 
     model_type = "KMeans"
     model_type = "Naive"

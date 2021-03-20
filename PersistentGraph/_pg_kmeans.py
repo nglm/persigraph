@@ -139,6 +139,7 @@ def clustering_model(
         clusters.append(members)
         if members == []:
             raise ValueError('No members in cluster')
+        
         # Info related to this specific vertex
         clusters_info.append({
             'type' : 'KMeans',

@@ -53,7 +53,7 @@ def compute_score(pg, model=None, X=None, clusters=None):
                         )
                     )
     # ------------------------------------------------------------------
-    if pg._score_type == 'weighted_inertia':
+    elif pg._score_type == 'weighted_inertia':
         score = 0
         for i_cluster, members in enumerate(clusters):
             score += pg.N/len(members)*np.sum(cdist(

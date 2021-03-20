@@ -63,7 +63,7 @@ def get_model_parameters(
     # rep is needed to know whether i and j are in the same vertex
     model_kw = {
         'idx' : 0,
-        'rep' : [0 for _ in range(pg.N)]
+        'rep' : []
     }
     return model_kw, fit_predict_kw
 
@@ -145,96 +145,123 @@ def get_model_parameters(
 #     pg._norm_bounds = np.abs(pg._best_scores - pg._worst_scores)
 #     pg._are_bounds_known = True
 
+def _fit(
+    pg,
+    X,
+    model_kw : Dict = {},
+    fit_predict_kw : Dict = {},
+):
+    t = fit_predict_kw['t']
+    idx = model_kw['idx']
+    members_r = model_kw['rep']
+
+    # =============== Fit & predict part =======================
+    # First step: only one cluster
+    if idx == 0:
+        members_r = [0 for _ in range(pg.N)]
+        rep = [0]
+        k = 0
+
+    # General case
+    else:
+        # Take the 2 farthest members and the corresponding time step
+        for k, (i, j) in enumerate(fit_predict_kw['sorted_idx'][idx:]):
+
+            # Iterate algo only if i_s and j_s are in the same vertex
+            if members_r[i] == members_r[j]:
+
+                # End algo if the 2 farthest apart members are equal
+                if fit_predict_kw['distance_matrix'][i, j] == 0:
+                    raise ValueError('Remaining members are now equal')
+
+
+                # We'll break this vertex into 2 vertices represented by i and j
+                rep_to_break = members_r[i]
+
+                # Extract representatives of alive vertices
+                rep = []
+                for r in members_r:
+                    # We want to remove rep_to_break from rep
+                    if r != rep_to_break:
+                        insert_no_duplicate(rep, r)
+                # Now we want to add the new reps i,j replacing rep_to_break
+                insort(rep, i)
+                insort(rep, j)
+
+                # extract distance to representatives
+                dist = []
+                for r in rep:
+                    dist.append(fit_predict_kw['distance_matrix'][r])
+
+                dist = np.asarray(dist)     # (nb_rep, N) array
+                # for each member, find the representative that is the closest
+                members_r = [rep[r] for r in np.nanargmin(dist, axis=0)]
+
+                # Stop for loop
+                break
+
+    model_kw['idx'] = k + idx + 1
+    model_kw['rep'] = members_r
+
+    return rep, members_r, model_kw
 
 def clustering_model(
     pg,
     X,
     model_kw : Dict = {},
     fit_predict_kw : Dict = {},
-    ):
+):
+
+    # ====================== Fit & predict part =======================
+    rep, members_r, model_kw = _fit(
+        pg,
+        X = X,
+        model_kw = model_kw,
+        fit_predict_kw = fit_predict_kw
+    )
     t = fit_predict_kw['t']
     idx = model_kw['idx']
     members_r = model_kw['rep']
     n_clusters = model_kw.pop('n_clusters')
-    clusters = None
+    if len(rep) < n_clusters:
+        raise ValueError('No members in cluster')
 
-    # Take the 2 farthest members and the corresponding time step
+    # ================= clusters, cluster_info =================
+    clusters_info = []
+    clusters = []
+    for i_cluster in range(n_clusters):
 
-    for k, (i, j) in enumerate(fit_predict_kw['sorted_idx'][idx:]):
+        # Members belonging to that cluster
+        members = [
+            m for m in range(pg.N) if members_r[m] == rep[i_cluster]
+        ]
+        clusters.append(members)
 
-        # Iterate algo only if i_s and j_s are in the same vertex
-        if members_r[i] == members_r[j]:
+        # Info related to this specific vertex
+        clusters_info.append({
+            'type' : 'Naive',
+            'params' : [
+                np.mean(X[members]),
+                np.std(X[members]),
+                rep[i_cluster]
+                ],
+            'brotherhood_size' : [n_clusters]
+            })
 
-            # End algo if the 2 farthest apart members are equal
-            if fit_predict_kw['distance_matrix'][i, j] == 0:
-                raise ValueError('Remaining members are now equal')
-
-            # =============== Fit & predict part =======================
-
-            # We'll break this vertex into 2 vertices represented by i and j
-            rep_to_break = members_r[i]
-
-            # Extract representatives of alive vertices
-            rep = []
-            for r in members_r:
-                # We want to remove rep_to_break from rep
-                if r != rep_to_break:
-                    insert_no_duplicate(rep, r)
-            # Now we want to add the new reps i,j replacing rep_to_break
-            insort(rep, i)
-            insort(rep, j)
-
-            # extract distance to representatives
-            dist = []
-            for r in rep:
-                dist.append(fit_predict_kw['distance_matrix'][r])
-
-            dist = np.asarray(dist)     # (nb_rep, N) array
-            # for each member, find the representative that is the closest
-            members_r = [rep[r] for r in np.nanargmin(dist, axis=0)]
-
-            # ================= clusters, cluster_info =================
-
-            clusters_info = []
-            clusters = []
-            if len(set(rep)) < n_clusters:
-                raise ValueError('No members in cluster')
-            for i_cluster in range(n_clusters):
-
-                # Members belonging to that cluster
-                members = [
-                    m for m in range(pg.N) if members_r[m] == rep[i_cluster]
-                ]
-                clusters.append(members)
-
-                # Info related to this specific vertex
-                clusters_info.append({
-                    'type' : 'Naive',
-                    'params' : [
-                        np.mean(X[members]),
-                        np.std(X[members]),
-                        rep[i_cluster]
-                        ],
-                    'brotherhood_size' : [n_clusters]
-                    })
-
-            # ====================== step_info =========================
-            # score = np.around(
-            #     fit_predict_kw['distance_matrix'][i, j], pg._precision
-            # )
+    # ====================== step_info =========================
+    # score = np.around(
+    #     fit_predict_kw['distance_matrix'][i, j], pg._precision
+    # )
 
 
-            score = compute_score(
-                pg,
-                X = X,
-                clusters = clusters,
-            )
-            step_info = {'score' : score, '(i,j)' : (i,j)}
+    score = compute_score(
+        pg,
+        X = X,
+        clusters = clusters,
+    )
+    step_info = {'score' : score}
 
-            model_kw['idx'] = k + idx + 1
-            model_kw['rep'] = members_r
-            # Stop for loop
-            break
+
     if clusters is None:
         raise ValueError('No new clusters')
 
