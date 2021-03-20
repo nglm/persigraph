@@ -264,24 +264,24 @@ def _compute_ratio_scores(
                 score_bounds = score_bounds
             )
 
-def _is_earlier_score(pg, score1, score2, or_equal=True):
-    return (
-        (better_score(pg, score1, score2, or_equal) != pg._score_is_improving)
-        or (score1 == score2 and or_equal)
-    )
+# def _is_earlier_score(pg, score1, score2, or_equal=True):
+#     return (
+#         (better_score(pg, score1, score2, or_equal) != pg._score_is_improving)
+#         or (score1 == score2 and or_equal)
+#     )
 
-def _is_relevant_score(
-    pg,
-    previous_score,
-    score,
-    or_equal = True,
-):
-    curr_is_better = better_score(pg, score, previous_score, or_equal=False)
-    res = (
-        (curr_is_better == pg._score_is_improving)
-        or (or_equal and previous_score == score)
-    )
-    return res
+# def _is_relevant_score(
+#     pg,
+#     previous_score,
+#     score,
+#     or_equal = True,
+# ):
+#     curr_is_better = better_score(pg, score, previous_score, or_equal=False)
+#     res = (
+#         (curr_is_better == pg._score_is_improving)
+#         or (or_equal and previous_score == score)
+#     )
+#     return res
 
 def better_score(pg, score1, score2, or_equal=False):
     # None means that the score has not been reached yet

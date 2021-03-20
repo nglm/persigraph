@@ -1016,21 +1016,21 @@ class PersistentGraph():
                 print("nb new edges going FROM t: ", nb_new_edges_from)
                 print("nb new edges going TO t: ", nb_new_edges_to)
 
-    def prune(self):
-        """
-        FIXME: Outdated
-        """
-        tot_count = 0
-        for t in range(self.T):
-            count = 0
-            for i, v in enumerate(self._vertices[t]):
-                if v.life_span < threshold:
-                    del self._vertices[t][i]
-                    count += 1
-            if self._verbose:
-                print("t = ", t, " nb vertices pruned = ", count)
-            tot_count += count
-            self._nb_vertices[t] -= count
+    # def prune(self):
+    #     """
+    #     FIXME: Outdated
+    #     """
+    #     tot_count = 0
+    #     for t in range(self.T):
+    #         count = 0
+    #         for i, v in enumerate(self._vertices[t]):
+    #             if v.life_span < threshold:
+    #                 del self._vertices[t][i]
+    #                 count += 1
+    #         if self._verbose:
+    #             print("t = ", t, " nb vertices pruned = ", count)
+    #         tot_count += count
+    #         self._nb_vertices[t] -= count
 
 
     def construct_graph(
@@ -1052,9 +1052,10 @@ class PersistentGraph():
         self._post_prune_threshold = post_prune_threshold
 
 
+        # ================== Compute 0 score ===========================
         _compute_zero_scores(self)
 
-
+        # ================== Cluster all the data ======================
         t_start = time.time()
         if self._verbose:
             print("Clustering data...")
@@ -1063,10 +1064,11 @@ class PersistentGraph():
         if self._verbose:
             print('Data clustered in %.2f s' %(t_end - t_start))
 
-
+        # ================== Compute score bounds ======================
         _compute_score_bounds(self, local_scores)
 
 
+        # ================== Construct vertices ========================
         t_start = time.time()
         if self._verbose:
             print("Construct vertices...")
@@ -1075,17 +1077,19 @@ class PersistentGraph():
         if self._verbose:
             print('Vertices constructed in %.2f s' %(t_end - t_start))
 
+        # ================= Compute ratio scores =======================
         _compute_ratio_scores(self)
 
-        if post_prune:
-            t_start = time.time()
-            if self._verbose:
-                print("Prune vertices...")
-            self.prune()
-            t_end = time.time()
-            if self._verbose:
-                print('Vertices pruned in %.2f s' %(t_end - t_start))
+        # if post_prune:
+        #     t_start = time.time()
+        #     if self._verbose:
+        #         print("Prune vertices...")
+        #     self.prune()
+        #     t_end = time.time()
+        #     if self._verbose:
+        #         print('Vertices pruned in %.2f s' %(t_end - t_start))
 
+        # =================== Sort global steps ========================
         t_start = time.time()
         if self._verbose:
             print("Sort steps...")
@@ -1094,6 +1098,7 @@ class PersistentGraph():
         if self._verbose:
             print('Steps sorted in %.2f s' %(t_end - t_start))
 
+        # =================== Construct edges ==========================
         if self._verbose:
             print("Construct edges...")
         t_start = time.time()
@@ -1269,6 +1274,5 @@ class PersistentGraph():
             "model_type" : self._model_type,
             "zero_type" : self._zero_type,
             "score_type" : self._score_type,
-            "score_is_improving": self._score_is_improving,
         }
         return dic

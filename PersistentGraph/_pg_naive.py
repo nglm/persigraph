@@ -8,10 +8,6 @@ from scipy.spatial.distance import sqeuclidean, cdist
 from ._scores import compute_score
 from ..utils.sorted_lists import insert_no_duplicate
 
-
-# TODO: Separate score computations
-
-
 def _sort_dist_matrix(
     pg,
     distance_matrix
