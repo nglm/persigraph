@@ -68,83 +68,6 @@ def get_model_parameters(
     return model_kw, fit_predict_kw
 
 
-# def graph_initialization(pg):
-#     """
-#     Initialize the graph with 1 components at each time step (mean)
-
-#     """
-#     # There is not really a zero score with the naive method
-#     # instead we use a global worst score
-#     compute_zero_scores(pg)
-
-#     cluster_data = [[] for _ in range(pg.T)]
-
-#     # Start inialization
-#     mean = np.mean(pg._members, axis=0)
-#     std = np.std(pg._members, axis=0)
-#     # maxs = np.amax(pg._members, axis=0)
-#     # mins = np.amin(pg._members, axis=0)
-#     # scores = np.around(
-#     #             np.abs(maxs-mins) / pg._weights, pg._precision
-#     #         )
-#     # worst_score = np.amax(scores)
-#     # pg._zero_scores[:] = worst_score
-#     # pg._worst_scores[:] = worst_score
-
-
-#     clusters = [[i for i in range(pg.N)]]
-
-#     for t in range(pg.T):
-
-#         # ===== 1 vertex per time step: clusters, cluster_info =========
-
-#         clusters_info = [{
-#             'type' : 'Naive',
-#             'params' : [mean[t], std[t], 0], #mean, std, rep
-#             'brotherhood_size' : [1]
-#         }]
-#         cluster_data[t] = [clusters, clusters_info]
-
-#         # ========== Finalize initialization step ==================
-
-#         X = pg._members[:, t].reshape(-1,1)
-#         score = compute_score(X=X, clusters=clusters)
-#         pg._local_steps[t].append({
-#             'param' : {"n_clusters" : 1},
-#             'score' : score,
-#         })
-
-#         pg._nb_local_steps[t] += 1
-#         pg._nb_steps += 1
-
-#         if pg._verbose:
-#             print(" ========= ", t, " ========= ")
-#             print(
-#                 "n_clusters: ", 1,
-#                 "   score: ", score
-#             )
-
-#     return cluster_data
-
-# def compute_extremum_scores(pg):
-#     """
-#     Here all time steps share the same bounds
-#     """
-#     # zero score is not really defined for the naive method
-#     if pg._maximize:
-#         pg._zero_scores = -np.inf*np.ones(pg.T)
-#     else:
-#         pg._zero_scores = np.inf*np.ones(pg.T)
-#     maxs = np.amax(pg._members, axis=0)
-#     mins = np.amin(pg._members, axis=0)
-#     worst_score = np.around(
-#                 np.max(np.abs(maxs-mins) / pg._weights), pg._precision
-#             )
-#     pg._worst_scores = np.ones(pg.T) * worst_score
-#     pg._best_scores = np.zeros(pg.T)
-#     pg._norm_bounds = np.abs(pg._best_scores - pg._worst_scores)
-#     pg._are_bounds_known = True
-
 def _fit(
     pg,
     X,
@@ -249,10 +172,6 @@ def clustering_model(
             })
 
     # ====================== step_info =========================
-    # score = np.around(
-    #     fit_predict_kw['distance_matrix'][i, j], pg._precision
-    # )
-
 
     score = compute_score(
         pg,

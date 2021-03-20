@@ -258,6 +258,12 @@ def _compute_ratio_scores(
             ratio = _compute_ratio(score, score_bounds)
             pg._local_steps[t][step]['ratio_score'] = ratio
 
+        # Compute score ratio of vertices that are still alive at the end
+        for v in pg._v_at_step[t]['v'][-1]:
+            pg._vertices[t][v]._compute_ratio_scores(
+                score_bounds = score_bounds
+            )
+
 def _is_earlier_score(pg, score1, score2, or_equal=True):
     return (
         (better_score(pg, score1, score2, or_equal) != pg._score_is_improving)
