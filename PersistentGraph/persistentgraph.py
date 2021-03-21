@@ -249,7 +249,6 @@ class PersistentGraph():
             model_kw, fit_predict_kw = _pg_kmeans.get_model_parameters(
                 self,
                 X = X,
-                t = t,
             )
         elif self._model_type == "Naive":
             model_kw, fit_predict_kw = _pg_naive.get_model_parameters(

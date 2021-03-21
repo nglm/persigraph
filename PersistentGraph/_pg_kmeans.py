@@ -8,7 +8,6 @@ from ..utils.kmeans import kmeans_custom, row_norms
 def get_model_parameters(
         pg,
         X,
-        t = None,
 ):
     # The same N datapoints X are use for all n_clusters values
     # Furthermore the clustering method might want to copy X
@@ -20,7 +19,6 @@ def get_model_parameters(
     fit_predict_kw = {
         "x_squared_norms" : row_norms_X,
         'X' : copy_X,
-        't' : t,
         }
     # Default kw values
     model_kw = {
@@ -39,7 +37,6 @@ def clustering_model(
 ):
 
     # ====================== Fit & predict part =======================
-    t = fit_predict_kw.pop('t', None)
     n_clusters = model_kw.pop('n_clusters')
     model = kmeans_custom(
         n_clusters = n_clusters,

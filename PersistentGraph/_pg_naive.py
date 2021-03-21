@@ -137,7 +137,6 @@ def clustering_model(
         model_kw = model_kw,
         fit_predict_kw = fit_predict_kw
     )
-    t = fit_predict_kw['t']
     idx = model_kw['idx']
     members_r = model_kw['rep']
     n_clusters = model_kw.pop('n_clusters')
