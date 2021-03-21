@@ -159,11 +159,16 @@ def __std_polygon(g, edges):
     '''
     t_start = g.time_axis[edges[0].time_step]
     t_end = g.time_axis[edges[0].time_step + 1]
+    # std_inf(t) - >std_inf(t) -> std_sup(t+1) -> std_inf(t+1)
     polys = [[
-        (t_start, e.v_start.info["params"][0] - e.v_start.info["params"][1]),
-        (t_start, e.v_start.info["params"][0] + e.v_start.info["params"][1]),
-        (t_end,   e.v_end.info["params"][0] + e.v_end.info["params"][1]),
-        (t_end,   e.v_end.info["params"][0] - e.v_end.info["params"][1]),]
+        # std_inf at t
+        (t_start, e.v_start.info["params"][0] - e.v_start.info["params"][2]),
+        # std_sup at t
+        (t_start, e.v_start.info["params"][0] + e.v_start.info["params"][3]),
+        # std_sup at t+1
+        (t_end,   e.v_end.info["params"][0] + e.v_end.info["params"][3]),
+        # std_inf at t+1
+        (t_end,   e.v_end.info["params"][0] - e.v_end.info["params"][2]),]
         for e in edges
     ]
     return polys

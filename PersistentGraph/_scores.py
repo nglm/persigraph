@@ -276,6 +276,27 @@ def _compute_ratio_scores(
                 score_bounds = score_bounds
             )
 
+def _compute_cluster_params(cluster):
+
+    mean = np.mean(cluster)
+    std = np.std(cluster)
+    X_inf = np.array([m for m in cluster if m < mean])
+    X_sup = np.array([m for m in cluster if m >= mean])
+    # std_inf
+    n_inf = len(X_inf)
+    n_sup = len(X_sup)
+    if n_inf == 0:
+        std_inf = 0
+    else:
+        std_inf = np.sqrt( 1/n_inf * np.sum((mean-X_inf)**2) )
+    if n_sup == 0:
+        std_sup = 0
+    else:
+        std_sup = np.sqrt( 1/n_sup * np.sum((mean-X_sup)**2) )
+    cluster_params = [mean, std, std_inf, std_sup]
+    return cluster_params
+
+
 # def _is_earlier_score(pg, score1, score2, or_equal=True):
 #     return (
 #         (better_score(pg, score1, score2, or_equal) != pg._score_is_improving)

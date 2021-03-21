@@ -2,6 +2,7 @@ import numpy as np
 from typing import List, Sequence, Union, Any, Dict
 
 from ..utils.kmeans import kmeans_custom, row_norms
+from ._scores import _compute_cluster_params
 
 
 
@@ -61,10 +62,7 @@ def clustering_model(
         # Info related to this specific vertex
         clusters_info.append({
             'type' : 'KMeans',
-            'params' : [
-                float(model.cluster_centers_[label_i]),
-                float(np.std(X[members])),
-                ],
+            'params' : _compute_cluster_params(X[members]),
             'brotherhood_size' : [n_clusters]
         })
 

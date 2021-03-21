@@ -5,6 +5,7 @@ from math import isnan
 from bisect import insort
 from scipy.spatial.distance import sqeuclidean, cdist
 
+from ._scores import _compute_cluster_params
 from ..utils.sorted_lists import insert_no_duplicate
 
 def _sort_dist_matrix(
@@ -155,13 +156,11 @@ def clustering_model(
         clusters.append(members)
 
         # Info related to this specific vertex
+        cluster_params =  _compute_cluster_params(X[members])
+        cluster_params.append(rep[i_cluster])
         clusters_info.append({
             'type' : 'Naive',
-            'params' : [
-                np.mean(X[members]),
-                np.std(X[members]),
-                rep[i_cluster]
-                ],
+            'params' : cluster_params,
             'brotherhood_size' : [n_clusters]
             })
 
