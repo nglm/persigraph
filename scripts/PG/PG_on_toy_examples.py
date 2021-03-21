@@ -15,13 +15,12 @@ from ...PersistentGraph.plots import *
 # ---------------------------------------------------------
 
 PG_TYPE = 'KMeans'
+#PG_TYPE = 'Naive'
 
 SCORE_TYPES = [
-    'max_inertia'
+    'MedDevMean'
     ]
 
-if PG_TYPE == 'Naive':
-    SCORE_TYPES = ['max_diameter']
 
 
 ZERO_TYPE = 'bounds'

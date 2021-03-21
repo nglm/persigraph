@@ -9,7 +9,7 @@ from . import Vertex
 from . import Edge
 from . import _pg_kmeans, _pg_naive
 from ._scores import (
-    _set_score_type, worst_score, best_score,
+    _set_score_type, worst_score, best_score, compute_score,
     _compute_ratio_scores, _compute_score_bounds, _compute_zero_scores
 )
 from ..utils.sorted_lists import (
@@ -670,6 +670,7 @@ class PersistentGraph():
 
     def _generate_all_clusters(self):
 
+        # --------------------- Preliminary ----------------------------
         # Use bisect left in order to favor the lower number of clusters
         if self._maximize:
             sort_fc = reverse_bisect_left
@@ -684,6 +685,7 @@ class PersistentGraph():
             if self._verbose:
                 print(" ========= ", t, " ========= ")
 
+            # ------ clustering method specific parameters -------------
             X = self._members[:, t].reshape(-1,1)
             # Get clustering model parameters required by the
             # clustering model
@@ -692,14 +694,14 @@ class PersistentGraph():
                     t = t,
                 )
 
-            # each 1st local step is already done in 'graph_initialization'
+
             for n_clusters in self._n_clusters_range:
 
                 # Update model_kw
                 model_kw['n_clusters'] = n_clusters
 
+                # ---------- Fit & predict using clustering model-------
                 try :
-                    # Fit & predict using the clustering model
                     (
                         clusters,
                         clusters_info,
@@ -715,8 +717,16 @@ class PersistentGraph():
                         print(str(ve))
                     continue
 
-                score = step_info['score']
+                # -------- Score corresponding to 'n_clusters' ---------
+                score = compute_score(
+                    self,
+                    X = X,
+                    clusters = clusters,
+                    t = t,
+                )
+                step_info['score'] = score
 
+                # ---------------- Finalize local step -----------------
                 # Find where should we insert this future local step
                 idx = sort_fc(local_scores[t], score)
                 local_scores[t].insert(idx, score)
@@ -727,6 +737,9 @@ class PersistentGraph():
                         **step_info
                     }
                 )
+                self._nb_steps += 1
+                self._nb_local_steps[t] += 1
+
 
                 if self._verbose:
                     msg = "n_clusters: " + str(n_clusters)
@@ -734,8 +747,7 @@ class PersistentGraph():
                         msg += '  ||  ' + key + ":  " + str(item)
                     print(msg)
 
-                self._nb_steps += 1
-                self._nb_local_steps[t] += 1
+
 
         return cluster_data, local_scores
 
@@ -754,8 +766,8 @@ class PersistentGraph():
                 self._v_at_step[t]['global_step_nums'].append(None)
 
 
-                # ------- Update vertices: Kill and Create ---------
-                # For each new component, check if it already exists
+                # ---------- Update vertices: Kill and Create ----------
+                # For each new vertex, check if it already exists
                 # Then kill and create vertices accordingly
 
                 # Alive vertices
@@ -811,7 +823,7 @@ class PersistentGraph():
                                     self._members_v_distrib[t][step-1][m]
                                 )
 
-                        # --- Creating a new vertex ----
+                        # -------------- Create new vertex -------------
                         # NOTE: score_death is not set yet
                         # it will be set at the step at which v dies
                         v = self._add_vertex(
@@ -822,7 +834,7 @@ class PersistentGraph():
                             local_step = step,
                         )
 
-                # -----------  Kill Vertices -------------
+                # --------------------  Kill Vertices ------------------
                 self._kill_vertices(
                     t = t,
                     vertices = v_to_kill,

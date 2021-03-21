@@ -5,7 +5,6 @@ from math import isnan
 from bisect import insort
 from scipy.spatial.distance import sqeuclidean, cdist
 
-from ._scores import compute_score
 from ..utils.sorted_lists import insert_no_duplicate
 
 def _sort_dist_matrix(
@@ -168,17 +167,8 @@ def clustering_model(
             })
 
     # ====================== step_info =========================
-
-    score = compute_score(
-        pg,
-        X = X,
-        clusters = clusters,
-        t = t,
-    )
-    step_info = {'score' : score}
-
-
-    if clusters is None:
-        raise ValueError('No new clusters')
+    # Add method specific info here if necessary
+    # (Score is computed in persistentgraph)
+    step_info = {}
 
     return clusters, clusters_info, step_info, model_kw

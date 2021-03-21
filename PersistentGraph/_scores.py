@@ -107,26 +107,6 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
         score = np.inf
         for i_cluster, members in enumerate(clusters):
             score = min(np.var(X[members]), score)
-
-    # ------------------------------------------------------------------
-    elif pg._score_type == 'max_MedDevMean':
-        # Max median deviation
-        score = 0
-        for i_cluster, members in enumerate(clusters):
-            score = max(
-                np.median(norm(X[members] - np.mean(X[members]))),
-                score
-            )
-    # ------------------------------------------------------------------
-    elif pg._score_type == 'max_MedDevMed':
-        # Max median deviation
-        score = 0
-        for i_cluster, members in enumerate(clusters):
-            score = max(
-                np.median(norm(X[members] - np.median(X[members]))),
-                score
-            )
-
     # ------------------------------------------------------------------
     elif pg._score_type == 'max_diameter':
         # WARNING: Max diameter should be used with weights
@@ -136,11 +116,42 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
                 np.amax(pairwise_distances(X[members])) / pg._weights[t],
                 score
             )
+    # ------------------------------------------------------------------
     elif pg._score_type == 'MedDevMean':
         score = 0
         for i_cluster, members in enumerate(clusters):
             score += np.median(norm(X[members] - np.mean(X[members])))
-
+    # ------------------------------------------------------------------
+    elif pg._score_type == 'max_MedDevMean':
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score = max(
+                np.median(norm(X[members] - np.mean(X[members]))),
+                score
+            )
+    # ------------------------------------------------------------------
+    elif pg._score_type == 'MeanDevMed':
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score += np.mean(norm(X[members] - np.median(X[members])))
+    # ------------------------------------------------------------------
+    elif pg._score_type == 'max_MeanDevMed':
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score = max(
+                np.mean(norm(X[members] - np.median(X[members]))),
+                score
+            )
+    # ------------------------------------------------------------------
+    elif pg._score_type == 'max_MedDevMed':
+        # This would not penalize a vertex containing 2 clusters with
+        # slightly different size
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score = max(
+                np.median(norm(X[members] - np.median(X[members]))),
+                score
+            )
     else:
         raise ValueError(
                 "Choose an available score_type"

@@ -1,7 +1,6 @@
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict
 
-from ._scores import compute_score, worst_score
 from ..utils.kmeans import kmeans_custom, row_norms
 
 
@@ -73,14 +72,9 @@ def clustering_model(
         })
 
     # ========================== step_info =============================
-    score = compute_score(
-            pg,
-            model = model,
-            X = X,
-            clusters = clusters,
-            t = t,
-        )
-    step_info = {'score' : score}
+    # Add method specific info here if necessary
+    # (Score is computed in persistentgraph)
+    step_info = {}
 
     #TODO: add cluster center to model_kw for future clustering
 
