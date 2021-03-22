@@ -27,7 +27,7 @@ class PersistentGraph():
         weights: np.ndarray = None,
         score_is_improving: bool = False,
         precision: int = 13,
-        score_type: str = 'inertia',
+        score_type: str = 'max_inertia',
         zero_type: str = 'bounds',
         model_type: str = 'KMeans',
         k_max : int = None,
