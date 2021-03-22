@@ -25,7 +25,6 @@ class PersistentGraph():
         members: np.ndarray,
         time_axis: np.ndarray = None,
         weights: np.ndarray = None,
-        score_is_improving: bool = False,
         precision: int = 13,
         score_type: str = 'max_inertia',
         zero_type: str = 'bounds',
@@ -50,11 +49,6 @@ class PersistentGraph():
         :param weights: Only here for parameter compatibility with the naive
         version, defaults to None
         :type weights: np.ndarray, optional
-
-        :param score_is_improving: Is the score improving throughout the
-        algorithm steps? (Is, ``score_birth`` 'worse' than ``score_death``),
-        defaults to False
-        :type score_is_improving: bool, optional
 
         :param precision: Score precision, defaults to 13
         :type precision: int, optional
