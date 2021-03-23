@@ -14,7 +14,15 @@ from ...utils.nc import print_nc_dict
 # Parameters
 # ---------------------------------------------------------
 
-SCORE_TYPE = ['MedDevMean', 'max_inertia', 'variance']
+SCORE_TYPE = [
+    'MedDevMean',
+    'max_MedDevMean',
+    'max_inertia',
+    'weighted_inertia',
+    'variance',
+    'max_variance',
+    'weighted_variance',
+    ]
 
 ZERO_TYPE = 'bounds'
 

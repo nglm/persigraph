@@ -6,18 +6,23 @@ from typing import List, Sequence, Union, Any, Dict
 
 SCORES_TO_MINIMIZE = [
         'inertia',
+        'weighted_inertia',
         'max_inertia',
         'min_inertia',
+        # ----------
         'variance',
+        'weighted_variance',
         'min_variance',
         'max_variance',
+        # ----------
         'diameter',
         'max_diameter',
-        'max_MedDevMean',
-        'max_MedDevMed',
+        # ----------
         'MedDevMean',
-        'weighted_inertia',
-        ]
+        'max_MedDevMean',
+        # ----------
+        'max_MedDevMed',
+]
 
 SCORES_TO_MAXIMIZE = []
 
@@ -58,7 +63,7 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
     elif pg._score_type == 'weighted_inertia':
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score += pg.N/len(members)*np.sum(cdist(
+            score += (len(clusters) / pg.N)* np.sum(cdist(
                     X[members],
                     np.mean(X[members], keepdims=True) ,
                     metric='sqeuclidean'
@@ -97,7 +102,11 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
         for i_cluster, members in enumerate(clusters):
             #score += (len(members)-1)/pg.N * np.var(X[members])
             score += np.var(X[members])
-
+    # ------------------------------------------------------------------
+    elif pg._score_type in ['weighted_variance']:
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score += (len(clusters) / pg.N) * np.var(X[members])
     # ------------------------------------------------------------------
     elif pg._score_type == 'max_variance':
         score = 0
