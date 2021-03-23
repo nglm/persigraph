@@ -76,13 +76,14 @@ def _fit(
 
     # =============== Fit & predict part =======================
     # First step: only one cluster
+    k = 0
     if idx == 0:
         members_r = [0 for _ in range(pg.N)]
         rep = [0]
-        k = 0
 
     # General case
     else:
+        rep = []
         # Take the 2 farthest members and the corresponding time step
         for k, (i, j) in enumerate(fit_predict_kw['sorted_idx'][idx:]):
 
@@ -98,7 +99,6 @@ def _fit(
                 rep_to_break = members_r[i]
 
                 # Extract representatives of alive vertices
-                rep = []
                 for r in members_r:
                     # We want to remove rep_to_break from rep
                     if r != rep_to_break:

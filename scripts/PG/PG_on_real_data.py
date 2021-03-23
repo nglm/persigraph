@@ -15,9 +15,9 @@ from ...PersistentGraph.plots import *
 # ---------------------------------------------------------
 
 PG_TYPE = 'Naive'
-PG_TYPE = 'KMeans'
+#PG_TYPE = 'KMeans'
 
-SCORE_TYPE = 'MedDevMean'
+SCORE_TYPE = 'max_diameter'
 
 ZERO_TYPE = 'bounds'
 
@@ -114,7 +114,6 @@ def main():
             g = PersistentGraph(
                     time_axis = time,
                     members = members,
-                    score_is_improving = False,
                     weights = weights_values,
                     score_type = SCORE_TYPE,
                     zero_type = ZERO_TYPE,
