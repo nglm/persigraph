@@ -4,9 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 
-from ...DataAnalysis.statistics import preprocess_data
 from ...PersistentGraph import PersistentGraph
 from ...PersistentGraph.plots import *
+from ...utils.nc import print_nc_dict
 
 
 
@@ -33,13 +33,12 @@ show_k_plot = 'overview'
 
 # Absolute path to the files
 # type: str
-PATH_DATA = "/home/natacha/Documents/Work/Data/MLVis2021"
+PATH_DATA = "/home/natacha/Documents/Work/Data/MLVis2021/"
 
 # Choose the path where the figs will be saved
 # type: str
 PATH_FIG_PARENT = (
     "/home/natacha/Documents/tmp/figs/PG/"
-    + PG_TYPE + "/" + SCORE_TYPE + "/"
 )
 
 # Choose which files should be used
@@ -50,8 +49,52 @@ LIST_FILENAMES = [
 ]
 
 
-def preprocess_MLVis_data():
-    return None
+def preprocess_MLVis_data(verbose = False):
+    files = [
+        fname for fname in LIST_FILENAMES
+        if fname.startswith("ec.ens.") and fname.endswith(".nc")
+    ]
+
+    # Root dictionary
+    data = {}
+    # subdictionary names
+    dic_names = ['Lothar', 'Sandy', 'heatwave']
+    f_startswith = ['ec.ens.1999', 'ec.ens.2012', 'ec.ens.2019']
+    vars = [['u10', 'v10'], ['tcwv'], ['t2m']]
+    var_name = ['ff10', 'tcwv', 't2m']
+
+    for i, name in enumerate(dic_names):
+        # New dic for each weather event
+        d = {}
+        # Meteogram names associated with this weather event
+        d['names'] = [f for f in files if f.startswith(f_startswith[i])]
+        # nc files associated with this weather event
+        d['nc'] = [Dataset(PATH_DATA + f,'r') for f in d['names']]
+        if verbose:
+            # Show what is inside these meteograms
+            print(" ----------------------- %s ----------------------- " %name)
+            print_nc_dict(d['nc'][0])
+
+        # For each nc, create a list of np arrays containing the variable
+        # of interest corresponding to the weather event
+        var = [
+            [ np.array(nc.variables[v]).squeeze() for v in vars[i] ]
+            for nc in d['nc']
+        ]
+        # Compute wind speed from u10 and v10
+        if name == 'Lothar':
+            var = [ [np.sqrt(v_nc[0]**2 + v_nc[1]**2)] for v_nc in var]
+        # Now var is simply a list of np arrays(N, T)
+        var = [np.swapaxes(v_nc[0], 0,1) for v_nc in var]
+        d['var'] = var
+        # short name for each variable of interest
+        d['var_name'] = var_name[i]
+        # time axis
+        d['time'] = [nc.variables["time"] for nc in d['nc']]
+        # add this weather event to our root dictionary
+        data[name] = d
+
+    return data
 
 # ---------------------------------------------------------
 # Functions
@@ -85,7 +128,7 @@ def main():
             # To get the right variable names and units
             nc = Dataset(PATH_DATA + filename,'r')
 
-            list_var, list_names, time = preprocess_data(
+            list_var, list_names, time = preprocess_MLVis_data(
                 filename = filename,
                 path_data = PATH_DATA,
                 var_names=var_names,
@@ -165,9 +208,9 @@ def main():
                 ax0.set_title(ax0_title)
 
 
-            if weights:
-                fig_suptitle += ", with weights"
-                name_fig += '_weights'
+            # if weights:
+            #     fig_suptitle += ", with weights"
+            #     name_fig += '_weights'
             fig0.suptitle(fig_suptitle)
 
 
@@ -180,4 +223,5 @@ def main():
             g.save(name_graph)
 
 if __name__ == "__main__":
-    main()
+    preprocess_MLVis_data()
+    #main()

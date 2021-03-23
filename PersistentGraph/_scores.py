@@ -11,6 +11,7 @@ SCORES_TO_MINIMIZE = [
         'variance',
         'min_variance',
         'max_variance',
+        'diameter',
         'max_diameter',
         'max_MedDevMean',
         'max_MedDevMed',
