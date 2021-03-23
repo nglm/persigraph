@@ -14,7 +14,7 @@ from ...utils.nc import print_nc_dict
 # Parameters
 # ---------------------------------------------------------
 
-SCORE_TYPE = ['MedDevMean']
+SCORE_TYPE = ['MedDevMean', 'max_inertia', 'variance']
 
 ZERO_TYPE = 'bounds'
 
@@ -37,7 +37,7 @@ PATH_FIG_PARENT = (
 )
 
 
-def preprocess_MLVis_data(verbose = False):
+def preprocess_MLVis_data(verbose = True):
     # Find files
     files = [
         fname for fname in listdir(PATH_DATA)
@@ -50,6 +50,7 @@ def preprocess_MLVis_data(verbose = False):
     dic_names = ['Lothar', 'Sandy', 'heatwave']
     f_startswith = ['ec.ens.1999', 'ec.ens.2012', 'ec.ens.2019']
     vars = [['u10', 'v10'], ['tcwv'], ['t2m']]
+    #vars = [['u10'], ['tcwv'], ['t2m']]
     var_name = ['ff10', 'tcwv', 't2m']
     long_name = []
 
@@ -81,6 +82,13 @@ def preprocess_MLVis_data(verbose = False):
 
         # Compute wind speed from u10 and v10
         if name == 'Lothar':
+            # keep non missing values
+            u10 = var[0][0]
+            print([
+                (t, np.all(u10[t] == -32767))
+                for t in range(len(u10)) if np.any(u10[t] == -32767)]
+            )
+            print(var[0][0])
             var = [ [np.sqrt(v_nc[0]**2 + v_nc[1]**2)] for v_nc in var]
             d['long_name'] = 'wind speed'
 
@@ -89,15 +97,31 @@ def preprocess_MLVis_data(verbose = False):
         d['var'] = var
 
         # time axis
-        d['time'] = [nc.variables["time"] for nc in d['nc']]
+        d['time'] = [
+            nc.variables["time"] - nc.variables["time"][0]  for nc in d['nc']
+        ]
         # add this weather event to our root dictionary
         data[name] = d
 
     return data
 
-# ---------------------------------------------------------
-# Functions
-# ---------------------------------------------------------
+
+def plot_MLVisData():
+    data = preprocess_MLVis_data()
+    for name, d in data.items():
+        for i in range(len(d['nc'])):
+            print(d['var'][i].shape)
+            plt.figure()
+            ax = plt.gca()
+            for m in d['var'][i]:
+                ax.plot(d['time'][i], m)
+            title = name + "\n" + d['names'][i]
+            ax.set_title(title)
+            ax.set_xlabel('Time (h)')
+            ax.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+            plt.savefig(
+                PATH_FIG_PARENT + name +'_'+ d['names'][i][:-3]+'.png'
+            )
 
 def main():
 
@@ -116,6 +140,8 @@ def main():
                     + score + '/'
                 )
                 for name, d in data.items():
+                    if name == 'Lothar':
+                        continue
                     for i in range(len(d['nc'])):
 
                         filename = d['names'][i]
