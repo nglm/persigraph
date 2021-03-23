@@ -320,10 +320,8 @@ def better_score(pg, score1, score2, or_equal=False):
     # None means that the score has not been reached yet
     # So None is better if score is improving
     if score1 is None:
-        #return pg._score_is_improving
         return score1
     elif score2 is None:
-        #return not pg._score_is_improving
         return score2
     elif score1 == score2:
         return or_equal
