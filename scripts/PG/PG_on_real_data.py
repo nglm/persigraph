@@ -21,7 +21,8 @@ SCORE_TYPE = 'max_diameter'
 
 ZERO_TYPE = 'bounds'
 
-var_names = ['t2m']
+var_names = ['tcwv']
+#var_names = ['tcwv']
 
 # Use
 # - 'overview' if you want the overview plot (entire graph + k_plot +

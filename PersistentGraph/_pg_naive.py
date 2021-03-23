@@ -118,10 +118,8 @@ def _fit(
 
                 # Stop for loop
                 break
-        # End algo if the 2 farthest apart members are equal
         if rep == []:
             raise ValueError('No new clusters')
-
 
     model_kw['idx'] = k + idx + 1
     model_kw['rep'] = members_r
