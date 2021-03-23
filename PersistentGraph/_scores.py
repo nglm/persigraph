@@ -94,7 +94,8 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
     elif pg._score_type in ['variance', 'distortion']:
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score += len(members-1)/pg.N * np.var(X[members])
+            #score += (len(members)-1)/pg.N * np.var(X[members])
+            score += np.var(X[members])
 
     # ------------------------------------------------------------------
     elif pg._score_type == 'max_variance':
@@ -107,6 +108,14 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
         score = np.inf
         for i_cluster, members in enumerate(clusters):
             score = min(np.var(X[members]), score)
+    # ------------------------------------------------------------------
+    elif pg._score_type == 'diameter':
+        # WARNING: diameter should be used with weights
+        # WARNING: Should not be used..... Does not penalize enough high
+        # values of n_clusters
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score += np.amax(pairwise_distances(X[members])) / pg._weights[t]
     # ------------------------------------------------------------------
     elif pg._score_type == 'max_diameter':
         # WARNING: Max diameter should be used with weights
@@ -297,33 +306,12 @@ def _compute_cluster_params(cluster):
     return cluster_params
 
 
-# def _is_earlier_score(pg, score1, score2, or_equal=True):
-#     return (
-#         (better_score(pg, score1, score2, or_equal) != pg._score_is_improving)
-#         or (score1 == score2 and or_equal)
-#     )
-
-# def _is_relevant_score(
-#     pg,
-#     previous_score,
-#     score,
-#     or_equal = True,
-# ):
-#     curr_is_better = better_score(pg, score, previous_score, or_equal=False)
-#     res = (
-#         (curr_is_better == pg._score_is_improving)
-#         or (or_equal and previous_score == score)
-#     )
-#     return res
-
 def better_score(pg, score1, score2, or_equal=False):
     # None means that the score has not been reached yet
     # So None is better if score is improving
     if score1 is None:
-        #return pg._score_is_improving
         return score1
     elif score2 is None:
-        #return not pg._score_is_improving
         return score2
     elif score1 == score2:
         return or_equal
