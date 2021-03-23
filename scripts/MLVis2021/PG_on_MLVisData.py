@@ -14,14 +14,9 @@ from ...utils.nc import print_nc_dict
 # Parameters
 # ---------------------------------------------------------
 
-PG_TYPE = 'Naive'
-PG_TYPE = 'KMeans'
-
 SCORE_TYPE = ['MedDevMean']
 
 ZERO_TYPE = 'bounds'
-
-var_names = ['t2m']
 
 # Use
 # - 'overview' if you want the overview plot (entire graph + k_plot +
@@ -38,20 +33,14 @@ PATH_DATA = "/home/natacha/Documents/Work/Data/MLVis2021/"
 # Choose the path where the figs will be saved
 # type: str
 PATH_FIG_PARENT = (
-    "/home/natacha/Documents/tmp/figs/PG/"
+    "/home/natacha/Documents/tmp/figs/PG/MLVis/"
 )
-
-# Choose which files should be used
-LIST_FILENAMES = listdir(PATH_DATA)
-LIST_FILENAMES = [
-    fname for fname in LIST_FILENAMES
-    if fname.startswith("ec.ens.") and fname.endswith(".nc")
-]
 
 
 def preprocess_MLVis_data(verbose = False):
+    # Find files
     files = [
-        fname for fname in LIST_FILENAMES
+        fname for fname in listdir(PATH_DATA)
         if fname.startswith("ec.ens.") and fname.endswith(".nc")
     ]
 
@@ -62,6 +51,7 @@ def preprocess_MLVis_data(verbose = False):
     f_startswith = ['ec.ens.1999', 'ec.ens.2012', 'ec.ens.2019']
     vars = [['u10', 'v10'], ['tcwv'], ['t2m']]
     var_name = ['ff10', 'tcwv', 't2m']
+    long_name = []
 
     for i, name in enumerate(dic_names):
         # New dic for each weather event
@@ -75,20 +65,29 @@ def preprocess_MLVis_data(verbose = False):
             print(" ----------------------- %s ----------------------- " %name)
             print_nc_dict(d['nc'][0])
 
+        # short name for each variable of interest
+        d['var_name'] = var_name[i]
+        # long name (as defined by the nc file)
+        d['long_name'] = d['nc'][0].variables[vars[i][0]].long_name
+        # units (as defined by the nc file)
+        d['units'] = d['nc'][0].variables[vars[i][0]].units
+
         # For each nc, create a list of np arrays containing the variable
         # of interest corresponding to the weather event
         var = [
             [ np.array(nc.variables[v]).squeeze() for v in vars[i] ]
             for nc in d['nc']
         ]
+
         # Compute wind speed from u10 and v10
         if name == 'Lothar':
             var = [ [np.sqrt(v_nc[0]**2 + v_nc[1]**2)] for v_nc in var]
+            d['long_name'] = 'wind speed'
+
         # Now var is simply a list of np arrays(N, T)
         var = [np.swapaxes(v_nc[0], 0,1) for v_nc in var]
         d['var'] = var
-        # short name for each variable of interest
-        d['var_name'] = var_name[i]
+
         # time axis
         d['time'] = [nc.variables["time"] for nc in d['nc']]
         # add this weather event to our root dictionary
@@ -101,127 +100,116 @@ def preprocess_MLVis_data(verbose = False):
 # ---------------------------------------------------------
 
 def main():
-    if PG_TYPE == 'Naive':
-        weights_range = [True, False]
-    else:
-        weights_range = [False]
+
+    # ---------------------------
+    # Load and preprocess data
+    # ---------------------------
+
+    data = preprocess_MLVis_data()
+    weights_range = [False]
     for weights in weights_range:
-        for filename in LIST_FILENAMES:
-
-            # --------------------------------------------
-            # ----- Prepare folders and paths ------------
-            # --------------------------------------------
-
-            path_fig = PATH_FIG_PARENT + "plots/"
-            name_fig = path_fig + filename[:-3]
-            makedirs(path_fig, exist_ok = True)
-
-            path_graph = PATH_FIG_PARENT + "graphs/"
-            makedirs(path_graph, exist_ok = True)
-            name_graph = path_graph + filename[:-3]
-
-            # ---------------------------
-            # Load and preprocess data
-            # ---------------------------
-
-
-            # To get the right variable names and units
-            nc = Dataset(PATH_DATA + filename,'r')
-
-            list_var, list_names, time = preprocess_MLVis_data(
-                filename = filename,
-                path_data = PATH_DATA,
-                var_names=var_names,
-                ind_time=None,
-                ind_members=None,
-                ind_long=[0],
-                ind_lat=[0],
-                to_standardize = False,
+        for score in SCORE_TYPE:
+            for pg_type in ['Naive', 'KMeans']:
+                path_root = (
+                    PATH_FIG_PARENT
+                    + pg_type + '/'
+                    + score + '/'
                 )
+                for name, d in data.items():
+                    for i in range(len(d['nc'])):
 
-            members = list_var[0]
+                        filename = d['names'][i]
 
-            # ---------------------------
-            # Construct graph
-            # ---------------------------
+                        # --------------------------------------------
+                        # ----- Prepare folders and paths ------------
+                        # --------------------------------------------
 
-            g = PersistentGraph(
-                    time_axis = time,
-                    members = members,
-                    score_type = SCORE_TYPE,
-                    zero_type = ZERO_TYPE,
-                    model_type = PG_TYPE,
-                    k_max = 8,
-            )
-            g.construct_graph(
-                verbose=True,
-            )
+                        path_fig = path_root + "plots/"
+                        name_fig = path_fig + filename[:-3]
+                        makedirs(path_fig, exist_ok = True)
 
-            # ---------------------------------
-            # Plot entire graph (with k_plot)
-            # ---------------------------------
+                        path_graph = path_root + "graphs/"
+                        makedirs(path_graph, exist_ok = True)
+                        name_graph = path_graph + filename[:-3]
 
-            ax0 = None
-            fig0 = None
-            if show_k_plot == 'inside' or show_k_plot == 'outside':
-                if show_k_plot == 'inside':
-                    fig0 = plt.figure(figsize = (25,15), tight_layout=True)
-                    gs = fig0.add_gridspec(nrows=2, ncols=3)
-                    ax0 = fig0.add_subplot(gs[:, 0:2])
-                    ax1 = fig0.add_subplot(gs[0, 2], sharex=ax0)
-                else:
-                    ax1 = None
-                fig1, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
-                ax1_title = 'Number of clusters: relevance'
-                ax1.set_title(ax1_title)
-                ax1.set_xlabel("Time")
-                ax1.set_ylabel("Relevance")
+                        # ---------------------------
+                        # Construct graph
+                        # ---------------------------
 
-                if show_k_plot == 'outside':
-                    fig1.savefig(name_fig + "_k_plots")
+                        g = PersistentGraph(
+                                time_axis = d['time'][i],
+                                members = d['var'][i],
+                                score_type = score,
+                                zero_type = 'bounds',
+                                model_type = pg_type,
+                                k_max = None,
+                        )
+                        g.construct_graph(
+                            verbose=True,
+                        )
 
-            ax_kw = {
-                'xlabel' : "Time (h)",
-                'ylabel' :  (
-                    nc.variables[var_names[0]].long_name
-                    + ' (' + nc.variables[var_names[0]].units + ')'
-                )
-                }
+                        # ---------------------------------
+                        # Plot entire graph (with k_plot)
+                        # ---------------------------------
 
-            fig_suptitle = (filename + "\n" +str(var_names[0]))
+                        ax0 = None
+                        fig0 = None
+                        if show_k_plot == 'inside' or show_k_plot == 'outside':
+                            if show_k_plot == 'inside':
+                                fig0 = plt.figure(figsize = (25,15), tight_layout=True)
+                                gs = fig0.add_gridspec(nrows=2, ncols=3)
+                                ax0 = fig0.add_subplot(gs[:, 0:2])
+                                ax1 = fig0.add_subplot(gs[0, 2], sharex=ax0)
+                            else:
+                                ax1 = None
+                            fig1, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
+                            ax1_title = 'Number of clusters: relevance'
+                            ax1.set_title(ax1_title)
+                            ax1.set_xlabel("Time")
+                            ax1.set_ylabel("Relevance")
 
-            # If overview:
-            if show_k_plot == 'overview':
-                fig0, ax0 = plot_overview(
-                    g, k_max=8, show_vertices=True, show_edges=True,
-                    show_std = True, ax_kw=ax_kw, ax = ax0, fig=fig0,
-                )
-                name_fig += '_overview'
+                            if show_k_plot == 'outside':
+                                fig1.savefig(name_fig + "_k_plots")
 
-            else:
-                fig0, ax0 = plot_as_graph(
-                    g, show_vertices=True, show_edges=True, show_std = True,
-                    ax_kw=ax_kw, ax = ax0, fig=fig0,
-                )
+                        ax_kw = {
+                            'xlabel' : "Time (h)",
+                            'ylabel' : d['long_name'] + ' ('+d['units']+')'
+                            }
 
-                ax0_title = 'Entire graph'
-                ax0.set_title(ax0_title)
+                        fig_suptitle = filename + "\n" + d['var_name']
+
+                        # If overview:
+                        if show_k_plot == 'overview':
+                            fig0, ax0 = plot_overview(
+                                g, k_max=8, show_vertices=True, show_edges=True,
+                                show_std = True, ax_kw=ax_kw, ax = ax0, fig=fig0,
+                            )
+                            name_fig += '_overview'
+
+                        else:
+                            fig0, ax0 = plot_as_graph(
+                                g, show_vertices=True, show_edges=True, show_std = True,
+                                ax_kw=ax_kw, ax = ax0, fig=fig0,
+                            )
+
+                            ax0_title = 'Entire graph'
+                            ax0.set_title(ax0_title)
 
 
-            # if weights:
-            #     fig_suptitle += ", with weights"
-            #     name_fig += '_weights'
-            fig0.suptitle(fig_suptitle)
+                        # if weights:
+                        #     fig_suptitle += ", with weights"
+                        #     name_fig += '_weights'
+                        fig0.suptitle(fig_suptitle)
 
 
-            # ---------------------------
-            # Save plot and graph
-            # ---------------------------.
-            name_fig += '.png'
-            fig0.savefig(name_fig)
-            plt.close()
-            g.save(name_graph)
+                        # ---------------------------
+                        # Save plot and graph
+                        # ---------------------------.
+                        name_fig += '.png'
+                        fig0.savefig(name_fig)
+                        plt.close()
+                        g.save(name_graph)
 
 if __name__ == "__main__":
-    preprocess_MLVis_data()
-    #main()
+    #preprocess_MLVis_data()
+    main()
