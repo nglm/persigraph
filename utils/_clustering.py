@@ -1,6 +1,44 @@
 
 from bisect import insort
+from math import isnan
+import numpy as np
+
+
 from .sorted_lists import insert_no_duplicate
+
+
+
+def sort_dist_matrix(
+    pg,
+    distance_matrix
+):
+    """
+    Return a vector of indices to sort distance_matrix
+    """
+    # Add NaN to avoid redundancy
+    dist_matrix = np.copy(distance_matrix)
+    for i in range(pg.N):
+        dist_matrix[i,i:] = np.nan
+        for j in range(i):
+            #If the distance is null
+            if dist_matrix[i,j] == 0:
+                dist_matrix[i,j] = np.nan
+    # Sort the matrix (NaN should be at the end)
+    # Source:
+    # https://stackoverflow.com/questions/30577375/have-numpy-argsort-return-an-array-of-2d-indices
+    idx = np.dstack(np.unravel_index(
+        np.argsort(dist_matrix.ravel()), (pg.N, pg.N)
+    )).squeeze()
+
+    # Keep only the first non-NaN elements
+    for k, (i,j) in enumerate(idx):
+        if isnan(dist_matrix[i,j]):
+            idx_first_nan = k
+            break
+    idx = idx[:idx_first_nan]
+
+    return idx[::-1]
+
 
 def get_centroids(
     distance_matrix,
@@ -39,8 +77,10 @@ def get_centroids(
                 insort(rep_new, i)
                 insort(rep_new, j)
 
-            # stop for loop
-            break
+                # stop for loop
+                break
 
     idx += k + 1
     return rep_new, idx
+
+

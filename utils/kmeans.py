@@ -1,5 +1,6 @@
 from sklearn.cluster import KMeans
 from sklearn.cluster._kmeans import _validate_center_shape, _kmeans_single_lloyd
+from sklearn.utils import check_array
 import numpy as np
 import sklearn
 

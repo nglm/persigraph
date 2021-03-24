@@ -7,7 +7,7 @@ import pickle
 
 from . import Vertex
 from . import Edge
-from . import _pg_kmeans, _pg_naive
+
 from ._scores import (
     _set_score_type, worst_score, best_score, compute_score,
     _compute_ratio_scores, _compute_score_bounds
@@ -15,6 +15,7 @@ from ._scores import (
 from ..utils.sorted_lists import (
     insert_no_duplicate, concat_no_duplicate, reverse_bisect_left
 )
+from ._clustering_model import get_model_parameters, clustering_model
 
 class PersistentGraph():
 
@@ -31,6 +32,7 @@ class PersistentGraph():
         model_type: str = 'KMeans',
         k_max : int = None,
         name: str = None,
+        model_kw: dict = {},
     ):
         """
         Initialize an empty graph
@@ -141,6 +143,9 @@ class PersistentGraph():
             self._k_max = min(max(int(k_max), 1), self.N)
         # Determines how to cluster the members
         self._model_type = model_type
+        # Key-words related to the clustering model
+        self._model_kw = {'precompute_centroids' : True}
+        self._model_kw.update(model_kw)
         # Ordered number of clusters that will be tried
         self._n_clusters_range = range(self.k_max + 1)
         # Score type, determines how to measure how good a model is
@@ -229,27 +234,6 @@ class PersistentGraph():
         self._quiet = False
 
 
-
-    def _get_model_parameters(
-        self,
-        X,
-        t = None,
-    ):
-        if self._model_type == "KMeans":
-            model_kw, fit_predict_kw = _pg_kmeans.get_model_parameters(
-                self,
-                X = X,
-            )
-        elif self._model_type == "Naive":
-            model_kw, fit_predict_kw = _pg_naive.get_model_parameters(
-                self,
-                X = X,
-                t = t,
-            )
-
-        return model_kw, fit_predict_kw
-
-
     def _generate_zero_component(
         self,
         X,
@@ -290,50 +274,6 @@ class PersistentGraph():
 
         return clusters, clusters_info, step_info, model_kw
 
-    def _clustering_model(
-        self,
-        X,
-        model_kw : Dict = {},
-        fit_predict_kw : Dict = {},
-        ):
-        if model_kw['n_clusters'] == 0:
-            (
-                clusters,
-                clusters_info,
-                step_info,
-                model_kw,
-            ) = self._generate_zero_component(
-                X = X,
-                model_kw = model_kw,
-                fit_predict_kw = fit_predict_kw,
-            )
-        else:
-            if self._model_type == 'KMeans':
-                (
-                    clusters,
-                    clusters_info,
-                    step_info,
-                    model_kw,
-                ) = _pg_kmeans.clustering_model(
-                    self,
-                    X = X,
-                    model_kw = model_kw,
-                    fit_predict_kw = fit_predict_kw,
-                )
-            elif self._model_type == 'Naive':
-                (
-                    clusters,
-                    clusters_info,
-                    step_info,
-                    model_kw,
-                ) = _pg_naive.clustering_model(
-                    self,
-                    X = X,
-                    model_kw = model_kw,
-                    fit_predict_kw = fit_predict_kw,
-                )
-
-        return clusters, clusters_info, step_info, model_kw
 
 
     def _add_vertex(
@@ -729,10 +669,11 @@ class PersistentGraph():
             X = self._members[:, t].reshape(-1,1)
             # Get clustering model parameters required by the
             # clustering model
-            model_kw, fit_predict_kw = self._get_model_parameters(
-                    X = X,
-                    t = t,
-                )
+            model_kw, fit_predict_kw = get_model_parameters(
+                self,
+                X = X,
+                t = t,
+            )
 
 
             for n_clusters in self._n_clusters_range:
@@ -747,7 +688,8 @@ class PersistentGraph():
                         clusters_info,
                         step_info,
                         model_kw,
-                    ) = self._clustering_model(
+                    ) = clustering_model(
+                        self,
                         X,
                         model_kw = model_kw,
                         fit_predict_kw = fit_predict_kw,

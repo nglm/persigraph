@@ -2,6 +2,7 @@ import numpy as np
 from typing import List, Sequence, Union, Any, Dict
 
 from ..utils.kmeans import kmeans_custom, row_norms
+from ..utils._clustering import get_centroids
 from ._scores import _compute_cluster_params
 
 
@@ -23,10 +24,12 @@ def get_model_parameters(
         }
     # Default kw values
     model_kw = {
-        'max_iter' : 100,
-        'n_init' : 10,
-        'tol' : 1e-3,
+        'max_iter' : pg._model_kw.pop('max_iter', 100),
+        'n_init' : pg._model_kw.pop('n_init', 10),
+        'tol' : pg._model_kw.pop('tol', 1e-3),
     }
+
+    model_kw.update(pg._model_kw)
     return model_kw, fit_predict_kw
 
 
@@ -39,6 +42,26 @@ def clustering_model(
 
     # ====================== Fit & predict part =======================
     n_clusters = model_kw.pop('n_clusters')
+
+    # If centroids are to be precomputed
+    if pg._model_kw['precompute_centroids']:
+        # Get new reprensatives and the index in the distance matrix
+        rep_new, idx = get_centroids(
+            distance_matrix = pg._model_kw['distance_matrix'],
+            sorted_idx = pg._model_kw['sorted_idx'],
+            idx = pg._model_kw['idx'],
+            members_r = pg._model_kw['rep'],
+        )
+        if rep_new == []:
+            raise ValueError('No new centroid')
+        # Get the inital centroids
+        print(rep_new)
+        print(rep_new)
+        print(np.array([X[r] for r in rep_new]).reshape(-1, 1))
+        model_kw['init'] = np.array([X[r] for r in rep_new]).reshape(-1, 1)
+        pg._model_kw['idx'] = idx
+        members_r = np.zeros(pg.N, dtype=int)
+
     model = kmeans_custom(
         n_clusters = n_clusters,
         copy_x = False,
@@ -66,10 +89,15 @@ def clustering_model(
             'brotherhood_size' : [n_clusters]
         })
 
+        if pg._model_kw['precompute_centroids']:
+            members_r[members] = int(labels[rep_new[label_i]])
+
     # ========================== step_info =============================
     # Add method specific info here if necessary
     # (Score is computed in persistentgraph)
     step_info = {}
+    pg._model_kw['rep'] = members_r
+
 
     #TODO: add cluster center to model_kw for future clustering
 
