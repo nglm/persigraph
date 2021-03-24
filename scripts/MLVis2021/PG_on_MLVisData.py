@@ -188,10 +188,11 @@ def main():
                                 score_type = score,
                                 zero_type = 'bounds',
                                 model_type = pg_type,
-                                k_max = None,
+                                k_max = 10,
                         )
                         g.construct_graph(
-                            verbose=True,
+                            verbose = False,
+                            quiet = False,
                         )
 
                         # ---------------------------------
