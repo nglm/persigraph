@@ -38,20 +38,20 @@ def main():
         to_standardize = False,
         )
 
-    #members = list_var[0]
+    members = list_var[0]
 
     model_type = "KMeans"
-    model_type = "Naive"
+    #model_type = "Naive"
 
 
 
     g = PersistentGraph(
         members,
         time_axis = np.arange(members.shape[1]),
-        score_type = 'inertia',
+        score_type = 'MedDevMean',
         zero_type = 'bounds',
         model_type = model_type,
-        k_max=None,
+        k_max=8,
         )
     print(members.shape)
     g.construct_graph(

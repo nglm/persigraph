@@ -274,7 +274,7 @@ class PersistentGraph():
 
         # Generate a perfect uniform distribution
         steps = (maxs-mins) / (self.N-1)
-        values = np.array( [mins + i*steps for i in range(self.N)] )
+        values = np.array([mins + i*steps for i in range(self.N)]).reshape(-1,1)
 
         # ==================== clusters, cluster_info ==================
         # Compute the score of that distribution
@@ -286,7 +286,8 @@ class PersistentGraph():
         }]
 
         # ========================== step_info =========================
-        step_info = {}
+        step_info = {'values': values}
+
         return clusters, clusters_info, step_info, model_kw
 
 
@@ -758,15 +759,23 @@ class PersistentGraph():
                     continue
 
                 # -------- Score corresponding to 'n_clusters' ---------
-                score = compute_score(
-                    self,
-                    X = X,
-                    clusters = clusters,
-                    t = t,
-                )
-                step_info['score'] = score
+
                 if n_clusters == 0:
+                    score = compute_score(
+                        self,
+                        X = step_info.pop('values'),
+                        clusters = clusters,
+                        t = t,
+                    )
                     self._zero_scores[t] = score
+                else:
+                    score = compute_score(
+                        self,
+                        X = X,
+                        clusters = clusters,
+                        t = t,
+                    )
+                step_info['score'] = score
 
                 # ---------------- Finalize local step -----------------
                 # Find where should we insert this future local step

@@ -180,45 +180,56 @@ def __uniform_polygon(g, edges):
 
     Return a nested list (1, 1 polygon)
     '''
-    t_start = g.time_axis[edges[0].time_step]
-    t_end = g.time_axis[edges[0].time_step + 1]
 
-    # Get the std_sup of the upper/lower vertex at t/t+1
-    # upper v_start
-    i = np.argmax(
-        [e.v_start.info["params"][0] for e in edges]
-    )
-    up_v_start = edges[i].v_start
+    [to_uniforms, from_to_uniforms, from_uniforms] = edges
+    polys = []
 
-    # upper v_end
-    i = np.argmax(
-        [e.v_end.info["params"][0] for e in edges]
-    )
-    up_v_end = edges[i].v_end
+    if to_uniforms:
+        t_start = g.time_axis[to_uniforms[0].time_step]
+        t_end = g.time_axis[to_uniforms[0].time_step + 1]
+        polys += [[
+            # std_inf at t
+            (t_start, e.v_start.info["params"][0] - e.v_start.info["params"][2]),
+            # std_sup at t
+            (t_start, e.v_start.info["params"][0] + e.v_start.info["params"][3]),
+            # sup at t+1
+            (t_end,   e.v_end.info["params"][1]),
+            # inf at t+1
+            (t_end,   e.v_end.info["params"][0])]
+            for e in to_uniforms
+        ]
 
-    # lower v_start
-    i = np.argmin(
-        [e.v_start.info["params"][0] for e in edges]
-    )
-    low_v_start = edges[i].v_start
 
-    # lower v_end
-    i = np.argmin(
-        [e.v_end.info["params"][0] for e in edges]
-    )
-    low_v_end = edges[i].v_end
+    if from_to_uniforms:
+        t_start = g.time_axis[from_to_uniforms[0].time_step]
+        t_end = g.time_axis[from_to_uniforms[0].time_step + 1]
+        polys += [[
+            # inf at t
+            (t_start, e.v_start.info["params"][0]),
+            # sup at t
+            (t_start, e.v_start.info["params"][1]),
+            # sup at t+1
+            (t_end,   e.v_end.info["params"][1]),
+            # inf at t+1
+            (t_end,   e.v_end.info["params"][0])]
+            for e in from_to_uniforms
+        ]
 
-    # std_inf(t) - >std_inf(t) -> std_sup(t+1) -> std_inf(t+1)
-    polys = [[
-        # std_inf at t
-        (t_start, low_v_start.info["params"][0]-low_v_start.info["params"][2]),
-        # std_sup at t
-        (t_start, up_v_start.info["params"][0] + up_v_start.info["params"][3]),
-        # std_sup at t+1
-        (t_end,  up_v_end.info["params"][0] + up_v_end.info["params"][3]),
-        # std_inf at t+1
-        (t_end,  low_v_end.info["params"][0] - low_v_end.info["params"][2]),
-    ]]
+    if from_uniforms:
+        t_start = g.time_axis[from_uniforms[0].time_step]
+        t_end = g.time_axis[from_uniforms[0].time_step + 1]
+        polys += [[
+            # inf at t
+            (t_start, e.v_start.info["params"][0]),
+            # sup at t
+            (t_start, e.v_start.info["params"][1]),
+            # std_sup at t+1
+            (t_end,   e.v_end.info["params"][0] + e.v_end.info["params"][3]),
+            # std_inf at t+1
+            (t_end,   e.v_end.info["params"][0] - e.v_end.info["params"][2]),]
+            for e in from_uniforms
+        ]
+
     return polys
 
 def __edges_lines(g, edges):
@@ -284,11 +295,22 @@ def sort_components(
                     and
                         c.v_end.info['type'] in ['gaussian','KMeans', 'Naive']
                     )]
-                uniforms = [
+                from_to_uniforms = [
                     c for c in components
                     if (c.v_start.info['type'] == 'uniform')
-                    or (c.v_end.info['type'] == 'uniform')
+                    and (c.v_end.info['type'] == 'uniform')
                     ]
+                to_uniforms = [
+                    c for c in components
+                    if (c.v_start.info['type'] != 'uniform')
+                    and (c.v_end.info['type'] == 'uniform')
+                    ]
+                from_uniforms = [
+                    c for c in components
+                    if (c.v_start.info['type'] == 'uniform')
+                    and (c.v_end.info['type'] != 'uniform')
+                    ]
+                uniforms = [to_uniforms, from_to_uniforms, from_uniforms]
     else:
         gaussians = []
         uniforms = []
@@ -355,23 +377,32 @@ def plot_uniform_edges(
     max_opacity=False,
     ax=None,
 ):
-    if edges:
-        alphas = [f(e.life_span) for e in edges]
+    [to_uniforms, from_to_uniforms, from_uniforms] = edges
 
-        # The color of a uniform edge is grey
-        colors = np.asarray(
-            [color_list[0] for e in edges]
-        ).reshape((-1, 4))
+    # This must respect the order in polys (see __uniform_polygon)
+    alphas = []
+    alphas += [f(e.life_span) for e in to_uniforms]
+    alphas += [f(e.life_span) for e in from_to_uniforms]
+    alphas += [f(e.life_span) for e in from_uniforms]
 
-        if max_opacity:
-            colors[:,3] = 1
-        else:
-            colors[:,3] = alphas
+    # The color of a uniform edge is grey
+    colors = np.asarray(
+        [color_list[0] for e in to_uniforms]
+        + [color_list[0] for e in from_to_uniforms]
+        + [color_list[0] for e in from_uniforms]
+    ).reshape((-1, 4))
 
-        polys = __uniform_polygon(g, edges)
-        colors[:,3] /= 6
-        polys = PolyCollection(polys, facecolors=colors)
-        ax.add_collection(polys)
+    if max_opacity:
+        colors[:,3] = 1
+    else:
+        colors[:,3] = alphas
+
+    polys = __uniform_polygon(g, edges)
+
+
+    colors[:,3] /= 1
+    polys = PolyCollection(polys, facecolors=colors)
+    ax.add_collection(polys)
 
     return ax
 
