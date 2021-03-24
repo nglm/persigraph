@@ -290,7 +290,6 @@ class PersistentGraph():
 
         return clusters, clusters_info, step_info, model_kw
 
-
     def _clustering_model(
         self,
         X,

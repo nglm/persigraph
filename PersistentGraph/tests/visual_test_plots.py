@@ -48,7 +48,7 @@ def main():
     g = PersistentGraph(
         members,
         time_axis = np.arange(members.shape[1]),
-        score_type = 'mean_inertia',
+        score_type = 'inertia',
         zero_type = 'bounds',
         model_type = model_type,
         k_max=8,

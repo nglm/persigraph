@@ -7,6 +7,7 @@ from scipy.spatial.distance import sqeuclidean, cdist
 
 from ._scores import _compute_cluster_params
 from ..utils.sorted_lists import insert_no_duplicate
+from ..utils._clustering import get_centroids
 
 def _sort_dist_matrix(
     pg,
@@ -70,61 +71,39 @@ def _fit(
     model_kw : Dict = {},
     fit_predict_kw : Dict = {},
 ):
-    t = fit_predict_kw['t']
-    idx = model_kw['idx']
-    members_r = model_kw['rep']
 
-    # =============== Fit & predict part =======================
     # First step: only one cluster
-    k = 0
-    if idx == 0:
+    if model_kw['idx'] == 0:
         members_r = [0 for _ in range(pg.N)]
-        rep = [0]
+        rep_new = [0]
+        idx = 1
 
     # General case
     else:
-        rep = []
-        # Take the 2 farthest members and the corresponding time step
-        for k, (i, j) in enumerate(fit_predict_kw['sorted_idx'][idx:]):
+        # Get new reprensatives and the index in the distance matrix
+        rep_new, idx = get_centroids(
+            distance_matrix = fit_predict_kw['distance_matrix'],
+            sorted_idx = fit_predict_kw['sorted_idx'],
+            idx = model_kw['idx'],
+            members_r = model_kw['rep'],
+        )
 
-            # Iterate algo only if i_s and j_s are in the same vertex
-            if members_r[i] == members_r[j]:
+        # extract distance to representatives
+        dist = []
+        for r in rep_new:
+            dist.append(fit_predict_kw['distance_matrix'][r])
 
-                # End algo if the 2 farthest apart members are equal
-                if fit_predict_kw['distance_matrix'][i, j] == 0:
-                    raise ValueError('Remaining members are now equal')
+        dist = np.asarray(dist)     # (nb_rep, N) array
+        # for each member, find the representative that is the closest
+        members_r = [rep_new[r] for r in np.nanargmin(dist, axis=0)]
 
+    if rep_new == []:
+        raise ValueError('No new clusters')
 
-                # We'll break this vertex into 2 vertices represented by i and j
-                rep_to_break = members_r[i]
-
-                # Extract representatives of alive vertices
-                for r in members_r:
-                    # We want to remove rep_to_break from rep
-                    if r != rep_to_break:
-                        insert_no_duplicate(rep, r)
-                # Now we want to add the new reps i,j replacing rep_to_break
-                insort(rep, i)
-                insort(rep, j)
-
-                # extract distance to representatives
-                dist = []
-                for r in rep:
-                    dist.append(fit_predict_kw['distance_matrix'][r])
-
-                dist = np.asarray(dist)     # (nb_rep, N) array
-                # for each member, find the representative that is the closest
-                members_r = [rep[r] for r in np.nanargmin(dist, axis=0)]
-
-                # Stop for loop
-                break
-        if rep == []:
-            raise ValueError('No new clusters')
-
-    model_kw['idx'] = k + idx + 1
     model_kw['rep'] = members_r
+    model_kw['idx'] = idx
 
-    return rep, members_r, model_kw
+    return rep_new, members_r, model_kw
 
 def clustering_model(
     pg,
@@ -140,7 +119,7 @@ def clustering_model(
         model_kw = model_kw,
         fit_predict_kw = fit_predict_kw
     )
-    idx = model_kw['idx']
+
     members_r = model_kw['rep']
     n_clusters = model_kw.pop('n_clusters')
     if len(rep) < n_clusters:
