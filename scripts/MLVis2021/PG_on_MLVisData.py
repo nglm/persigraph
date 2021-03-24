@@ -19,6 +19,7 @@ SCORE_TYPE = [
     'max_MedDevMean',
     'max_inertia',
     'weighted_inertia',
+    'inertia',
     'variance',
     'max_variance',
     'weighted_variance',

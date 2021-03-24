@@ -10,7 +10,7 @@ from . import Edge
 from . import _pg_kmeans, _pg_naive
 from ._scores import (
     _set_score_type, worst_score, best_score, compute_score,
-    _compute_ratio_scores, _compute_score_bounds, _compute_zero_scores
+    _compute_ratio_scores, _compute_score_bounds
 )
 from ..utils.sorted_lists import (
     insert_no_duplicate, concat_no_duplicate, reverse_bisect_left
@@ -141,11 +141,8 @@ class PersistentGraph():
             self._k_max = min(max(int(k_max), 1), self.N)
         # Determines how to cluster the members
         self._model_type = model_type
-        # True if the score is improving with respect to the algo step
-
         # Ordered number of clusters that will be tried
-        self._n_clusters_range = range(1, self.k_max + 1)
-
+        self._n_clusters_range = range(self.k_max + 1)
         # Score type, determines how to measure how good a model is
         _set_score_type(self, score_type)
         # Determines how to measure the score of the 0th component
@@ -221,11 +218,10 @@ class PersistentGraph():
         if self._maximize:
             self._best_scores = -np.inf*np.ones(self.T)
             self._worst_scores = np.inf*np.ones(self.T)
-            self._zero_scores = None
         else:
             self._best_scores = np.inf*np.ones(self.T)
             self._worst_scores = -np.inf*np.ones(self.T)
-            self._zero_scores = None
+        self._zero_scores = np.nan*np.ones(self.T)
 
         self._are_bounds_known = False
         self._norm_bounds = None
@@ -254,6 +250,45 @@ class PersistentGraph():
         return model_kw, fit_predict_kw
 
 
+    def _generate_zero_component(
+        self,
+        X,
+        model_kw : Dict = {},
+        fit_predict_kw : Dict = {},
+    ):
+        # ====================== Fit & predict part ====================
+        if self._zero_type == 'bounds':
+
+            # Get the parameters of the uniform distrib using min and max
+            mins = np.amin(X)
+            maxs = np.amax(X)
+
+        else:
+            # I'm not sure if this type should be used at all actually.....
+            # Get the parameters of the uniform distrib using mean and variance
+            var = np.var(X)
+            mean = np.mean(X)
+
+            mins = (2*mean - np.sqrt(12*var)) / 2
+            maxs = (2*mean + np.sqrt(12*var)) / 2
+
+        # Generate a perfect uniform distribution
+        steps = (maxs-mins) / (self.N-1)
+        values = np.array( [mins + i*steps for i in range(self.N)] )
+
+        # ==================== clusters, cluster_info ==================
+        # Compute the score of that distribution
+        clusters = [[i for i in range(self.N)]]
+        clusters_info = [{
+            'type' : 'uniform',
+            'params' : [values[0], values[-1]], # lower/upper bounds
+            'brotherhood_size' : [0]
+        }]
+
+        # ========================== step_info =========================
+        step_info = {}
+        return clusters, clusters_info, step_info, model_kw
+
 
     def _clustering_model(
         self,
@@ -261,30 +296,42 @@ class PersistentGraph():
         model_kw : Dict = {},
         fit_predict_kw : Dict = {},
         ):
-        if self._model_type == 'KMeans':
+        if model_kw['n_clusters'] == 0:
             (
                 clusters,
                 clusters_info,
                 step_info,
                 model_kw,
-            ) = _pg_kmeans.clustering_model(
-                self,
+            ) = self._generate_zero_component(
                 X = X,
                 model_kw = model_kw,
                 fit_predict_kw = fit_predict_kw,
             )
-        elif self._model_type == 'Naive':
-            (
-                clusters,
-                clusters_info,
-                step_info,
-                model_kw,
-            ) = _pg_naive.clustering_model(
-                self,
-                X = X,
-                model_kw = model_kw,
-                fit_predict_kw = fit_predict_kw,
-            )
+        else:
+            if self._model_type == 'KMeans':
+                (
+                    clusters,
+                    clusters_info,
+                    step_info,
+                    model_kw,
+                ) = _pg_kmeans.clustering_model(
+                    self,
+                    X = X,
+                    model_kw = model_kw,
+                    fit_predict_kw = fit_predict_kw,
+                )
+            elif self._model_type == 'Naive':
+                (
+                    clusters,
+                    clusters_info,
+                    step_info,
+                    model_kw,
+                ) = _pg_naive.clustering_model(
+                    self,
+                    X = X,
+                    model_kw = model_kw,
+                    fit_predict_kw = fit_predict_kw,
+                )
 
         return clusters, clusters_info, step_info, model_kw
 
@@ -718,6 +765,8 @@ class PersistentGraph():
                     t = t,
                 )
                 step_info['score'] = score
+                if n_clusters == 0:
+                    self._zero_scores[t] = score
 
                 # ---------------- Finalize local step -----------------
                 # Find where should we insert this future local step
@@ -1056,10 +1105,6 @@ class PersistentGraph():
         self._pre_prune_threshold = pre_prune_threshold
         self._post_prune = post_prune
         self._post_prune_threshold = post_prune_threshold
-
-
-        # ================== Compute 0 score ===========================
-        _compute_zero_scores(self)
 
         # ================== Cluster all the data ======================
         t_start = time.time()

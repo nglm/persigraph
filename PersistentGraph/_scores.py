@@ -180,38 +180,38 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
     return np.around(score, pg._precision)
 
 
-def _compute_zero_scores(pg):
-    pg._zero_scores = np.zeros(pg.T)
-    if pg._zero_type == 'bounds':
+# def _compute_zero_scores(pg):
+#     pg._zero_scores = np.zeros(pg.T)
+#     if pg._zero_type == 'bounds':
 
-        # Get the parameters of the uniform distrib using min and max
-        mins = np.amin(pg._members, axis = 0)
-        maxs = np.amax(pg._members, axis = 0)
+#         # Get the parameters of the uniform distrib using min and max
+#         mins = np.amin(pg._members, axis = 0)
+#         maxs = np.amax(pg._members, axis = 0)
 
-    else:
-        # I'm not sure if this type should be used at all actually.....
-        # Get the parameters of the uniform distrib using mean and variance
-        var = np.var(pg._members, axis = 0)
-        mean = np.mean(pg._members, axis = 0)
+#     else:
+#         # I'm not sure if this type should be used at all actually.....
+#         # Get the parameters of the uniform distrib using mean and variance
+#         var = np.var(pg._members, axis = 0)
+#         mean = np.mean(pg._members, axis = 0)
 
-        mins = (2*mean - np.sqrt(12*var)) / 2
-        maxs = (2*mean + np.sqrt(12*var)) / 2
+#         mins = (2*mean - np.sqrt(12*var)) / 2
+#         maxs = (2*mean + np.sqrt(12*var)) / 2
 
-    # Generate a perfectly uniform distribution
-    steps = (maxs-mins) / (pg.N-1)
-    values = np.array(
-        [[mins[t] + i*steps[t] for i in range(pg.N)] for t in range(pg.T)]
-    )
+#     # Generate a perfectly uniform distribution
+#     steps = (maxs-mins) / (pg.N-1)
+#     values = np.array(
+#         [[mins[t] + i*steps[t] for i in range(pg.N)] for t in range(pg.T)]
+#     )
 
-    # Compute the score of that distribution
-    members = [[i for i in range(pg.N)]]
-    for t in range(pg.T):
-        pg._zero_scores[t] = compute_score(
-            pg=pg,
-            X = values[t].reshape(-1,1),
-            clusters= members,
-            t = t,
-        )
+#     # Compute the score of that distribution
+#     members = [[i for i in range(pg.N)]]
+#     for t in range(pg.T):
+#         pg._zero_scores[t] = compute_score(
+#             pg=pg,
+#             X = values[t].reshape(-1,1),
+#             clusters= members,
+#             t = t,
+#         )
 
 
 def _compute_score_bounds(
