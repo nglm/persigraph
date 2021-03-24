@@ -18,8 +18,16 @@ PG_TYPE = 'KMeans'
 #PG_TYPE = 'Naive'
 
 SCORE_TYPES = [
-    'MedDevMean'
-    ]
+    'MedDevMean',
+    'max_MedDevMean',
+    'max_inertia',
+    'weighted_inertia',
+    'inertia',
+    'variance',
+    'max_variance',
+    'weighted_variance',
+]
+
 
 
 
