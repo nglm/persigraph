@@ -21,6 +21,7 @@ SCORES_TO_MINIMIZE = [
         'max_diameter',  # WARNING: Max diameter should be used with weights
         # ----------
         'MedDevMean',
+        'mean_MedDevMean',
         'max_MedDevMean',
         # ----------
         'max_MedDevMed', # Shouldn't be used: see details below
@@ -162,6 +163,12 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
         score = 0
         for i_cluster, members in enumerate(clusters):
             score += np.median(norm(X[members] - np.mean(X[members])))
+    # ------------------------------------------------------------------
+    elif pg._score_type == 'mean_MedDevMean':
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score += np.median(norm(X[members] - np.mean(X[members])))
+        score /= len(clusters)
     # ------------------------------------------------------------------
     elif pg._score_type == 'max_MedDevMean':
         score = 0
