@@ -18,17 +18,26 @@ PG_TYPE = 'KMeans'
 #PG_TYPE = 'Naive'
 
 SCORE_TYPES = [
+    'inertia',
+    'mean_inertia',
+    'weighted_inertia',
+    'max_inertia',
+    #'min_inertia',       # Shouldn't be used: taking min makes no sense
+    # ----------
+    'variance',
+    'mean_variance',
+    #'weighted_variance', # Shouldn't be used: favors very high k values
+    #'min_variance',      # Shouldn't be used: taking min makes no sense
+    'max_variance',
+    # ----------
+    #'diameter',      # WARNING: diameter should be used with weights
+    #'max_diameter',  # WARNING: Max diameter should be used with weights
+    # ----------
     'MedDevMean',
     'max_MedDevMean',
-    'max_inertia',
-    'weighted_inertia',
-    'inertia',
-    'variance',
-    'max_variance',
-    'weighted_variance',
+    # ----------
+    #'max_MedDevMed', # Shouldn't be used: see details below
 ]
-
-
 
 
 ZERO_TYPE = 'bounds'
