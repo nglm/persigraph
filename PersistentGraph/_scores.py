@@ -6,22 +6,24 @@ from typing import List, Sequence, Union, Any, Dict
 
 SCORES_TO_MINIMIZE = [
         'inertia',
+        'mean_inertia',
         'weighted_inertia',
         'max_inertia',
-        'min_inertia',
+        'min_inertia',       # Shouldn't be used: taking min makes no sense
         # ----------
         'variance',
-        'weighted_variance',
-        'min_variance',
+        'mean_variance',
+        'weighted_variance', # Shouldn't be used: favors very high k values
+        'min_variance',      # Shouldn't be used: taking min makes no sense
         'max_variance',
         # ----------
-        'diameter',
-        'max_diameter',
+        'diameter',      # WARNING: diameter should be used with weights
+        'max_diameter',  # WARNING: Max diameter should be used with weights
         # ----------
         'MedDevMean',
         'max_MedDevMean',
         # ----------
-        'max_MedDevMed',
+        'max_MedDevMed', # Shouldn't be used: see details below
 ]
 
 SCORES_TO_MAXIMIZE = []
@@ -60,6 +62,17 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
                         )
                     )
     # ------------------------------------------------------------------
+    elif pg._score_type == 'mean_inertia':
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score += np.sum(cdist(
+                    X[members],
+                    np.mean(X[members], keepdims=True) ,
+                    metric='sqeuclidean'
+                    )
+                )
+        score /= len(clusters)
+    # ------------------------------------------------------------------
     elif pg._score_type == 'weighted_inertia':
         score = 0
         for i_cluster, members in enumerate(clusters):
@@ -84,6 +97,7 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
                 ))
 
     # ------------------------------------------------------------------
+    # Shouldn't be used: taking min makes no sense
     elif pg._score_type == 'min_inertia':
         score = np.inf
         for i_cluster, members in enumerate(clusters):
@@ -103,7 +117,14 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
             #score += (len(members)-1)/pg.N * np.var(X[members])
             score += np.var(X[members])
     # ------------------------------------------------------------------
+    elif pg._score_type in ['mean_variance']:
+        score = 0
+        for i_cluster, members in enumerate(clusters):
+            score += np.var(X[members])
+        score /= len(clusters)
+    # ------------------------------------------------------------------
     elif pg._score_type in ['weighted_variance']:
+        # This should not be used, it favours very high values of k
         score = 0
         for i_cluster, members in enumerate(clusters):
             score += (len(clusters) / pg.N) * np.var(X[members])
@@ -114,6 +135,7 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
             score = max(np.var(X[members]), score)
 
     # ------------------------------------------------------------------
+    # Shouldn't be used: taking min makes no sense
     elif pg._score_type == 'min_variance':
         score = np.inf
         for i_cluster, members in enumerate(clusters):
@@ -178,40 +200,6 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
             )
 
     return np.around(score, pg._precision)
-
-
-# def _compute_zero_scores(pg):
-#     pg._zero_scores = np.zeros(pg.T)
-#     if pg._zero_type == 'bounds':
-
-#         # Get the parameters of the uniform distrib using min and max
-#         mins = np.amin(pg._members, axis = 0)
-#         maxs = np.amax(pg._members, axis = 0)
-
-#     else:
-#         # I'm not sure if this type should be used at all actually.....
-#         # Get the parameters of the uniform distrib using mean and variance
-#         var = np.var(pg._members, axis = 0)
-#         mean = np.mean(pg._members, axis = 0)
-
-#         mins = (2*mean - np.sqrt(12*var)) / 2
-#         maxs = (2*mean + np.sqrt(12*var)) / 2
-
-#     # Generate a perfectly uniform distribution
-#     steps = (maxs-mins) / (pg.N-1)
-#     values = np.array(
-#         [[mins[t] + i*steps[t] for i in range(pg.N)] for t in range(pg.T)]
-#     )
-
-#     # Compute the score of that distribution
-#     members = [[i for i in range(pg.N)]]
-#     for t in range(pg.T):
-#         pg._zero_scores[t] = compute_score(
-#             pg=pg,
-#             X = values[t].reshape(-1,1),
-#             clusters= members,
-#             t = t,
-#         )
 
 
 def _compute_score_bounds(

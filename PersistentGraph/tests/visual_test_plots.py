@@ -41,14 +41,14 @@ def main():
     #members = list_var[0]
 
     model_type = "KMeans"
-    #model_type = "Naive"
+    model_type = "Naive"
 
 
 
     g = PersistentGraph(
         members,
         time_axis = np.arange(members.shape[1]),
-        score_type = 'MedDevMean',
+        score_type = 'mean_inertia',
         zero_type = 'bounds',
         model_type = model_type,
         k_max=8,
