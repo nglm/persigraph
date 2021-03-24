@@ -537,6 +537,7 @@ def plot_edges(
     lw_max=20,
     color_list = get_list_colors(51),
     show_std = False,
+    show_uniform = False,
     f=sigmoid,
     max_opacity=False,
     ax=None,
@@ -565,18 +566,19 @@ def plot_edges(
         max_opacity=max_opacity,
         ax=ax,
     )
-    ax = plot_uniform_edges(
-        g,
-        uniforms,
-        c1 = c1,
-        c2 = c2,
-        lw_min=lw_min,
-        lw_max=lw_max,
-        show_std = show_std,
-        f=f,
-        max_opacity=max_opacity,
-        ax=ax,
-    )
+    if show_uniform:
+        ax = plot_uniform_edges(
+            g,
+            uniforms,
+            c1 = c1,
+            c2 = c2,
+            lw_min=lw_min,
+            lw_max=lw_max,
+            show_std = show_std,
+            f=f,
+            max_opacity=max_opacity,
+            ax=ax,
+        )
 
     return ax
 
@@ -586,6 +588,7 @@ def plot_as_graph(
     show_vertices: bool = True,
     show_edges: bool = True,
     show_std: bool = True,
+    show_uniform: bool = False,
     threshold_m:int = 0,
     threshold_l:float = 0.00,
     max_opacity: bool = False,
@@ -614,7 +617,7 @@ def plot_as_graph(
                     g, t, g._edges[t],
                     threshold_m=threshold_m, threshold_l=threshold_l,
                     color_list = color_list, max_opacity=max_opacity,
-                    show_std = show_std,
+                    show_std = show_std, show_uniform=show_uniform,
                     ax=ax
                 )
     else:
@@ -643,7 +646,7 @@ def plot_as_graph(
                     g, t, edges,
                     threshold_m=threshold_m, threshold_l=threshold_l,
                     color_list = color_list, max_opacity=max_opacity,
-                    show_std = show_std,
+                    show_std = show_std, show_uniform=show_uniform,
                     ax=ax,
                 )
     ax.autoscale()
