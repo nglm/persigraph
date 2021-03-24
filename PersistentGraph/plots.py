@@ -81,14 +81,15 @@ from . import Edge
 
 # See https://colorbrewer2.org/#type=qualitative&scheme=Set1&n=8
 COLOR_BREWER = [
-    "#ffff33", # Yellow
+    "#636363", # Grey
     "#377eb8", # Blue
     "#a65628", # Brown
     "#984ea3", # Purple
+    "#e41a1c", # Red
     "#4daf4a", # Green
     "#ff7f00", # Orange
     "#f781bf", # Pink
-    "#e41a1c", # Red
+    "#ffff33", # Yellow
 ]
 
 COLOR_BREWER_RGB = [
@@ -173,7 +174,52 @@ def __std_polygon(g, edges):
     ]
     return polys
 
+def __uniform_polygon(g, edges):
+    '''
+    Define a polygon representing a uniform distribution
 
+    Return a nested list (1, 1 polygon)
+    '''
+    t_start = g.time_axis[edges[0].time_step]
+    t_end = g.time_axis[edges[0].time_step + 1]
+
+    # Get the std_sup of the upper/lower vertex at t/t+1
+    # upper v_start
+    i = np.argmax(
+        [e.v_start.info["params"][0] for e in edges]
+    )
+    up_v_start = edges[i].v_start
+
+    # upper v_end
+    i = np.argmax(
+        [e.v_end.info["params"][0] for e in edges]
+    )
+    up_v_end = edges[i].v_end
+
+    # lower v_start
+    i = np.argmin(
+        [e.v_start.info["params"][0] for e in edges]
+    )
+    low_v_start = edges[i].v_start
+
+    # lower v_end
+    i = np.argmin(
+        [e.v_end.info["params"][0] for e in edges]
+    )
+    low_v_end = edges[i].v_end
+
+    # std_inf(t) - >std_inf(t) -> std_sup(t+1) -> std_inf(t+1)
+    polys = [[
+        # std_inf at t
+        (t_start, low_v_start.info["params"][0]-low_v_start.info["params"][2]),
+        # std_sup at t
+        (t_start, up_v_start.info["params"][0] + up_v_start.info["params"][3]),
+        # std_sup at t+1
+        (t_end,  up_v_end.info["params"][0] + up_v_end.info["params"][3]),
+        # std_inf at t+1
+        (t_end,  low_v_end.info["params"][0] - low_v_end.info["params"][2]),
+    ]]
+    return polys
 
 def __edges_lines(g, edges):
     '''
@@ -241,7 +287,7 @@ def sort_components(
                 uniforms = [
                     c for c in components
                     if (c.v_start.info['type'] == 'uniform')
-                    and (c.v_end.info['type'] == 'uniform')
+                    or (c.v_end.info['type'] == 'uniform')
                     ]
     else:
         gaussians = []
@@ -296,34 +342,38 @@ def plot_gaussian_vertices(
         ax.add_collection(circles)
     return ax
 
-# def plot_uniform_vertices(
-#     g,
-#     vertices,
-#     c2 = np.array([0,0,0,0]),
-#     c1 = np.array([254,254, 254, 0]),
-#     f=sigmoid,
-#     ax=None,
-# ):
-#     if vertices:
-#         up_lines = [ v.info['params'][0] for v in vertices ]
-#         down_lines = [ v.info['params'][1] for v in vertices ]
-#         alphas = [ f(v.life_span) for v in vertices ]
+def plot_uniform_edges(
+    g,
+    edges,
+    c1 = np.array([254,0,0,1]),
+    c2 = np.array([254,254,0,1]),
+    lw_min=0.3,
+    lw_max=15,
+    f=linear,
+    color_list = get_list_colors(51),
+    show_std = False,
+    max_opacity=False,
+    ax=None,
+):
+    if edges:
+        alphas = [f(e.life_span) for e in edges]
 
-#         colors = np.asarray(
-#             [(f(v.life_span)*c1 + (1-f(v.life_span))*c2) for v in vertices]
-#         ).reshape((-1, 4)) / 255
+        # The color of a uniform edge is grey
+        colors = np.asarray(
+            [color_list[0] for e in edges]
+        ).reshape((-1, 4))
 
-#         colors[:,3] = alphas
+        if max_opacity:
+            colors[:,3] = 1
+        else:
+            colors[:,3] = alphas
 
-#         t = vertices[0].time_step
-#         t_range =  [g.time_axis[t]]
-#         if t > 0:
-#             t_range = [g.time_axis[t-1]] + t_range
-#         if t < g.T-1:
-#             t_range.append(g.time_axis[t+1])
-#         n = len(t_range)
-#         ax.fill_between(t_range, up_lines[0], down_lines[0], facecolor=colors)
-#     return ax
+        polys = __uniform_polygon(g, edges)
+        colors[:,3] /= 6
+        polys = PolyCollection(polys, facecolors=colors)
+        ax.add_collection(polys)
+
+    return ax
 
 def plot_gaussian_edges(
     g,
@@ -484,7 +534,18 @@ def plot_edges(
         max_opacity=max_opacity,
         ax=ax,
     )
-    #ax = plot_uniform_edges()
+    ax = plot_uniform_edges(
+        g,
+        uniforms,
+        c1 = c1,
+        c2 = c2,
+        lw_min=lw_min,
+        lw_max=lw_max,
+        show_std = show_std,
+        f=f,
+        max_opacity=max_opacity,
+        ax=ax,
+    )
 
     return ax
 
@@ -584,7 +645,7 @@ def k_plot(
 
     if ax is None:
         fig, ax = plt.subplots(**fig_kw)
-    for k in range(1,k_max+1):
+    for k in range(k_max+1):
         ax.plot(
             g.time_axis, life_span[k],
             c=colors[k], label='k='+str(k)
