@@ -14,7 +14,7 @@ from ...utils.nc import print_nc_dict
 # Parameters
 # ---------------------------------------------------------
 
-SCORE_TYPE = [
+SCORE_TYPES = [
     'inertia',
     'mean_inertia',
     'weighted_inertia',
@@ -31,10 +31,11 @@ SCORE_TYPE = [
     #'max_diameter',  # WARNING: Max diameter should be used with weights
     # ----------
     'MedDevMean',
+    'mean_MedDevMean',
     'max_MedDevMean',
     # ----------
     #'max_MedDevMed', # Shouldn't be used: see details below
-    ]
+]
 
 ZERO_TYPE = 'bounds'
 
@@ -92,6 +93,10 @@ def preprocess_MLVis_data(verbose = True):
         d['long_name'] = d['nc'][0].variables[vars[i][0]].long_name
         # units (as defined by the nc file)
         d['units'] = d['nc'][0].variables[vars[i][0]].units
+        # time axis
+        d['time'] = [
+            nc.variables["time"] - nc.variables["time"][0]  for nc in d['nc']
+        ]
 
         # For each nc, create a list of np arrays containing the variable
         # of interest corresponding to the weather event
@@ -102,24 +107,23 @@ def preprocess_MLVis_data(verbose = True):
 
         # Compute wind speed from u10 and v10
         if name == 'Lothar':
-            # keep non missing values
-            u10 = var[0][0]
-            print([
-                (t, np.all(u10[t] == -32767))
-                for t in range(len(u10)) if np.any(u10[t] == -32767)]
+            # Remove missing values
+            idx = np.array(
+                [bool(i % 2 == 0) for i in range(len(d['time'][0])) ]
             )
-            print(var[0][0])
+            var = [
+                [ v[idx] for v in v_nc ] for v_nc in var
+            ]
+
             var = [ [np.sqrt(v_nc[0]**2 + v_nc[1]**2)] for v_nc in var]
             d['long_name'] = 'wind speed'
+            d['time'] = [time_nc[idx] for time_nc in d['time'] ]
 
         # Now var is simply a list of np arrays(N, T)
         var = [np.swapaxes(v_nc[0], 0,1) for v_nc in var]
         d['var'] = var
 
-        # time axis
-        d['time'] = [
-            nc.variables["time"] - nc.variables["time"][0]  for nc in d['nc']
-        ]
+
         # add this weather event to our root dictionary
         data[name] = d
 
@@ -131,8 +135,7 @@ def plot_MLVisData():
     for name, d in data.items():
         for i in range(len(d['nc'])):
             print(d['var'][i].shape)
-            plt.figure()
-            ax = plt.gca()
+            fig, ax = plt.subplots(figsize=(15,10))
             for m in d['var'][i]:
                 ax.plot(d['time'][i], m)
             title = name + "\n" + d['names'][i]
@@ -152,7 +155,7 @@ def main():
     data = preprocess_MLVis_data()
     weights_range = [False]
     for weights in weights_range:
-        for score in SCORE_TYPE:
+        for score in SCORE_TYPES:
             for pg_type in ['Naive', 'KMeans']:
                 path_root = (
                     PATH_FIG_PARENT
@@ -160,8 +163,6 @@ def main():
                     + score + '/'
                 )
                 for name, d in data.items():
-                    if name == 'Lothar':
-                        continue
                     for i in range(len(d['nc'])):
 
                         filename = d['names'][i]
@@ -171,7 +172,7 @@ def main():
                         # --------------------------------------------
 
                         path_fig = path_root + "plots/"
-                        name_fig = path_fig + filename[:-3]
+                        name_fig = path_fig + name +'_'+ filename[:-3]
                         makedirs(path_fig, exist_ok = True)
 
                         path_graph = path_root + "graphs/"

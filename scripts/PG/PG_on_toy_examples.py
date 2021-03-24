@@ -34,6 +34,7 @@ SCORE_TYPES = [
     #'max_diameter',  # WARNING: Max diameter should be used with weights
     # ----------
     'MedDevMean',
+    'mean_MedDevMean',
     'max_MedDevMean',
     # ----------
     #'max_MedDevMed', # Shouldn't be used: see details below

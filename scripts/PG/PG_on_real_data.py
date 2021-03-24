@@ -34,6 +34,7 @@ SCORE_TYPES = [
     #'max_diameter',  # WARNING: Max diameter should be used with weights
     # ----------
     'MedDevMean',
+    'mean_MedDevMean',
     'max_MedDevMean',
     # ----------
     #'max_MedDevMed', # Shouldn't be used: see details below
@@ -43,7 +44,7 @@ SCORE_TYPES = [
 ZERO_TYPE = 'bounds'
 
 var_names = ['tcwv']
-#var_names = ['tcwv']
+var_names = ['t2m']
 
 # Use
 # - 'overview' if you want the overview plot (entire graph + k_plot +
