@@ -68,11 +68,11 @@ def preprocess_MLVis_data(verbose = True):
     # Root dictionary
     data = {}
     # subdictionary names
-    dic_names = ['Lothar', 'Sandy', 'heatwave']
-    f_startswith = ['ec.ens.1999', 'ec.ens.2012', 'ec.ens.2019']
-    vars = [['u10', 'v10'], ['tcwv'], ['t2m']]
+    dic_names = ['Lothar', 'Sandy', 'heatwave', 'coldwave']
+    f_startswith = ['ec.ens.1999', 'ec.ens.2012', 'ec.ens.2019', 'ec.ens.2021']
+    vars = [['u10', 'v10'], ['tcwv'], ['t2m'], ['t2m']]
     #vars = [['u10'], ['tcwv'], ['t2m']]
-    var_name = ['ff10', 'tcwv', 't2m']
+    var_name = ['ff10', 'tcwv', 't2m', 't2m']
     long_name = []
 
     for i, name in enumerate(dic_names):
