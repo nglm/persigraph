@@ -94,9 +94,15 @@ def clustering_model(
             # Associate members with a representative according
             # to the clustering made by the model
             members_r[members] = rep_new[label_i]
-            # Force representatives to be representated by themselves
-            # (the clustering model might decide against)
+
+    if pg._model_kw['precompute_centroids']:
+        # Force representatives to be representated by themselves
+        # (the clustering model might decide against)
+        #members_r[rep_new] != rep_new
+        if np.any(members_r[rep_new] != rep_new):
             members_r[rep_new] = rep_new
+            pg._model_kw['rep'] = members_r
+            raise ValueError('Centroid was ignored')
 
 
     # ========================== step_info =============================
