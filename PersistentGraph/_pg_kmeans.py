@@ -28,11 +28,12 @@ def get_model_parameters(
         'n_init' : pg._model_kw.pop('n_init', 10),
         'tol' : pg._model_kw.pop('tol', 1e-3),
     }
+
+    model_kw.update(pg._model_kw)
+
     if pg._model_kw['precompute_centroids']:
         # If we ive explicit centroids we don't need n_init parameter
         model_kw.pop('n_init')
-
-    model_kw.update(pg._model_kw)
     return model_kw, fit_predict_kw
 
 
