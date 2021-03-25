@@ -25,7 +25,7 @@ def get_model_parameters(
     # Default kw values
     model_kw = {
         'max_iter' : pg._model_kw.pop('max_iter', 100),
-        'n_init' : pg._model_kw.pop('n_init', 10),
+        'n_init' : pg._model_kw.pop('n_init', 20),
         'tol' : pg._model_kw.pop('tol', 1e-3),
     }
 
@@ -33,7 +33,7 @@ def get_model_parameters(
 
     if pg._model_kw['precompute_centroids']:
         # If we ive explicit centroids we don't need n_init parameter
-        model_kw.pop('n_init')
+        model_kw['n_init'] = 1
     return model_kw, fit_predict_kw
 
 
