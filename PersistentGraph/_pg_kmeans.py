@@ -87,7 +87,13 @@ def clustering_model(
         })
 
         if pg._model_kw['precompute_centroids']:
-            members_r[members] = int(labels[rep_new[label_i]])
+            # Associate members with a representative according
+            # to the clustering made by the model
+            members_r[members] = rep_new[label_i]
+            # Force representatives to be representated by themselves
+            # (the clustering model might decide against)
+            members_r[rep_new] = rep_new
+
 
     # ========================== step_info =============================
     # Add method specific info here if necessary
