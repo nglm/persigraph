@@ -9,6 +9,7 @@ from netCDF4 import Dataset
 from ...PersistentGraph import PersistentGraph
 from ...PersistentGraph.plots import *
 from ...utils.nc import print_nc_dict
+from ...utils.plt import from_list_to_subplots
 
 
 
@@ -19,7 +20,7 @@ from ...utils.nc import print_nc_dict
 SCORE_TYPES = [
     'inertia',
     'mean_inertia',
-    'weighted_inertia',
+    #'weighted_inertia',
     'max_inertia',
     #'min_inertia',       # Shouldn't be used: taking min makes no sense
     # ----------
@@ -73,7 +74,7 @@ def preprocess_MLVis_data(verbose = True):
     dic_names = ['Lothar', 'Sandy', 'heatwave', 'coldwave']
     f_startswith = ['ec.ens.1999', 'ec.ens.2012', 'ec.ens.2019', 'ec.ens.2021']
     obs_startswith = [
-        'od.ans.1999', 'od.ans.2012', 'od.ans.2019', 'od.ans.2021'
+        'e5.ans.1999', 'e5.ans.2012', 'e5.ans.2019', 'od.ans.2021'
     ]
     vars = [['u10', 'v10'], ['msl'], ['t2m'], ['t2m']]
     #vars = [['u10'], ['tcwv'], ['t2m']]
@@ -173,29 +174,28 @@ def find_common_dates(t, t_obs):
     start_i = 0
     n = len(t)
     n_obs = len(t_obs)
-    if t[0] > t_obs[0]:
-        start_i = 0
-        for i in range(n_obs):
-            if t[0] == t_obs[i]:
-                start_i_obs = i
-                break
-    else:
+    if t[0] < t_obs[0]:
         for i in range(n):
             if t[i] == t_obs[0]:
                 start_i = i
                 break
+    if t[start_i] > t_obs[0]:
+        start_i = 0
+        for i in range(n_obs):
+            if t[0] <= t_obs[i]:
+                start_i_obs = i
+                break
     i_obs = []
     i = 0
-    while i < n and i < n_obs:
-        if t[i+start_i] == t_obs[i+start_i_obs]:
-            i_obs.append(i+start_i_obs)
-        # Lothar case
-
-        if i>0 and t[i//2+start_i] == t_obs[i+start_i_obs]:
-            i_obs.append(i+start_i_obs)
+    while len(i_obs) < n:
+        if n == 51:
+            if t[i+start_i] == t_obs[i+start_i_obs]:
+                i_obs.append(i+start_i_obs)
+        else:
+            # Lothar case
+            if t[i//2+start_i] == t_obs[i+start_i_obs]:
+                i_obs.append(i+start_i_obs)
         i += 1
-    if len(i_obs) == 1:
-        print(t, t_obs)
     return i_obs
 
 def plot_MLVisData(show_obs=True):
@@ -204,12 +204,6 @@ def plot_MLVisData(show_obs=True):
         for i in range(len(d['nc'])):
             print(d['var'][i].shape)
             fig, ax = plt.subplots(figsize=(15,10))
-            # common_t = list(
-            #     set.intersection(
-            #         set(list(d['time'][i])),
-            #         set(list(d['obs_time'])),
-            #     )
-            # )
             common_t = find_common_dates(d['time'][i], d['obs_time'])
 
             for m in d['var'][i]:
@@ -228,6 +222,61 @@ def plot_MLVisData(show_obs=True):
                 + d['names'][i][:-3] + "_" + d['var_name']
                 +'.png'
             )
+
+def add_obs(obs_var, obs_time, ax):
+    ax.scatter(
+        obs_time,
+        obs_var, marker="*", edgecolor='black',
+        c='b', s=200, zorder=100, lw=0.5
+    )
+    return ax
+
+def plot_spaghetti():
+    plt.rcParams.update({'font.size': 30})
+    data = preprocess_MLVis_data()
+    for name, d in data.items():
+        for i in range(len(d['nc'])):
+
+            common_t = find_common_dates(d['time'][i], d['obs_time'])
+
+            kwargs = {
+                "figsize" : (15,10),
+                "plot_show_mean" : True,
+                "plot_show_std" : True,
+                "plot_mean_zorder" : 3,
+                "plot_std_zorder" : 3,
+                "plot_std_alpha" : 0,
+                "lw" : 8,
+                "c" : "r",
+                "alpha" : 0.05,
+            }
+
+
+            fig, axs = from_list_to_subplots(
+                list_yvalues=d['var'][i],
+                list_xvalues=d['time'][i]-d['time'][i][0],
+                plt_type = "plot",
+                show=False,
+                dict_kwargs=kwargs
+                )
+            ax = axs[0,0]
+
+            ax = add_obs(
+                obs_var=d['obs_var'][common_t],
+                obs_time=d['obs_time'][common_t] - d['time'][i][0],
+                ax=ax
+            )
+
+            title = name + "\n" + d['names'][i]
+            ax.set_title(title)
+            ax.set_xlabel('Time (h)')
+            ax.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+            plt.savefig(
+                PATH_FIG_PARENT + name +'_'
+                + d['names'][i][:-3] + "_" + d['var_name']
+                +'.png'
+            )
+
 
 def plot_obs():
     data = preprocess_MLVis_data()
