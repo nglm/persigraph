@@ -46,6 +46,7 @@ def show_kwargs(verbose=True):
         "plot_show_mean", "plot_show_std", "plot_show_std_label",
         "plot_show_mean_label",
         # Style
+        "plot_color", "plot_alpha", "plot_lw", "plot_ls",
         "plot_mean_color", "plot_std_color", "plot_std_alpha",
         "plot_mean_zorder", "plot_std_zorder",
         "plot_mean_lw", "plot_mean_linewidth",
@@ -764,6 +765,7 @@ def custom_plot(
             text_labels=text_labels,
             lines=lines_labels,
         )
+
     return fig, ax
 
 
@@ -927,7 +929,7 @@ def from_list_to_subplots(
                     yvalues[i_line],
                     **dict_kwargs['line'])
 
-        if plt_type == "plot":
+        if plt_type == "plot_mean_std":
             fig, ax = custom_plot(
                 xvalues = xvalues,
                 yvalues = yvalues,
