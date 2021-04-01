@@ -2,6 +2,8 @@
 from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import datetime
 from netCDF4 import Dataset
 
 from ...PersistentGraph import PersistentGraph
@@ -62,17 +64,20 @@ def preprocess_MLVis_data(verbose = True):
     # Find files
     files = [
         fname for fname in listdir(PATH_DATA)
-        if fname.startswith("ec.ens.") and fname.endswith(".nc")
     ]
+    #start_date = datetime.date(1900,1,1)
 
     # Root dictionary
     data = {}
     # subdictionary names
     dic_names = ['Lothar', 'Sandy', 'heatwave', 'coldwave']
     f_startswith = ['ec.ens.1999', 'ec.ens.2012', 'ec.ens.2019', 'ec.ens.2021']
-    vars = [['u10', 'v10'], ['tcwv'], ['t2m'], ['t2m']]
+    obs_startswith = [
+        'od.ans.1999', 'od.ans.2012', 'od.ans.2019', 'od.ans.2021'
+    ]
+    vars = [['u10', 'v10'], ['msl'], ['t2m'], ['t2m']]
     #vars = [['u10'], ['tcwv'], ['t2m']]
-    var_name = ['ff10', 'tcwv', 't2m', 't2m']
+    var_name = ['ff10', 'msl', 't2m', 't2m']
     long_name = []
 
     for i, name in enumerate(dic_names):
@@ -80,12 +85,21 @@ def preprocess_MLVis_data(verbose = True):
         d = {}
         # Meteogram names associated with this weather event
         d['names'] = [f for f in files if f.startswith(f_startswith[i])]
+        d['obs_name'] = [
+            f for f in files if f.startswith(obs_startswith[i])
+        ][0] #There's just one file
+
+
         # nc files associated with this weather event
         d['nc'] = [Dataset(PATH_DATA + f,'r') for f in d['names']]
+        d['obs_nc'] = Dataset(PATH_DATA + d['obs_name'],'r')
         if verbose:
             # Show what is inside these meteograms
             print(" ----------------------- %s ----------------------- " %name)
+            print(" ==== FORECAST ==== ")
             print_nc_dict(d['nc'][0])
+            print(" ==== OBSERVATION ==== ")
+            print_nc_dict(d['obs_nc'])
 
         # short name for each variable of interest
         d['var_name'] = var_name[i]
@@ -94,9 +108,27 @@ def preprocess_MLVis_data(verbose = True):
         # units (as defined by the nc file)
         d['units'] = d['nc'][0].variables[vars[i][0]].units
         # time axis
-        d['time'] = [
-            nc.variables["time"] - nc.variables["time"][0]  for nc in d['nc']
-        ]
+        # d['time'] = [
+        #     nc.variables["time"] - nc.variables["time"][0]  for nc in d['nc']
+        # ]
+        d['time'] = [ np.array(nc.variables["time"])  for nc in d['nc'] ]
+        print(d['nc'][0].variables["time"][0])
+        # d['dates'] = np.array([[mdates.date2num(
+        #     datetime.timedelta(
+        #         hours=np.array(nc.variables["time"]).squeeze()[t]
+        #     ) + start_date
+        #     ) for t in range(len(nc.variables["time"]))] for nc in d['nc'] ])
+        # d['obs_time'] = (
+        #     d['obs_nc'].variables["time"] - d['obs_nc'].variables["time"][0]
+        # )
+        d['obs_time'] = np.array(d['obs_nc'].variables["time"])
+        # d['obs_dates'] = np.array([ mdates.date2num(
+        #     datetime.timedelta(
+        #         hours=int(np.array(d['obs_nc'].variables["time"]).squeeze()[t])
+        #     ) + start_date
+        #     ) for t in range(len(d['obs_nc'].variables["time"]))])
+
+
 
         # For each nc, create a list of np arrays containing the variable
         # of interest corresponding to the weather event
@@ -104,6 +136,10 @@ def preprocess_MLVis_data(verbose = True):
             [ np.array(nc.variables[v]).squeeze() for v in vars[i] ]
             for nc in d['nc']
         ]
+        obs_var = [
+            np.array(d['obs_nc'].variables[v]).squeeze() for v in vars[i]
+        ]
+
 
         # Compute wind speed from u10 and v10
         if name == 'Lothar':
@@ -111,17 +147,19 @@ def preprocess_MLVis_data(verbose = True):
             idx = np.array(
                 [bool(i % 2 == 0) for i in range(len(d['time'][0])) ]
             )
-            var = [
-                [ v[idx] for v in v_nc ] for v_nc in var
-            ]
-
+            var = [ [ v[idx] for v in v_nc ] for v_nc in var ]
             var = [ [np.sqrt(v_nc[0]**2 + v_nc[1]**2)] for v_nc in var]
+            obs_var = [np.sqrt(obs_var[0]**2 + obs_var[1]**2)]
             d['long_name'] = 'wind speed'
             d['time'] = [time_nc[idx] for time_nc in d['time'] ]
+            #d['obs_time'] = d['obs_time'][idx]
+            #d['dates'] = [dates_nc[idx] for dates_nc in d['dates'] ]
+            #d['obs_dates'] = d['obs_dates'][idx]
 
         # Now var is simply a list of np arrays(N, T)
         var = [np.swapaxes(v_nc[0], 0,1) for v_nc in var]
         d['var'] = var
+        d['obs_var'] = obs_var[0]
 
 
         # add this weather event to our root dictionary
@@ -129,24 +167,82 @@ def preprocess_MLVis_data(verbose = True):
 
     return data
 
+def find_common_dates(t, t_obs):
+    # Assume that they are sorted
+    start_i_obs = 0
+    start_i = 0
+    n = len(t)
+    n_obs = len(t_obs)
+    if t[0] > t_obs[0]:
+        start_i = 0
+        for i in range(n_obs):
+            if t[0] == t_obs[i]:
+                start_i_obs = i
+                break
+    else:
+        for i in range(n):
+            if t[i] == t_obs[0]:
+                start_i = i
+                break
+    i_obs = []
+    i = 0
+    while i < n and i < n_obs:
+        if t[i+start_i] == t_obs[i+start_i_obs]:
+            i_obs.append(i+start_i_obs)
+        # Lothar case
 
-def plot_MLVisData():
+        if i>0 and t[i//2+start_i] == t_obs[i+start_i_obs]:
+            i_obs.append(i+start_i_obs)
+        i += 1
+    if len(i_obs) == 1:
+        print(t, t_obs)
+    return i_obs
+
+def plot_MLVisData(show_obs=True):
     data = preprocess_MLVis_data()
     for name, d in data.items():
         for i in range(len(d['nc'])):
             print(d['var'][i].shape)
             fig, ax = plt.subplots(figsize=(15,10))
+            # common_t = list(
+            #     set.intersection(
+            #         set(list(d['time'][i])),
+            #         set(list(d['obs_time'])),
+            #     )
+            # )
+            common_t = find_common_dates(d['time'][i], d['obs_time'])
+
             for m in d['var'][i]:
-                ax.plot(d['time'][i], m)
+                ax.plot(d['time'][i]-d['time'][i][0], m)
+                ax.scatter(
+                    d['obs_time'][common_t] - d['time'][i][0],
+                    d['obs_var'][common_t], marker="*", edgecolor='black',
+                    c='r', s=200, zorder=100, lw=0.5
+                )
             title = name + "\n" + d['names'][i]
             ax.set_title(title)
             ax.set_xlabel('Time (h)')
             ax.set_ylabel(d['long_name'] + ' ('+d['units']+')')
             plt.savefig(
-                PATH_FIG_PARENT + name +'_'+ d['names'][i][:-3]+'.png'
+                PATH_FIG_PARENT + name +'_'
+                + d['names'][i][:-3] + "_" + d['var_name']
+                +'.png'
             )
 
-def main():
+def plot_obs():
+    data = preprocess_MLVis_data()
+    for name, d in data.items():
+        fig, ax = plt.subplots(figsize=(15,10))
+        ax.plot(d['obs_time'], d['obs_var'])
+        title = name + "\n" + d['obs_name']
+        ax.set_title(title)
+        ax.set_xlabel('Time (h)')
+        ax.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+        plt.savefig(
+            PATH_FIG_PARENT + name +'_'+ d['obs_name'][:-3]+'.png'
+        )
+
+def main(show_obs=True):
 
     # ---------------------------
     # Load and preprocess data
@@ -172,7 +268,10 @@ def main():
                         # --------------------------------------------
 
                         path_fig = path_root + "plots/"
-                        name_fig = path_fig + name +'_'+ filename[:-3]
+                        name_fig = (
+                            path_fig + name +'_'
+                            + filename[:-3] + "_" + d['var_name']
+                        )
                         makedirs(path_fig, exist_ok = True)
 
                         path_graph = path_root + "graphs/"
