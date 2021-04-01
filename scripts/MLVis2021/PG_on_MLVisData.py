@@ -66,7 +66,7 @@ def preprocess_MLVis_data(verbose = True):
     files = [
         fname for fname in listdir(PATH_DATA)
     ]
-    #start_date = datetime.date(1900,1,1)
+    start_date = datetime.datetime(1900,1,1,0)
 
     # Root dictionary
     data = {}
@@ -77,7 +77,6 @@ def preprocess_MLVis_data(verbose = True):
         'e5.ans.1999', 'e5.ans.2012', 'e5.ans.2019', 'od.ans.2021'
     ]
     vars = [['u10', 'v10'], ['msl'], ['t2m'], ['t2m']]
-    #vars = [['u10'], ['tcwv'], ['t2m']]
     var_name = ['ff10', 'msl', 't2m', 't2m']
     long_name = []
 
@@ -109,25 +108,19 @@ def preprocess_MLVis_data(verbose = True):
         # units (as defined by the nc file)
         d['units'] = d['nc'][0].variables[vars[i][0]].units
         # time axis
-        # d['time'] = [
-        #     nc.variables["time"] - nc.variables["time"][0]  for nc in d['nc']
-        # ]
-        d['time'] = [ np.array(nc.variables["time"])  for nc in d['nc'] ]
-        print(d['nc'][0].variables["time"][0])
-        # d['dates'] = np.array([[mdates.date2num(
-        #     datetime.timedelta(
-        #         hours=np.array(nc.variables["time"]).squeeze()[t]
-        #     ) + start_date
-        #     ) for t in range(len(nc.variables["time"]))] for nc in d['nc'] ])
-        # d['obs_time'] = (
-        #     d['obs_nc'].variables["time"] - d['obs_nc'].variables["time"][0]
-        # )
+        d['time'] = [np.array(nc.variables["time"])  for nc in d['nc'] ]
+        d['dates'] = [np.array(
+            [
+                datetime.timedelta(hours=int(t)) + start_date
+                for t in nc.variables["time"]
+            ]) for nc in d['nc']
+        ]
         d['obs_time'] = np.array(d['obs_nc'].variables["time"])
-        # d['obs_dates'] = np.array([ mdates.date2num(
-        #     datetime.timedelta(
-        #         hours=int(np.array(d['obs_nc'].variables["time"]).squeeze()[t])
-        #     ) + start_date
-        #     ) for t in range(len(d['obs_nc'].variables["time"]))])
+        d['obs_dates'] = np.array(
+            [
+                datetime.timedelta(hours=int(t)) + start_date
+                for t in d['obs_nc'].variables["time"]
+            ])
 
 
 
@@ -141,21 +134,22 @@ def preprocess_MLVis_data(verbose = True):
             np.array(d['obs_nc'].variables[v]).squeeze() for v in vars[i]
         ]
 
-
-        # Compute wind speed from u10 and v10
+        # Remove missing values
         if name == 'Lothar':
             # Remove missing values
             idx = np.array(
                 [bool(i % 2 == 0) for i in range(len(d['time'][0])) ]
             )
             var = [ [ v[idx] for v in v_nc ] for v_nc in var ]
+            d['time'] = [time_nc[idx] for time_nc in d['time'] ]
+            #d['obs_time'] = d['obs_time'][idx]
+            d['dates'] = [dates_nc[idx] for dates_nc in d['dates'] ]
+            #d['obs_dates'] = d['obs_dates'][idx]
+
+        if var_name[i] == 'ff10':
             var = [ [np.sqrt(v_nc[0]**2 + v_nc[1]**2)] for v_nc in var]
             obs_var = [np.sqrt(obs_var[0]**2 + obs_var[1]**2)]
             d['long_name'] = 'wind speed'
-            d['time'] = [time_nc[idx] for time_nc in d['time'] ]
-            #d['obs_time'] = d['obs_time'][idx]
-            #d['dates'] = [dates_nc[idx] for dates_nc in d['dates'] ]
-            #d['obs_dates'] = d['obs_dates'][idx]
 
         # Now var is simply a list of np arrays(N, T)
         var = [np.swapaxes(v_nc[0], 0,1) for v_nc in var]
@@ -254,7 +248,7 @@ def plot_spaghetti():
 
             fig, axs = from_list_to_subplots(
                 list_yvalues=d['var'][i],
-                list_xvalues=d['time'][i]-d['time'][i][0],
+                list_xvalues=d['dates'][i],
                 plt_type = "plot",
                 show=False,
                 dict_kwargs=kwargs
@@ -263,14 +257,16 @@ def plot_spaghetti():
 
             ax = add_obs(
                 obs_var=d['obs_var'][common_t],
-                obs_time=d['obs_time'][common_t] - d['time'][i][0],
+                obs_time=d['obs_dates'][common_t],
                 ax=ax
             )
 
             title = name + "\n" + d['names'][i]
             ax.set_title(title)
-            ax.set_xlabel('Time (h)')
+            ax.set_xlabel('Date')
             ax.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+            fig.autofmt_xdate()
             plt.savefig(
                 PATH_FIG_PARENT + name +'_'
                 + d['names'][i][:-3] + "_" + d['var_name']
@@ -285,7 +281,7 @@ def plot_obs():
         ax.plot(d['obs_time'], d['obs_var'])
         title = name + "\n" + d['obs_name']
         ax.set_title(title)
-        ax.set_xlabel('Time (h)')
+        ax.set_xlabel('Date')
         ax.set_ylabel(d['long_name'] + ' ('+d['units']+')')
         plt.savefig(
             PATH_FIG_PARENT + name +'_'+ d['obs_name'][:-3]+'.png'
