@@ -383,24 +383,26 @@ def use_dates_as_xticks(
 ):
     # If you want to have dates as xticks  indpt of what you used to plot your curve
     # uniformly spaced hours between the min and max
-    locations = np.arange(
+    total_hours = np.arange(
         start=time_axis[0], stop=time_axis[-1], step=time_axis[1]-time_axis[0]
     )
     # Now choose how often you want it displayed
-    idx = [i for i in range(len(locations)) if i%4==0]
-    locations = locations[idx]
-    # Create the dates at the kept locations
-    labels = [
-        datetime.timedelta(
-            hours=int(h)
-        ) + start_date for h in locations]
+    idx = [i for i in range(len(total_hours)) if i%4==0]
+    kept_hours = total_hours[idx]
 
+    # Create the string of dates at the kept locations
+    # Creating string here directly is the safest way of
+    # controling the format in the plot......
+    # Dealing with ax.xaxis.set_major_formatter
+    # And ax.xaxis.set_minor_formatter is way too painful...
+    labels = [
+        (datetime.timedelta(
+            hours=int(h)
+        ) + start_date).strftime('%m-%d') for h in kept_hours]
     # Specify where you want the xticks
-    ax.set_xticks(locations)
+    ax.set_xticks(kept_hours)
     # Specify what you want as xtick labels
     ax.set_xticklabels(labels)
-    # Date format
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
     # The only solution working if you want to change just one ax
     for tick in ax.get_xticklabels():
         tick.set_rotation(30)
@@ -480,7 +482,6 @@ def main(show_obs=True):
                         ax0 = use_dates_as_xticks(ax0[0],  d['time'][i])
                         ax0.set_xlabel('Date')
                         ax0.set_ylabel(d['long_name'] + ' ('+d['units']+')')
-                        ax0.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
 
                         fig0.suptitle(fig_suptitle)
 
