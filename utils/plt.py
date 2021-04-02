@@ -189,6 +189,8 @@ def set_kwargs_default_values(dic, plt_type):
             dic['plot']['show_std'] = dic['plot'].pop("show_std", True)
             dic['plot']['show_mean_label'] = dic['plot'].pop("show_mean_label", True)
             dic['plot']['show_std_label'] = dic['plot'].pop("show_std_label", True)
+            dic['plot']['mean_label'] = dic['plot'].pop("mean_label", 'Mean')
+            dic['plot']['std_label'] = dic['plot'].pop("std_label", 'std')
             # If color is None, matplotlib will pick a value
             dic['plot']['mean_color'] = dic['plot'].pop("mean_color", None)
             dic['plot']['std_color'] = dic['plot'].pop("std_color", None)
@@ -649,12 +651,12 @@ def plot_mean_and_std(
         std = std_values
 
     # ------------------ Draw the mean line-----------------------------
-    line = ax.plot(
+    mean_line, = ax.plot(
         xvalues, mean,
-        label = dict_kwargs['plot']['mean_label'],
         color = dict_kwargs['plot']['mean_color'],
         lw = dict_kwargs['plot']['mean_lw'],
         ls = dict_kwargs['plot']['mean_ls'],
+        label = dict_kwargs['plot']['mean_label'],
         )
 
     # --------------------- Draw std lines------------------------------
@@ -664,9 +666,8 @@ def plot_mean_and_std(
         std_color = line[-1].get_color()
     # --------- If alpha = 0 just show border lines ------------
     if dict_kwargs['plot']['std_alpha'] == 0:
-        ax.plot(
+        std_line, = ax.plot(
             xvalues, mean + std,
-            label = dict_kwargs['plot']['std_label'],
             color = std_color,
             lw = dict_kwargs['plot']['std_lw'],
             ls = dict_kwargs['plot']['std_ls'],
@@ -676,6 +677,7 @@ def plot_mean_and_std(
             color = std_color,
             lw = dict_kwargs['plot']['std_lw'],
             ls = dict_kwargs['plot']['std_ls'],
+            label = dict_kwargs['plot']['std_label']
         )
     # -- Else don't show border lines, just fill between them --
     else:
@@ -684,89 +686,89 @@ def plot_mean_and_std(
             alpha = dict_kwargs['plot']['std_alpha'],
             color = std_color,
             zorder = dict_kwargs['plot']['std_zorder'],)
-    ax.legend()
-    return fig, ax
-
-
-def custom_plot(
-    xvalues,
-    yvalues,
-    dict_kwargs = {},
-    ax=None,
-    fig=None,
-):
-    """
-    Add mean and std to multi-line plots
-
-    :param xvalues: [description]
-    :type xvalues: [type]
-    :param yvalues: [description]
-    :type yvalues: [type]
-    :param dict_kwargs: [description]
-    :type dict_kwargs: [type]
-    :param ax: [description], defaults to None
-    :type ax: [type], optional
-    :param fig: [description], defaults to None
-    :type fig: [type], optional
-    :return: [description]
-    :rtype: [type]
-    """
-    if ax is None:
-        fig, ax = plt.subplots(**dict_kwargs['fig'])
-    text_labels = []
-    lines_labels = []
-    if dict_kwargs['plot']['show_mean']:
-        mean_line = np.mean(yvalues, axis=0)
-        line = ax.plot(
-            xvalues,
-            mean_line,
-            ls="--",
-            c=dict_kwargs['plot']['mean_color'],
-            lw=5,
-            zorder=dict_kwargs['plot']['mean_zorder'],
-        )
-        if dict_kwargs['plot']['show_mean_label']:
-            text_labels.append(dict_kwargs['plot']['show_mean_label'])
-            lines_labels.append(line)
-    if dict_kwargs['plot']['show_std']:
-        mean_line = np.mean(yvalues, axis=0)
-        std_values = np.std(yvalues, axis=0)
-        std_line_sup = mean_line + std_values
-        std_line_inf = mean_line - std_values
-        # If alpha = 0 just show border lines
-        if dict_kwargs['plot']['std_alpha'] == 0:
-            ax.plot(
-                xvalues,std_line_inf,
-                ls="--", lw=2,
-                color=dict_kwargs['plot']['mean_color'],
-                zorder=dict_kwargs['plot']['std_zorder'],
-            )
-            line = ax.plot(
-                xvalues,std_line_sup,
-                ls="--", lw=2,
-                color=dict_kwargs['plot']['mean_color'],
-                zorder=dict_kwargs['plot']['std_zorder'],
-            )
-            if dict_kwargs['plot']['show_mean_label']:
-                text_labels.append("std")
-                lines_labels.append(line)
-
-        # Else don't show border lines, just fill between them
-        else:
-            ax.fill_between(
-                xvalues,
-                std_line_inf, std_line_sup,
-                alpha=dict_kwargs['plot']['std_alpha'],
-                color=dict_kwargs['plot']['mean_color'],
-                zorder=dict_kwargs['plot']['std_zorder'],)
-    if dict_kwargs['plot']['show_mean_label']:
-        add_labels_to_legend(
-            ax,
-            text_labels=text_labels,
-            lines=lines_labels,
-        )
 
     return fig, ax
+
+
+# def custom_plot(
+#     xvalues,
+#     yvalues,
+#     dict_kwargs = {},
+#     ax=None,
+#     fig=None,
+# ):
+#     """
+#     Add mean and std to multi-line plots
+
+#     :param xvalues: [description]
+#     :type xvalues: [type]
+#     :param yvalues: [description]
+#     :type yvalues: [type]
+#     :param dict_kwargs: [description]
+#     :type dict_kwargs: [type]
+#     :param ax: [description], defaults to None
+#     :type ax: [type], optional
+#     :param fig: [description], defaults to None
+#     :type fig: [type], optional
+#     :return: [description]
+#     :rtype: [type]
+#     """
+#     if ax is None:
+#         fig, ax = plt.subplots(**dict_kwargs['fig'])
+#     text_labels = []
+#     lines_labels = []
+#     if dict_kwargs['plot']['show_mean']:
+#         mean_line = np.mean(yvalues, axis=0)
+#         line = ax.plot(
+#             xvalues,
+#             mean_line,
+#             ls="--",
+#             c=dict_kwargs['plot']['mean_color'],
+#             lw=5,
+#             zorder=dict_kwargs['plot']['mean_zorder'],
+#         )
+#         if dict_kwargs['plot']['show_mean_label']:
+#             text_labels.append(dict_kwargs['plot']['show_mean_label'])
+#             lines_labels.append(line)
+#     if dict_kwargs['plot']['show_std']:
+#         mean_line = np.mean(yvalues, axis=0)
+#         std_values = np.std(yvalues, axis=0)
+#         std_line_sup = mean_line + std_values
+#         std_line_inf = mean_line - std_values
+#         # If alpha = 0 just show border lines
+#         if dict_kwargs['plot']['std_alpha'] == 0:
+#             ax.plot(
+#                 xvalues,std_line_inf,
+#                 ls="--", lw=2,
+#                 color=dict_kwargs['plot']['mean_color'],
+#                 zorder=dict_kwargs['plot']['std_zorder'],
+#             )
+#             line = ax.plot(
+#                 xvalues,std_line_sup,
+#                 ls="--", lw=2,
+#                 color=dict_kwargs['plot']['mean_color'],
+#                 zorder=dict_kwargs['plot']['std_zorder'],
+#             )
+#             if dict_kwargs['plot']['show_mean_label']:
+#                 text_labels.append("std")
+#                 lines_labels.append(line)
+
+#         # Else don't show border lines, just fill between them
+#         else:
+#             ax.fill_between(
+#                 xvalues,
+#                 std_line_inf, std_line_sup,
+#                 alpha=dict_kwargs['plot']['std_alpha'],
+#                 color=dict_kwargs['plot']['mean_color'],
+#                 zorder=dict_kwargs['plot']['std_zorder'],)
+#     if dict_kwargs['plot']['show_mean_label']:
+#         add_labels_to_legend(
+#             ax,
+#             text_labels=text_labels,
+#             lines=lines_labels,
+#         )
+
+#     return fig, ax
 
 
 
@@ -930,20 +932,21 @@ def from_list_to_subplots(
                     **dict_kwargs['line'])
 
         if plt_type == "plot_mean_std":
-            fig, ax = custom_plot(
+            fig, ax = plot_mean_and_std(
                 xvalues = xvalues,
                 yvalues = yvalues,
                 dict_kwargs=dict_kwargs,
+                sorted_kwargs=True,
                 fig = fig,
                 ax = ax,
             )
         # handles, labels = ax.get_legend_handles_labels()
         # if handles and labels:
         #     ax.legend(handles, labels)
-    axs = set_list_list_legends(
-        axs,
-        list_list_legends=dict_kwargs['text'].pop("list_list_legends" , None),
-        list_list_lines=None)
+    # axs = set_list_list_legends(
+    #     axs,
+    #     list_list_legends=dict_kwargs['text'].pop("list_list_legends" , None),
+    #     list_list_lines=None)
     fig, axs = set_text(
         axs,
         fig=fig,

@@ -92,23 +92,11 @@ def preprocess_MLVis_data(verbose = False):
             f for f in files if f.startswith(ctrl_startswith[i])
         ])
 
-        print(d['names'])
-        print(d['ctrl_names'])
-
         # nc files associated with this weather event
         d['nc'] = [Dataset(PATH_DATA + f,'r') for f in d['names']]
         d['obs_nc'] = Dataset(PATH_DATA + d['obs_name'],'r')
         d['ctrl_nc'] = [Dataset(PATH_DATA + f,'r') for f in d['ctrl_names']]
 
-        # print([
-        #     (
-        #         nc1.variables['longitude'][0],
-        #         nc2.variables['longitude'][0],
-        #         nc1.variables['latitude'][0],
-        #         nc2.variables['latitude'][0],
-        #     )
-        #     for (nc1, nc2) in zip(d['nc'], d['ctrl_nc'])
-        #     ])
         if verbose:
             # Show what is inside these meteograms
             print(" ----------------------- %s ----------------------- " %name)
@@ -255,23 +243,35 @@ def plot_MLVisData(show_obs=True):
             )
 
 def add_obs(obs_var, obs_time, ax):
-    ax.plot(
+    obs_line, = ax.plot(
         obs_time,
-        obs_var, marker="*",
-        c='black', zorder=100, lw=0.5
+        obs_var,
+        c='orange', zorder=100, lw=1.5,
+        label='obs'
     )
+    # handles, labels = ax.get_legend_handles_labels()
+    # handles += [obs_line]
+    # labels += ['obs']
+    # ax.legend(handles, labels)
     return ax
 
 def add_ctrl(ctrl_var, dates, ax):
-    ax.plot(
+    ctrl_line, = ax.plot(
         dates,
         ctrl_var,
-        c='blue', zorder=100, lw=1
+        c='green', zorder=100, lw=1.2,
+        label='ctrl'
     )
+    # handles, labels = ax.get_legend_handles_labels()
+    # handles += [ctrl_line]
+    # labels += ['ctrl']
+    # ax.legend(handles, labels)
     return ax
 
-def plot_spaghetti():
-    plt.rcParams.update({'font.size': 30})
+def plot_spaghetti(
+    show_obs=True,
+    show_ctrl=True,
+):
     data = preprocess_MLVis_data()
     for name, d in data.items():
         for i in range(len(d['nc'])):
@@ -283,35 +283,43 @@ def plot_spaghetti():
                 "plot_show_mean" : True,
                 "plot_show_std" : True,
                 "plot_mean_zorder" : 3,
+                "plot_mean_color" : 'grey',
+                "plot_mean_lw" : 2,
+                "plot_std_lw" : 1.5,
+                "plot_std_color" : 'grey',
                 "plot_std_zorder" : 3,
                 "plot_std_alpha" : 0,
-                "lw" : 8,
-                "c" : "r",
-                "alpha" : 0.05,
+                "lw" : 0.6,
+                "c" : "lightgrey",
+                "alpha" : 1,
             }
 
 
             fig, axs = from_list_to_subplots(
                 list_yvalues=d['var'][i],
                 list_xvalues=d['dates'][i],
-                plt_type = "plot",
+                plt_type = "plot_mean_std",
                 show=False,
                 dict_kwargs=kwargs
                 )
             ax = axs[0,0]
 
             # add obs
-            ax = add_obs(
-                obs_var=d['obs_var'][common_t],
-                obs_time=d['obs_dates'][common_t],
-                ax=ax
-            )
+            if show_obs:
+                ax = add_obs(
+                    obs_var=d['obs_var'][common_t],
+                    obs_time=d['obs_dates'][common_t],
+                    ax=ax
+                )
+            if show_ctrl:
             # add control member
-            ax = add_ctrl(
-                ctrl_var=d['ctrl_var'][i],
-                dates=d['ctrl_dates'][i],
-                ax=ax
-            )
+                ax = add_ctrl(
+                    ctrl_var=d['ctrl_var'][i],
+                    dates=d['ctrl_dates'][i],
+                    ax=ax
+                )
+            ax.legend()
+
 
             title = name + "\n" + d['names'][i]
             ax.set_title(title)
@@ -339,11 +347,71 @@ def plot_obs():
             PATH_FIG_PARENT + name +'_'+ d['obs_name'][:-3]+'.png'
         )
 
+def select_best_examples():
+    data = preprocess_MLVis_data()
+    best = [
+        'ec.ens.1999122512.sfc.meteogram.nc', # Lothar
+        'ec.ens.2012102500.sfc.meteogram.nc', # Sandy
+        'ec.ens.2019072100.sfc.meteogram.nc', # Heatwave
+        'ec.ens.2021020800.sfc.meteogram.nc', # Coldwave
+        ]
+    max_dates = [
+        datetime.datetime(1999, 12, 29, 12), # Lothar
+        datetime.datetime(2012, 11,  3, 12), # Sandy
+        datetime.datetime(2019,  7, 30, 12), # Heatwave
+        datetime.datetime(2021,  2, 17,  0), # Coldwave
+    ]
+    names = ['Lothar', 'Sandy', 'heatwave', 'coldwave']
+    idx = [
+        data[names[i]]['nc'].index(best[i]) for i in range(len(names))
+    ]
+
+    # ================================
+    # Lothar
+    # ================================
+
+    # ================================
+    # Sandy
+    # ================================
+
+
+
+def use_dates_as_xticks(
+    ax,
+    time_axis,
+    start_date = datetime.datetime(1900,1,1,0),
+):
+    # If you want to have dates as xticks  indpt of what you used to plot your curve
+    # uniformly spaced hours between the min and max
+    locations = np.arange(
+        start=time_axis[0], stop=time_axis[-1], step=time_axis[1]-time_axis[0]
+    )
+    # Now choose how often you want it displayed
+    idx = [i for i in range(len(locations)) if i%4==0]
+    locations = locations[idx]
+    # Create the dates at the kept locations
+    labels = [
+        datetime.timedelta(
+            hours=int(h)
+        ) + start_date for h in locations]
+
+    # Specify where you want the xticks
+    ax.set_xticks(locations)
+    # Specify what you want as xtick labels
+    ax.set_xticklabels(labels)
+    # Date format
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+    # The only solution working if you want to change just one ax
+    for tick in ax.get_xticklabels():
+        tick.set_rotation(30)
+    return ax
+
 def main(show_obs=True):
 
     # ---------------------------
     # Load and preprocess data
     # ---------------------------
+    plt.rcParams.update({'font.size': 30})
 
     data = preprocess_MLVis_data()
     weights_range = [False]
@@ -398,51 +466,22 @@ def main(show_obs=True):
 
                         ax0 = None
                         fig0 = None
-                        if show_k_plot == 'inside' or show_k_plot == 'outside':
-                            if show_k_plot == 'inside':
-                                fig0 = plt.figure(figsize = (25,15), tight_layout=True)
-                                gs = fig0.add_gridspec(nrows=2, ncols=3)
-                                ax0 = fig0.add_subplot(gs[:, 0:2])
-                                ax1 = fig0.add_subplot(gs[0, 2], sharex=ax0)
-                            else:
-                                ax1 = None
-                            fig1, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
-                            ax1_title = 'Number of clusters: relevance'
-                            ax1.set_title(ax1_title)
-                            ax1.set_xlabel("Time")
-                            ax1.set_ylabel("Relevance")
 
-                            if show_k_plot == 'outside':
-                                fig1.savefig(name_fig + "_k_plots")
-
-                        ax_kw = {
-                            'xlabel' : "Time (h)",
-                            'ylabel' : d['long_name'] + ' ('+d['units']+')'
-                            }
-
+                        ax_kw = { }
                         fig_suptitle = filename + "\n" + d['var_name']
 
-                        # If overview:
-                        if show_k_plot == 'overview':
-                            fig0, ax0 = plot_overview(
-                                g, k_max=8, show_vertices=True, show_edges=True,
-                                show_std = True, ax_kw=ax_kw, ax = ax0, fig=fig0,
-                            )
-                            name_fig += '_overview'
 
-                        else:
-                            fig0, ax0 = plot_as_graph(
-                                g, show_vertices=True, show_edges=True, show_std = True,
-                                ax_kw=ax_kw, ax = ax0, fig=fig0,
-                            )
+                        fig0, ax0 = plot_overview(
+                            g, k_max=8, show_vertices=True, show_edges=True,
+                            show_std = True, ax_kw=ax_kw, ax = ax0, fig=fig0,
+                        )
+                        name_fig += '_overview'
 
-                            ax0_title = 'Entire graph'
-                            ax0.set_title(ax0_title)
+                        ax0 = use_dates_as_xticks(ax0[0],  d['time'][i])
+                        ax0.set_xlabel('Date')
+                        ax0.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+                        ax0.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
 
-
-                        # if weights:
-                        #     fig_suptitle += ", with weights"
-                        #     name_fig += '_weights'
                         fig0.suptitle(fig_suptitle)
 
 

@@ -696,8 +696,8 @@ def _draw_arrow(
     k,
     t_start,
     t_end,
-    offset_arrow = -40,
-    offset_text = -55,
+    offset_arrow = +40,
+    offset_text = +5,
 ):
     colors = get_list_colors(g.N)
     x_start = (
