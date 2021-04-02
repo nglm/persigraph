@@ -72,10 +72,10 @@ def preprocess_MLVis_data(verbose = True):
     data = {}
     # subdictionary names
     dic_names = ['Lothar', 'Sandy', 'heatwave', 'coldwave']
-    f_startswith = ['ec.ens.1999', 'ec.ens.2012', 'ec.ens.2019', 'ec.ens.2021']
-    obs_startswith = [
-        'e5.ans.1999', 'e5.ans.2012', 'e5.ans.2019', 'od.ans.2021'
-    ]
+    years = ['1999' , '2012', '2019', '2021']
+    f_startswith = ['ec.ens.' + y for y in years]
+    ctrl_startswith = ['ec.ensctrl.' + y for y in years]
+    obs_startswith = ['e5.ans.' + y for y in years[:-1]] + ['od.ans.2021']
     vars = [['u10', 'v10'], ['msl'], ['t2m'], ['t2m']]
     var_name = ['ff10', 'msl', 't2m', 't2m']
     long_name = []
@@ -88,16 +88,32 @@ def preprocess_MLVis_data(verbose = True):
         d['obs_name'] = [
             f for f in files if f.startswith(obs_startswith[i])
         ][0] #There's just one file
+        d['ctrl_names'] = [
+            f for f in files if f.startswith(ctrl_startswith[i])
+        ]
 
 
         # nc files associated with this weather event
         d['nc'] = [Dataset(PATH_DATA + f,'r') for f in d['names']]
         d['obs_nc'] = Dataset(PATH_DATA + d['obs_name'],'r')
+        d['ctrl_nc'] = [Dataset(PATH_DATA + f,'r') for f in d['ctrl_names']]
+
+        # print([
+        #     (
+        #         nc1.variables['longitude'][0],
+        #         nc2.variables['longitude'][0],
+        #         nc1.variables['latitude'][0],
+        #         nc2.variables['latitude'][0],
+        #     )
+        #     for (nc1, nc2) in zip(d['nc'], d['ctrl_nc'])
+        #     ])
         if verbose:
             # Show what is inside these meteograms
             print(" ----------------------- %s ----------------------- " %name)
             print(" ==== FORECAST ==== ")
             print_nc_dict(d['nc'][0])
+            print(" ==== CONTROL ==== ")
+            print_nc_dict(d['ctrl_nc'][0])
             print(" ==== OBSERVATION ==== ")
             print_nc_dict(d['obs_nc'])
 
@@ -114,6 +130,15 @@ def preprocess_MLVis_data(verbose = True):
                 datetime.timedelta(hours=int(t)) + start_date
                 for t in nc.variables["time"]
             ]) for nc in d['nc']
+        ]
+        d['ctrl_time'] = [
+            np.array(nc.variables["time"]) for nc in d['ctrl_nc']
+        ]
+        d['ctrl_dates'] = [np.array(
+            [
+                datetime.timedelta(hours=int(t)) + start_date
+                for t in nc.variables["time"]
+            ]) for nc in d['ctrl_nc']
         ]
         d['obs_time'] = np.array(d['obs_nc'].variables["time"])
         d['obs_dates'] = np.array(
@@ -133,6 +158,10 @@ def preprocess_MLVis_data(verbose = True):
         obs_var = [
             np.array(d['obs_nc'].variables[v]).squeeze() for v in vars[i]
         ]
+        ctrl_var = [
+            [np.array(nc.variables[v]).squeeze() for v in vars[i]]
+            for nc in d['ctrl_nc']
+        ]
 
         # Remove missing values
         if name == 'Lothar':
@@ -141,20 +170,26 @@ def preprocess_MLVis_data(verbose = True):
                 [bool(i % 2 == 0) for i in range(len(d['time'][0])) ]
             )
             var = [ [ v[idx] for v in v_nc ] for v_nc in var ]
+            ctrl_var = [[ v[idx] for v in v_nc ] for v_nc in ctrl_var ]
             d['time'] = [time_nc[idx] for time_nc in d['time'] ]
-            #d['obs_time'] = d['obs_time'][idx]
             d['dates'] = [dates_nc[idx] for dates_nc in d['dates'] ]
-            #d['obs_dates'] = d['obs_dates'][idx]
+            d['ctrl_time'] = [time_nc[idx] for time_nc in d['ctrl_time'] ]
+            d['ctrl_dates'] = [dates_nc[idx] for dates_nc in d['ctrl_dates'] ]
 
         if var_name[i] == 'ff10':
             var = [ [np.sqrt(v_nc[0]**2 + v_nc[1]**2)] for v_nc in var]
             obs_var = [np.sqrt(obs_var[0]**2 + obs_var[1]**2)]
+            ctrl_var = [
+                [np.sqrt(v_nc[0]**2 + v_nc[1]**2)]
+                for v_nc in ctrl_var
+            ]
             d['long_name'] = 'wind speed'
 
         # Now var is simply a list of np arrays(N, T)
         var = [np.swapaxes(v_nc[0], 0,1) for v_nc in var]
         d['var'] = var
         d['obs_var'] = obs_var[0]
+        d['ctrl_var'] = [v_nc[0] for v_nc in ctrl_var]
 
 
         # add this weather event to our root dictionary
@@ -218,10 +253,18 @@ def plot_MLVisData(show_obs=True):
             )
 
 def add_obs(obs_var, obs_time, ax):
-    ax.scatter(
+    ax.plot(
         obs_time,
-        obs_var, marker="*", edgecolor='black',
-        c='b', s=200, zorder=100, lw=0.5
+        obs_var, marker="*",
+        c='black', zorder=100, lw=0.5
+    )
+    return ax
+
+def add_ctrl(ctrl_var, dates, ax):
+    ax.plot(
+        dates,
+        ctrl_var,
+        c='blue', zorder=100, lw=1
     )
     return ax
 
@@ -255,9 +298,16 @@ def plot_spaghetti():
                 )
             ax = axs[0,0]
 
+            # add obs
             ax = add_obs(
                 obs_var=d['obs_var'][common_t],
                 obs_time=d['obs_dates'][common_t],
+                ax=ax
+            )
+            # add control member
+            ax = add_ctrl(
+                ctrl_var=d['ctrl_var'][i],
+                dates=d['ctrl_dates'][i],
                 ax=ax
             )
 
