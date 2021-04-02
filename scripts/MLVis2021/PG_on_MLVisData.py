@@ -187,7 +187,7 @@ def preprocess_MLVis_data(verbose = False):
 
     return data
 
-def find_common_dates(t, t_obs):
+def find_common_dates(t, t_obs, is_Lothar=False):
     # Assume that they are sorted
     start_i_obs = 0
     start_i = 0
@@ -207,11 +207,10 @@ def find_common_dates(t, t_obs):
     i_obs = []
     i = 0
     while len(i_obs) < n:
-        if n == 51:
+        if not is_Lothar:
             if t[i+start_i] == t_obs[i+start_i_obs]:
                 i_obs.append(i+start_i_obs)
         else:
-            # Lothar case
             if t[i//2+start_i] == t_obs[i+start_i_obs]:
                 i_obs.append(i+start_i_obs)
         i += 1
@@ -246,7 +245,7 @@ def add_obs(obs_var, obs_time, ax):
     obs_line, = ax.plot(
         obs_time,
         obs_var,
-        c='orange', zorder=100, lw=1.5,
+        c='green', zorder=100, lw=1.5,
         label='obs'
     )
     return ax
@@ -255,7 +254,7 @@ def add_ctrl(ctrl_var, dates, ax):
     ctrl_line, = ax.plot(
         dates,
         ctrl_var,
-        c='green', zorder=100, lw=1.2,
+        c='orange', zorder=100, lw=1.2,
         label='ctrl'
     )
     return ax
@@ -383,6 +382,131 @@ def select_best_examples():
     # Lothar
     # ================================
 
+    k = 0
+    i = idx[k]
+    name = names[k]
+    max_date = max_dates[k]
+    d = data[name]
+    score = "inertia"
+    filename = d['names'][i]
+    name_fig = (
+        path_fig + name +'_'
+        + filename[:-3] + "_" + d['var_name'] +"_"+score
+    )
+    name_graph = path_graph + filename[:-3] + '.pg'
+
+    fig = plt.figure(figsize = FIG_SIZE, tight_layout=True)
+    n = 12
+    m = 24
+    gs = fig.add_gridspec(nrows=n, ncols=m)
+
+    # ---------------------------
+    # Construct graph
+    # ---------------------------
+
+    g = PersistentGraph(
+            time_axis = d['time'][i][:max_t[k]],
+            members = d['var'][i][:, :max_t[k]],
+            score_type = score,
+            zero_type = 'bounds',
+            model_type = 'KMeans',
+            k_max = 10,
+    )
+    g.construct_graph(
+        verbose = False,
+        quiet = True,
+    )
+    # ---------------------------------
+    # Plots
+    # ---------------------------------
+    common_t = find_common_dates(
+        d['time'][i][:max_t[k]], d['obs_time'], is_Lothar=True,
+    )
+
+
+    # ---- Plot Graph ----
+    ax0 = fig.add_subplot(gs[:, 0:m//3])
+    _, ax0 = plot_as_graph(
+        g, show_vertices=True, show_edges=True,ax=ax0,
+        show_std=True)
+    ax0.set_title("Entire graph")
+    ax0.set_xlabel(' ')
+    ax0.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+    ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]], freq = 1)
+    #ax0 = annot_ax(g, ax=ax0)
+
+    # ---- k_plot ----
+    # ax1 = fig.add_subplot(gs[5:-1, 1:7], sharex=ax0)
+    # _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
+    # #ax1.set_xlabel("Time")
+    # ax1.set_ylabel("Relevance")
+    # ax1.set_xlabel("")
+    # ax1.set_title('Number of clusters: relevance')
+    # ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq=8)
+    # ax1.legend()
+
+    # ---- Spaghetti ----
+    ax2 = fig.add_subplot(gs[:, m//3:2*m//3])
+    ax2 = add_spaghetti(
+        time_axis = d['time'][i][:max_t[k]],
+        var = d['var'][i][:, :max_t[k]],
+        ax=ax2,
+    )
+
+    ax2 = add_obs(
+        d['obs_var'][common_t],
+        d['obs_time'][common_t],
+        ax=ax2,
+    )
+
+    ax2 = use_dates_as_xticks(ax2,  d['time'][i][:max_t[k]], freq = 1)
+    # We can not really share without that if they have been created
+    # separately
+    ax0.get_shared_y_axes().join(ax0, ax2)
+    # Turn off ticks on this one
+    ax2.set_yticklabels([])
+    ax2.legend()
+
+    # ---- Most relevant ----
+    relevant_k = get_relevant_k(g)
+    relevant_k[-3:-2] = [[2, 0] for _ in range(len(relevant_k[-3:-2]))]
+    relevant_components = get_relevant_components(g, relevant_k)
+    ax3 = fig.add_subplot(gs[:, 2*m//3:])
+    _, ax3 = plot_most_revelant_components(
+        g, relevant_components=relevant_components,
+        show_vertices=True, show_edges=True,ax=ax3,
+        show_std=True)
+    ax3.set_title("Entire graph")
+    ax3.set_xlabel(' ')
+    ax3.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+
+    ax3 = add_obs(
+        d['obs_var'][common_t],
+        d['obs_time'][common_t],
+        ax=ax3,
+    )
+
+    ax3 = use_dates_as_xticks(ax3,  d['time'][i][:max_t[k]], freq = 1)
+
+    # We can not really share without that if they have been created
+    # separately
+    ax0.get_shared_y_axes().join(ax0, ax3)
+    # Turn off ticks on this one
+    ax3.set_yticklabels([])
+
+    fig_suptitle = filename + "\n" + d['var_name']
+    fig.suptitle(fig_suptitle)
+
+
+    # ---------------------------
+    # Save plot and graph
+    # ---------------------------.
+    name_fig += '.png'
+    fig.savefig(name_fig)
+    plt.close()
+    g.save(name_graph)
+
+
 
     # ================================
     # Sandy
@@ -391,7 +515,7 @@ def select_best_examples():
     i = idx[k]
     name = names[k]
     max_date = max_dates[k]
-    d = data["Sandy"]
+    d = data[name]
     score = "inertia"
     filename = d['names'][i]
     name_fig = (
@@ -408,8 +532,8 @@ def select_best_examples():
     # ---------------------------
 
     g = PersistentGraph(
-            time_axis = d['time'][i][:max_t[i]],
-            members = d['var'][i][:, :max_t[i]],
+            time_axis = d['time'][i][:max_t[k]],
+            members = d['var'][i][:, :max_t[k]],
             score_type = score,
             zero_type = 'bounds',
             model_type = 'KMeans',
@@ -431,7 +555,7 @@ def select_best_examples():
     ax0.set_title("Entire graph")
     ax0.set_xlabel(' ')
     ax0.set_ylabel(d['long_name'] + ' ('+d['units']+')')
-    ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[i]])
+    ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]])
     #ax0 = annot_ax(g, ax=ax0)
 
     # ---- k_plot ----
@@ -441,30 +565,28 @@ def select_best_examples():
     ax1.set_ylabel("Relevance")
     ax1.set_xlabel("")
     ax1.set_title('Number of clusters: relevance')
-    ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[i]], freq=8)
+    ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq=8)
     ax1.legend()
 
     # ---- Spaghetti ----
     ax2 = fig.add_subplot(gs[:, 12:], sharex=ax0)
     ax2 = add_spaghetti(
-        time_axis = d['time'][i][:max_t[i]],
-        var = d['var'][i][:, :max_t[i]],
+        time_axis = d['time'][i][:max_t[k]],
+        var = d['var'][i][:, :max_t[k]],
         ax=ax2,
     )
     ax2 = add_ctrl(
-        ctrl_var=d['ctrl_var'][i][:max_t[i]],
-        dates=d['ctrl_time'][i][:max_t[i]],
+        ctrl_var=d['ctrl_var'][i][:max_t[k]],
+        dates=d['ctrl_time'][i][:max_t[k]],
         ax=ax2,
     )
-    ax2 = use_dates_as_xticks(ax2,  d['time'][i][:max_t[i]])
+    ax2 = use_dates_as_xticks(ax2,  d['time'][i][:max_t[k]])
     # We can not really share without that if they have been created
     # separately
     ax0.get_shared_y_axes().join(ax0, ax2)
     # Turn off ticks on this one
     ax2.set_yticklabels([])
     ax2.legend()
-
-
 
     fig_suptitle = filename + "\n" + d['var_name']
     fig.suptitle(fig_suptitle)
@@ -478,6 +600,108 @@ def select_best_examples():
     plt.close()
     g.save(name_graph)
 
+
+    # ================================
+    # Heatwave
+    # ================================
+    k = 2
+    i = idx[k]
+    name = names[k]
+    max_date = max_dates[k]
+    d = data[name]
+    score = "inertia"
+    filename = d['names'][i]
+    name_fig = (
+        path_fig + name +'_'
+        + filename[:-3] + "_" + d['var_name'] +"_"+score
+    )
+    name_graph = path_graph + filename[:-3] + '.pg'
+
+    fig = plt.figure(figsize = FIG_SIZE, tight_layout=True)
+    n, m = 12, 24
+    gs = fig.add_gridspec(nrows=n, ncols=m)
+
+    # ---------------------------
+    # Construct graph
+    # ---------------------------
+    g = PersistentGraph(
+            time_axis = d['time'][i][:max_t[k]],
+            members = d['var'][i][:, :max_t[k]],
+            score_type = score,
+            zero_type = 'bounds',
+            model_type = 'KMeans',
+            k_max = 10,
+    )
+    g.construct_graph(
+        verbose = False,
+        quiet = True,
+    )
+    # ---------------------------------
+    # Plots
+    # ---------------------------------
+    common_t = find_common_dates(d['time'][i][:max_t[k]], d['obs_time'])
+
+    # ---- Plot Graph ----
+    ax0 = fig.add_subplot(gs[:, 0:m//2])
+    _, ax0 = plot_as_graph(
+        g, show_vertices=True, show_edges=True,ax=ax0,
+        show_std=True)
+    ax0.set_title("Entire graph")
+    ax0.set_xlabel(' ')
+    ax0.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+    ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]])
+    ax0 = annot_ax(g, ax=ax0)
+
+    # ax0 = add_obs(
+    #     d['obs_var'][common_t],
+    #     d['obs_time'][common_t],
+    #     ax=ax0,
+    # )
+
+    # # ---- k_plot ----
+    # ax1 = fig.add_subplot(gs[5:-1, 1:7], sharex=ax0)
+    # _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
+    # #ax1.set_xlabel("Time")
+    # ax1.set_ylabel("Relevance")
+    # ax1.set_xlabel("")
+    # ax1.set_title('Number of clusters: relevance')
+    # ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq=8)
+    # ax1.legend()
+
+    # ---- Spaghetti ----
+    ax2 = fig.add_subplot(gs[:, m//2:], sharex=ax0)
+    ax2 = add_spaghetti(
+        time_axis = d['time'][i][:max_t[k]],
+        var = d['var'][i][:, :max_t[k]],
+        ax=ax2,
+    )
+
+    # ax2 = add_obs(
+    #     d['obs_var'][common_t],
+    #     d['obs_time'][common_t],
+    #     ax=ax2,
+    # )
+
+
+    ax2 = use_dates_as_xticks(ax2,  d['time'][i][:max_t[k]])
+    # We can not really share without that if they have been created
+    # separately
+    ax0.get_shared_y_axes().join(ax0, ax2)
+    # Turn off ticks on this one
+    ax2.set_yticklabels([])
+    ax2.legend()
+
+    fig_suptitle = filename + "\n" + d['var_name']
+    fig.suptitle(fig_suptitle)
+
+
+    # ---------------------------
+    # Save plot and graph
+    # ---------------------------.
+    name_fig += '.png'
+    fig.savefig(name_fig)
+    plt.close()
+    g.save(name_graph)
 
 def use_dates_as_xticks(
     ax,
