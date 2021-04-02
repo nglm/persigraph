@@ -249,10 +249,6 @@ def add_obs(obs_var, obs_time, ax):
         c='orange', zorder=100, lw=1.5,
         label='obs'
     )
-    # handles, labels = ax.get_legend_handles_labels()
-    # handles += [obs_line]
-    # labels += ['obs']
-    # ax.legend(handles, labels)
     return ax
 
 def add_ctrl(ctrl_var, dates, ax):
@@ -262,10 +258,30 @@ def add_ctrl(ctrl_var, dates, ax):
         c='green', zorder=100, lw=1.2,
         label='ctrl'
     )
-    # handles, labels = ax.get_legend_handles_labels()
-    # handles += [ctrl_line]
-    # labels += ['ctrl']
-    # ax.legend(handles, labels)
+    return ax
+
+def add_spaghetti(
+    time_axis,
+    var,
+    ax,
+):
+    for m in var:
+        ax.plot(time_axis, m, lw=0.6, color='lightgrey')
+    mean = np.mean(var, axis = 0)
+    std = np.std(var, axis = 0)
+    ax.plot(
+        time_axis, mean,
+        label = 'Mean', color='grey', lw=2, zorder=100
+        )
+    ax.plot(
+        time_axis, mean+std,
+        label = 'std', color='grey', lw=1.5, ls='--', zorder=100
+    )
+    ax.plot(
+        time_axis, mean-std,
+        color='grey', lw=1.5, ls='--', zorder=100
+    )
+    ax.legend()
     return ax
 
 def plot_spaghetti(
@@ -277,32 +293,14 @@ def plot_spaghetti(
         for i in range(len(d['nc'])):
 
             common_t = find_common_dates(d['time'][i], d['obs_time'])
+            fig, ax = plt.subplots(figsize=(15,10))
 
-            kwargs = {
-                "figsize" : (15,10),
-                "plot_show_mean" : True,
-                "plot_show_std" : True,
-                "plot_mean_zorder" : 3,
-                "plot_mean_color" : 'grey',
-                "plot_mean_lw" : 2,
-                "plot_std_lw" : 1.5,
-                "plot_std_color" : 'grey',
-                "plot_std_zorder" : 3,
-                "plot_std_alpha" : 0,
-                "lw" : 0.6,
-                "c" : "lightgrey",
-                "alpha" : 1,
-            }
-
-
-            fig, axs = from_list_to_subplots(
-                list_yvalues=d['var'][i],
-                list_xvalues=d['dates'][i],
-                plt_type = "plot_mean_std",
-                show=False,
-                dict_kwargs=kwargs
-                )
-            ax = axs[0,0]
+            # add spaghetti
+            ax = add_spaghetti(
+                time_axis = d['time'][i],
+                var = d['var'][i],
+                ax=ax,
+            )
 
             # add obs
             if show_obs:
@@ -363,23 +361,123 @@ def select_best_examples():
     ]
     names = ['Lothar', 'Sandy', 'heatwave', 'coldwave']
     idx = [
-        data[names[i]]['nc'].index(best[i]) for i in range(len(names))
+        data[names[i]]['names'].index(best[i]) for i in range(len(names))
     ]
+
+
+    # --------------------------------------------
+    # ----- Prepare folders and paths ------------
+    # --------------------------------------------
+    path_root = PATH_FIG_PARENT + 'best/'
+    path_fig = path_root + "plots/"
+    path_graph = path_root + "graphs/"
+    makedirs(path_fig, exist_ok = True)
+    makedirs(path_graph, exist_ok = True)
+    FIG_SIZE = (25, 10)
 
     # ================================
     # Lothar
     # ================================
 
+
     # ================================
     # Sandy
     # ================================
+    k = 2
+    i = idx[k]
+    name = names[k]
+    d = data["Sandy"]
+    score = "inertia"
+    filename = d['names'][i]
+    name_fig = (
+        path_fig + name +'_'
+        + filename[:-3] + "_" + d['var_name'] +"_"+score
+    )
+    name_graph = path_graph + filename[:-3] + '.pg'
 
+    fig = plt.figure(figsize = FIG_SIZE, tight_layout=True)
+    gs = fig.add_gridspec(nrows=2, ncols=5)
+
+    # ---------------------------
+    # Construct graph
+    # ---------------------------
+
+    g = PersistentGraph(
+            time_axis = d['time'][i],
+            members = d['var'][i],
+            score_type = score,
+            zero_type = 'bounds',
+            model_type = 'KMeans',
+            k_max = 10,
+    )
+    g.construct_graph(
+        verbose = False,
+        quiet = True,
+    )
+    # ---------------------------------
+    # Plots
+    # ---------------------------------
+
+    # ---- Plot Graph ----
+    ax0 = fig.add_subplot(gs[:, 0:2])
+    _, ax0 = plot_as_graph(
+        g, show_vertices=True, show_edges=True,ax=ax0,
+        show_std=True)
+    ax0.set_title("Entire graph")
+    ax0.set_xlabel(' ')
+    ax0.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+    ax0 = use_dates_as_xticks(ax0,  d['time'][i])
+    ax0 = annot_ax(g, ax=ax0)
+
+    # ---- k_plot ----
+    ax1 = fig.add_subplot(gs[0, 2], sharex=ax0)
+    _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
+    #ax1.set_xlabel("Time")
+    ax1.set_ylabel("Relevance")
+    ax1.set_title('Number of clusters: relevance')
+    ax1 = use_dates_as_xticks(ax1,  d['time'][i], freq=8)
+    ax1.legend()
+
+    # ---- Spaghetti ----
+    ax2 = fig.add_subplot(gs[:, 3:], sharex=ax0) 
+    ax2 = add_spaghetti(
+        time_axis = d['time'][i],
+        var = d['var'][i],
+        ax=ax2,
+    )
+    ax2 = add_ctrl(
+        ctrl_var=d['ctrl_var'][i],
+        dates=d['ctrl_time'][i],
+        ax=ax2,
+    )
+    ax2 = use_dates_as_xticks(ax2,  d['time'][i])
+    # We can not really share without that if they have been created
+    # separately
+    ax0.get_shared_y_axes().join(ax0, ax2)
+    # Turn off ticks on this one
+    ax2.set_yticklabels([])
+    ax2.legend()
+
+
+
+    fig_suptitle = filename + "\n" + d['var_name']
+    fig.suptitle(fig_suptitle)
+
+
+    # ---------------------------
+    # Save plot and graph
+    # ---------------------------.
+    name_fig += '.png'
+    fig.savefig(name_fig)
+    plt.close()
+    g.save(name_graph)
 
 
 def use_dates_as_xticks(
     ax,
     time_axis,
     start_date = datetime.datetime(1900,1,1,0),
+    freq = 4
 ):
     # If you want to have dates as xticks  indpt of what you used to plot your curve
     # uniformly spaced hours between the min and max
@@ -387,7 +485,7 @@ def use_dates_as_xticks(
         start=time_axis[0], stop=time_axis[-1], step=time_axis[1]-time_axis[0]
     )
     # Now choose how often you want it displayed
-    idx = [i for i in range(len(total_hours)) if i%4==0]
+    idx = [i for i in range(len(total_hours)) if i%freq==0]
     kept_hours = total_hours[idx]
 
     # Create the string of dates at the kept locations
@@ -413,7 +511,7 @@ def main(show_obs=True):
     # ---------------------------
     # Load and preprocess data
     # ---------------------------
-    plt.rcParams.update({'font.size': 30})
+    #plt.rcParams.update({'font.size': 30})
 
     data = preprocess_MLVis_data()
     weights_range = [False]
@@ -479,9 +577,11 @@ def main(show_obs=True):
                         )
                         name_fig += '_overview'
 
-                        ax0 = use_dates_as_xticks(ax0[0],  d['time'][i])
-                        ax0.set_xlabel('Date')
-                        ax0.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+                        for ax in ax0:
+                            ax = use_dates_as_xticks(ax,  d['time'][i])
+                        ax0.set_xlabel(' ')
+                        ax0[0].set_ylabel(d['long_name'] + ' ('+d['units']+')')
+                        ax0[-1].set_ylabel(d['long_name'] + ' ('+d['units']+')')
 
                         fig0.suptitle(fig_suptitle)
 
