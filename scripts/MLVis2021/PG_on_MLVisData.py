@@ -387,7 +387,7 @@ def select_best_examples():
     # ================================
     # Sandy
     # ================================
-    k = 2
+    k = 1
     i = idx[k]
     name = names[k]
     max_date = max_dates[k]
@@ -401,7 +401,7 @@ def select_best_examples():
     name_graph = path_graph + filename[:-3] + '.pg'
 
     fig = plt.figure(figsize = FIG_SIZE, tight_layout=True)
-    gs = fig.add_gridspec(nrows=2, ncols=5)
+    gs = fig.add_gridspec(nrows=12, ncols=24)
 
     # ---------------------------
     # Construct graph
@@ -424,7 +424,7 @@ def select_best_examples():
     # ---------------------------------
 
     # ---- Plot Graph ----
-    ax0 = fig.add_subplot(gs[:, 0:2])
+    ax0 = fig.add_subplot(gs[:, 0:12])
     _, ax0 = plot_most_revelant_components(
         g, show_vertices=True, show_edges=True,ax=ax0,
         show_std=True)
@@ -432,19 +432,20 @@ def select_best_examples():
     ax0.set_xlabel(' ')
     ax0.set_ylabel(d['long_name'] + ' ('+d['units']+')')
     ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[i]])
-    ax0 = annot_ax(g, ax=ax0)
+    #ax0 = annot_ax(g, ax=ax0)
 
     # ---- k_plot ----
-    ax1 = fig.add_subplot(gs[0, 2], sharex=ax0)
+    ax1 = fig.add_subplot(gs[5:-1, 1:7], sharex=ax0)
     _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
     #ax1.set_xlabel("Time")
     ax1.set_ylabel("Relevance")
+    ax1.set_xlabel("")
     ax1.set_title('Number of clusters: relevance')
     ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[i]], freq=8)
     ax1.legend()
 
     # ---- Spaghetti ----
-    ax2 = fig.add_subplot(gs[:, 3:], sharex=ax0)
+    ax2 = fig.add_subplot(gs[:, 12:], sharex=ax0)
     ax2 = add_spaghetti(
         time_axis = d['time'][i][:max_t[i]],
         var = d['var'][i][:, :max_t[i]],
