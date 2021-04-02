@@ -61,7 +61,7 @@ PATH_FIG_PARENT = (
 )
 
 
-def preprocess_MLVis_data(verbose = True):
+def preprocess_MLVis_data(verbose = False):
     # Find files
     files = [
         fname for fname in listdir(PATH_DATA)
@@ -84,14 +84,16 @@ def preprocess_MLVis_data(verbose = True):
         # New dic for each weather event
         d = {}
         # Meteogram names associated with this weather event
-        d['names'] = [f for f in files if f.startswith(f_startswith[i])]
-        d['obs_name'] = [
+        d['names'] = sorted([f for f in files if f.startswith(f_startswith[i])])
+        d['obs_name'] = sorted([
             f for f in files if f.startswith(obs_startswith[i])
-        ][0] #There's just one file
-        d['ctrl_names'] = [
+        ])[0] #There's just one file
+        d['ctrl_names'] = sorted([
             f for f in files if f.startswith(ctrl_startswith[i])
-        ]
+        ])
 
+        print(d['names'])
+        print(d['ctrl_names'])
 
         # nc files associated with this weather event
         d['nc'] = [Dataset(PATH_DATA + f,'r') for f in d['names']]
