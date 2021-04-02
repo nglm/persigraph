@@ -355,13 +355,17 @@ def select_best_examples():
         ]
     max_dates = [
         datetime.datetime(1999, 12, 29, 12), # Lothar
-        datetime.datetime(2012, 11,  3, 12), # Sandy
+        datetime.datetime(2012, 11,  1, 18), # Sandy
         datetime.datetime(2019,  7, 30, 12), # Heatwave
         datetime.datetime(2021,  2, 17,  0), # Coldwave
     ]
     names = ['Lothar', 'Sandy', 'heatwave', 'coldwave']
     idx = [
         data[names[i]]['names'].index(best[i]) for i in range(len(names))
+    ]
+    max_t = [
+        list(data[names[i]]['dates'][idx[i]]).index(max_dates[i])
+        for i in range(len(names))
     ]
 
 
@@ -386,6 +390,7 @@ def select_best_examples():
     k = 2
     i = idx[k]
     name = names[k]
+    max_date = max_dates[k]
     d = data["Sandy"]
     score = "inertia"
     filename = d['names'][i]
@@ -403,8 +408,8 @@ def select_best_examples():
     # ---------------------------
 
     g = PersistentGraph(
-            time_axis = d['time'][i],
-            members = d['var'][i],
+            time_axis = d['time'][i][:max_t[i]],
+            members = d['var'][i][:, :max_t[i]],
             score_type = score,
             zero_type = 'bounds',
             model_type = 'KMeans',
@@ -420,13 +425,13 @@ def select_best_examples():
 
     # ---- Plot Graph ----
     ax0 = fig.add_subplot(gs[:, 0:2])
-    _, ax0 = plot_as_graph(
+    _, ax0 = plot_most_revelant_components(
         g, show_vertices=True, show_edges=True,ax=ax0,
         show_std=True)
     ax0.set_title("Entire graph")
     ax0.set_xlabel(' ')
     ax0.set_ylabel(d['long_name'] + ' ('+d['units']+')')
-    ax0 = use_dates_as_xticks(ax0,  d['time'][i])
+    ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[i]])
     ax0 = annot_ax(g, ax=ax0)
 
     # ---- k_plot ----
@@ -435,22 +440,22 @@ def select_best_examples():
     #ax1.set_xlabel("Time")
     ax1.set_ylabel("Relevance")
     ax1.set_title('Number of clusters: relevance')
-    ax1 = use_dates_as_xticks(ax1,  d['time'][i], freq=8)
+    ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[i]], freq=8)
     ax1.legend()
 
     # ---- Spaghetti ----
-    ax2 = fig.add_subplot(gs[:, 3:], sharex=ax0) 
+    ax2 = fig.add_subplot(gs[:, 3:], sharex=ax0)
     ax2 = add_spaghetti(
-        time_axis = d['time'][i],
-        var = d['var'][i],
+        time_axis = d['time'][i][:max_t[i]],
+        var = d['var'][i][:, :max_t[i]],
         ax=ax2,
     )
     ax2 = add_ctrl(
-        ctrl_var=d['ctrl_var'][i],
-        dates=d['ctrl_time'][i],
+        ctrl_var=d['ctrl_var'][i][:max_t[i]],
+        dates=d['ctrl_time'][i][:max_t[i]],
         ax=ax2,
     )
-    ax2 = use_dates_as_xticks(ax2,  d['time'][i])
+    ax2 = use_dates_as_xticks(ax2,  d['time'][i][:max_t[i]])
     # We can not really share without that if they have been created
     # separately
     ax0.get_shared_y_axes().join(ax0, ax2)
