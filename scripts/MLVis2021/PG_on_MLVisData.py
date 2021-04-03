@@ -40,16 +40,6 @@ SCORE_TYPES = [
     #'max_MedDevMed', # Shouldn't be used: see details below
 ]
 
-ZERO_TYPE = 'bounds'
-
-# Use
-# - 'overview' if you want the overview plot (entire graph + k_plot +
-# most relevant components)
-# - 'inside' if you want graph and k_plots on the same fig
-# - 'outside' if you want 2 figs
-# - anything else if you just want the entire graph
-show_k_plot = 'overview'
-
 # Absolute path to the files
 # type: str
 PATH_DATA = "/home/natacha/Documents/Work/Data/MLVis2021/"
@@ -59,6 +49,31 @@ PATH_DATA = "/home/natacha/Documents/Work/Data/MLVis2021/"
 PATH_FIG_PARENT = (
     "/home/natacha/Documents/tmp/figs/PG/MLVis/"
 )
+
+MEAN_LW = 2
+MEAN_COLOR = 'grey'
+MEAN_LS = "-"
+MEAN_LABEL = 'mean'
+MEAN_ZORDER = 100
+
+STD_LW = 1.5
+STD_COLOR = 'grey'
+STD_LS = "--"
+STD_LABEL = "std"
+STD_ZORDER = 100
+
+LW = 0.6
+COLOR = 'lightgrey'
+
+OBS_LW = 1.5
+OBS_COLOR = 'green'
+OBS_LABEL = "obs"
+OBS_ZORDER = 99
+
+CTRL_LW = 1.2
+CTRL_COLOR = 'orange'
+CTRL_LABEL = "ctrl"
+CTRL_ZORDER = 98
 
 
 def preprocess_MLVis_data(verbose = False):
@@ -216,37 +231,25 @@ def find_common_dates(t, t_obs, is_Lothar=False):
         i += 1
     return i_obs
 
-def plot_MLVisData(show_obs=True):
-    data = preprocess_MLVis_data()
-    for name, d in data.items():
-        for i in range(len(d['nc'])):
-            print(d['var'][i].shape)
-            fig, ax = plt.subplots(figsize=(15,10))
-            common_t = find_common_dates(d['time'][i], d['obs_time'])
+def add_fake_legend(
+    l = []
+):
+    lines = []
+    labels = []
+    if 'mean' in l:
+        lines.append()
+    colors = ['black', 'red', 'green']
+    lines = [Line2D([0], [0], color='grey', linewidth=3, linestyle='--') for c in colors]
+    labels = ['black data', 'red data', 'green data']
+    plt.legend(lines, labels)
 
-            for m in d['var'][i]:
-                ax.plot(d['time'][i]-d['time'][i][0], m)
-                ax.scatter(
-                    d['obs_time'][common_t] - d['time'][i][0],
-                    d['obs_var'][common_t], marker="*", edgecolor='black',
-                    c='r', s=200, zorder=100, lw=0.5
-                )
-            title = name + "\n" + d['names'][i]
-            ax.set_title(title)
-            ax.set_xlabel('Time (h)')
-            ax.set_ylabel(d['long_name'] + ' ('+d['units']+')')
-            plt.savefig(
-                PATH_FIG_PARENT + name +'_'
-                + d['names'][i][:-3] + "_" + d['var_name']
-                +'.png'
-            )
 
 def add_obs(obs_var, obs_time, ax):
     obs_line, = ax.plot(
         obs_time,
         obs_var,
-        c='green', zorder=100, lw=1.5,
-        label='obs'
+        c=OBS_COLOR, zorder=OBS_ZORDER, lw=OBS_LW,
+        label=OBS_LABEL,
     )
     return ax
 
@@ -254,8 +257,8 @@ def add_ctrl(ctrl_var, dates, ax):
     ctrl_line, = ax.plot(
         dates,
         ctrl_var,
-        c='orange', zorder=100, lw=1.2,
-        label='ctrl'
+        c=CTRL_COLOR, zorder=CTRL_ZORDER, lw=CTRL_LW,
+        label=CTRL_LABEL,
     )
     return ax
 
@@ -265,22 +268,24 @@ def add_spaghetti(
     ax,
 ):
     for m in var:
-        ax.plot(time_axis, m, lw=0.6, color='lightgrey')
+        ax.plot(time_axis, m, lw=LW, color=COLOR)
     mean = np.mean(var, axis = 0)
     std = np.std(var, axis = 0)
     ax.plot(
         time_axis, mean,
-        label = 'Mean', color='grey', lw=2, zorder=100
+        label = MEAN_LABEL, color=MEAN_COLOR,
+        lw=MEAN_LW, ls=MEAN_LS, zorder=MEAN_ZORDER
         )
     ax.plot(
         time_axis, mean+std,
-        label = 'std', color='grey', lw=1.5, ls='--', zorder=100
+        label = STD_LABEL, color=STD_COLOR,
+        lw=STD_LW, ls=STD_LS, zorder=STD_ZORDER
     )
     ax.plot(
         time_axis, mean-std,
-        color='grey', lw=1.5, ls='--', zorder=100
+        color=STD_COLOR,
+        lw=STD_LW, ls=STD_LS, zorder=STD_ZORDER
     )
-    ax.legend()
     return ax
 
 def plot_spaghetti(
@@ -320,7 +325,7 @@ def plot_spaghetti(
 
             title = name + "\n" + d['names'][i]
             ax.set_title(title)
-            ax.set_xlabel('Date')
+            ax.set_xlabel('')
             ax.set_ylabel(d['long_name'] + ' ('+d['units']+')')
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
             fig.autofmt_xdate()
@@ -618,7 +623,7 @@ def select_best_examples():
     name_graph = path_graph + filename[:-3] + '.pg'
 
     fig = plt.figure(figsize = FIG_SIZE, tight_layout=True)
-    n, m = 12, 24
+    n, m = 5, 40
     gs = fig.add_gridspec(nrows=n, ncols=m)
 
     # ---------------------------
@@ -659,14 +664,31 @@ def select_best_examples():
     # )
 
     # # ---- k_plot ----
-    # ax1 = fig.add_subplot(gs[5:-1, 1:7], sharex=ax0)
-    # _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
-    # #ax1.set_xlabel("Time")
-    # ax1.set_ylabel("Relevance")
-    # ax1.set_xlabel("")
-    # ax1.set_title('Number of clusters: relevance')
-    # ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq=8)
-    # ax1.legend()
+    ax1 = fig.add_subplot(gs[:2, 1:9])
+    _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
+    ax1.set_ylabel("Relevance")
+    ax1.set_xlabel("")
+
+    #  ------------------------- Title inside --------------------------
+    ax1.annotate('Number of clusters: relevance',  # Your string
+
+                # The point that we'll place the text in relation to
+                xy=(0.17, 0.92),
+                # Interpret the x as axes coords, and the y as figure coords
+                #xycoords=('axes fraction', 'figure fraction'),
+                xycoords=('axes fraction', 'axes fraction'),
+
+                # The distance from the point that the text will be at
+                xytext=(0, 0),
+                # Interpret `xytext` as an offset in points...
+                textcoords='offset points',
+
+                # Any other text parameters we'd like
+                #size=14, ha='center', va='bottom')
+    )
+    #  -----------------------------------------------------------------
+    ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq=8)
+    ax1.legend()
 
     # ---- Spaghetti ----
     ax2 = fig.add_subplot(gs[:, m//2:], sharex=ax0)
