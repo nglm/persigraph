@@ -596,7 +596,13 @@ def add_labels_to_legend(
         ax.legend(prev_handles, prev_labels, **dict_kwargs)
     return ax
 
-
+def move_legend(
+    ax1,
+    ax2,
+    legend_kwargs = {},
+):
+    handles, labels = ax1.get_legend_handles_labels()
+    ax2.legend(handles, labels, **legend_kwargs)
 
 def plot_mean_and_std(
     yvalues = None,
