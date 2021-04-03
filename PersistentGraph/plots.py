@@ -666,6 +666,7 @@ def k_plot(
     life_span=None,
     fig = None,
     ax = None,
+    show0 = False,
     fig_kw: dict = {"figsize" : (5,3)},
     ax_kw: dict = {},
 ):
@@ -679,7 +680,11 @@ def k_plot(
 
     if ax is None:
         fig, ax = plt.subplots(**fig_kw)
-    for k in range(k_max+1):
+    if show0:
+        k_range = range(k_max)
+    else:
+        k_range = range(1, k_max)
+    for k in k_range:
         ax.plot(
             g.time_axis, life_span[k],
             c=colors[k], label='k='+str(k)
