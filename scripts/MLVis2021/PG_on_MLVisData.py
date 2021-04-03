@@ -75,6 +75,9 @@ CTRL_COLOR = 'orange'
 CTRL_LABEL = "ctrl"
 CTRL_ZORDER = 98
 
+AX_TITLE_fontsize = 20
+LEGEND_SIZE = 20
+
 
 def preprocess_MLVis_data(verbose = False):
     # Find files
@@ -231,18 +234,13 @@ def find_common_dates(t, t_obs, is_Lothar=False):
         i += 1
     return i_obs
 
-def add_fake_legend(
-    l = []
+def move_legend(
+    ax1,
+    ax2,
+    loc = 'best'
 ):
-    lines = []
-    labels = []
-    if 'mean' in l:
-        lines.append()
-    colors = ['black', 'red', 'green']
-    lines = [Line2D([0], [0], color='grey', linewidth=3, linestyle='--') for c in colors]
-    labels = ['black data', 'red data', 'green data']
-    plt.legend(lines, labels)
-
+    handles, labels = ax1.get_legend_handles_labels()
+    ax2.legend(handles, labels, prop={"size":20}, loc=loc)
 
 def add_obs(obs_var, obs_time, ax):
     obs_line, = ax.plot(
@@ -285,6 +283,31 @@ def add_spaghetti(
         time_axis, mean-std,
         color=STD_COLOR,
         lw=STD_LW, ls=STD_LS, zorder=STD_ZORDER
+    )
+    return ax
+
+def add_title_inside_k_plot(
+    ax,
+    fontsize = 14,
+    xloc = 0.12,
+    yloc = 0.93,
+):
+    ax.annotate('Number of clusters: relevance',  # Your string
+
+        # The point that we'll place the text in relation to
+        xy=(xloc, 0.93),
+        # Interpret the x as axes coords, and the y as figure coords
+        #xycoords=('axes fraction', 'figure fraction'),
+        xycoords=('axes fraction', 'axes fraction'),
+
+        # The distance from the point that the text will be at
+        xytext=(0, 0),
+        # Interpret `xytext` as an offset in points...
+        textcoords='offset points',
+
+        # Any other text parameters we'd like
+        fontsize = fontsize,
+        #size=14, ha='center', va='bottom')
     )
     return ax
 
@@ -565,13 +588,12 @@ def select_best_examples():
 
     # ---- k_plot ----
     ax1 = fig.add_subplot(gs[5:-1, 1:7], sharex=ax0)
-    _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
-    #ax1.set_xlabel("Time")
+    _, ax1, _ = k_plot(g, k_max = 5, ax=ax1, show_legend=False)
     ax1.set_ylabel("Relevance")
     ax1.set_xlabel("")
-    ax1.set_title('Number of clusters: relevance')
+    ax1 = add_title_inside_k_plot(ax1, fontsize=20, xloc=0.1)
     ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq=8)
-    ax1.legend()
+    move_legend(ax1, ax0, loc='lower right')
 
     # ---- Spaghetti ----
     ax2 = fig.add_subplot(gs[:, 12:], sharex=ax0)
@@ -591,7 +613,7 @@ def select_best_examples():
     ax0.get_shared_y_axes().join(ax0, ax2)
     # Turn off ticks on this one
     ax2.set_yticklabels([])
-    ax2.legend()
+    ax2.legend(loc='lower left', prop={"size" : LEGEND_SIZE})
 
     fig_suptitle = filename + "\n" + d['var_name']
     fig.suptitle(fig_suptitle)
@@ -665,30 +687,12 @@ def select_best_examples():
 
     # # ---- k_plot ----
     ax1 = fig.add_subplot(gs[:2, 1:9])
-    _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
+    _, ax1, _ = k_plot(g, k_max = 5, ax=ax1, show_legend=False,)
     ax1.set_ylabel("Relevance")
     ax1.set_xlabel("")
-
-    #  ------------------------- Title inside --------------------------
-    ax1.annotate('Number of clusters: relevance',  # Your string
-
-                # The point that we'll place the text in relation to
-                xy=(0.17, 0.92),
-                # Interpret the x as axes coords, and the y as figure coords
-                #xycoords=('axes fraction', 'figure fraction'),
-                xycoords=('axes fraction', 'axes fraction'),
-
-                # The distance from the point that the text will be at
-                xytext=(0, 0),
-                # Interpret `xytext` as an offset in points...
-                textcoords='offset points',
-
-                # Any other text parameters we'd like
-                #size=14, ha='center', va='bottom')
-    )
-    #  -----------------------------------------------------------------
+    ax1 = add_title_inside_k_plot(ax1)
+    move_legend(ax1, ax0)
     ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq=8)
-    ax1.legend()
 
     # ---- Spaghetti ----
     ax2 = fig.add_subplot(gs[:, m//2:], sharex=ax0)

@@ -667,6 +667,7 @@ def k_plot(
     fig = None,
     ax = None,
     show0 = False,
+    show_legend = True,
     fig_kw: dict = {"figsize" : (5,3)},
     ax_kw: dict = {},
 ):
@@ -689,7 +690,8 @@ def k_plot(
             g.time_axis, life_span[k],
             c=colors[k], label='k='+str(k)
             )
-        ax.legend()
+        if show_legend:
+            ax.legend()
         ax.set_xlabel(ax_kw.pop('xlabel', 'Time (h)'))
         ax.set_ylabel(ax_kw.pop('ylabel', 'Life span'))
         ax.set_ylim([0,1])
