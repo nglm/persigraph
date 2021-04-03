@@ -645,7 +645,7 @@ def select_best_examples():
         name_graph = path_graph + filename[:-3] + '.pg'
 
         fig = plt.figure(figsize = FIG_SIZE, tight_layout=True)
-        n, m = 5, 40
+        n, m = 30, 80
         gs = fig.add_gridspec(nrows=n, ncols=m)
 
         # ---------------------------
@@ -693,12 +693,16 @@ def select_best_examples():
         # )
 
         # # ---- k_plot ----
-        ax1 = fig.add_subplot(gs[:2, m//2+1:m//2+9])
+        ax1 = fig.add_subplot(gs[:9, m//2+3:m//2+15])
         _, ax1, _ = k_plot(g, k_max = 5, ax=ax1, show_legend=False,)
         ax1.set_ylabel("Relevance")
         ax1.set_xlabel("")
-        title = 'Number of modes: relevance'
-        ax1 = add_title_inside(ax1, title, xloc=0.12, yloc=0.93)
+        #title = 'Number of modes: relevance'
+        # Cut the upper part of the plot
+        ax1.set_ylim([0, 0.80])
+        # Remove the last ytick
+        ax1.set_yticks(ax1.get_yticks()[:-1])
+        #ax1 = add_title_inside(ax1, title, xloc=0.12, yloc=0.93)
         ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq=8)
 
         # ---- Spaghetti ----
