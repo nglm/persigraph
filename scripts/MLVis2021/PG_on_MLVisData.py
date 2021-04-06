@@ -65,7 +65,7 @@ STD_ZORDER = 100
 LW = 0.6
 COLOR = 'lightgrey'
 
-OBS_LW = 1.5
+OBS_LW = 3
 OBS_COLOR = 'green'
 OBS_LABEL = "obs"
 OBS_ZORDER = 99
@@ -76,7 +76,7 @@ CTRL_LABEL = "ctrl"
 CTRL_ZORDER = 98
 
 AX_TITLE_fontsize = 20
-LEGEND_SIZE = 20
+LEGEND_SIZE = 24
 
 
 def preprocess_MLVis_data(verbose = False):
@@ -118,12 +118,16 @@ def preprocess_MLVis_data(verbose = False):
         if verbose:
             # Show what is inside these meteograms
             print(" ----------------------- %s ----------------------- " %name)
+            print(
+                "(long, lat) = (",
+                int(d['nc'][0]['longitude'][0]), ',',
+                int(d['nc'][0]['latitude'][0]), ')')
             print(" ==== FORECAST ==== ")
             print_nc_dict(d['nc'][0])
-            print(" ==== CONTROL ==== ")
-            print_nc_dict(d['ctrl_nc'][0])
-            print(" ==== OBSERVATION ==== ")
-            print_nc_dict(d['obs_nc'])
+            # print(" ==== CONTROL ==== ")
+            # print_nc_dict(d['ctrl_nc'][0])
+            # print(" ==== OBSERVATION ==== ")
+            # print_nc_dict(d['obs_nc'])
 
         # short name for each variable of interest
         d['var_name'] = var_name[i]
@@ -423,7 +427,8 @@ def select_best_examples():
         )
         name_graph = path_graph + filename[:-3] + '.pg'
 
-        fig = plt.figure(figsize = FIG_SIZE, tight_layout=True)
+        fig = plt.figure(figsize = FIG_SIZE, tight_layout=False)
+        fig.subplots_adjust(left=0.03, bottom=0.08, right=0.995, top=0.995)
         n = 12
         m = 24
         gs = fig.add_gridspec(nrows=n, ncols=m)
@@ -464,12 +469,16 @@ def select_best_examples():
         #     d['obs_time'][common_t],
         #     ax=ax0,
         # )
-        ax0.set_ylabel(d['long_name'] + ' ('+d['units']+')')
-        ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]], freq = 1)
+        ax0.set_ylabel(
+            d['long_name'] + ' ('+d['units']+')',
+            fontsize=15,
+            )
+        ax0.tick_params(axis='y', which='major', labelsize=18)
+        ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]], freq = 2)
         ax0.legend(prop={'size' : LEGEND_SIZE}, loc='upper left')
 
         # ---- Plot Graph ----
-        ax1 = fig.add_subplot(gs[:, m//3:2*m//3])
+        ax1 = fig.add_subplot(gs[:, m//3:2*m//3], sharex=ax0)
         _, ax1 = plot_as_graph(
             g, show_vertices=True, show_edges=True,ax=ax1,
             show_std=True)
@@ -478,9 +487,9 @@ def select_best_examples():
 
         # Turn off ticks on this one
         ax1.set_yticklabels([])
-        ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq = 1)
+        ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq = 2)
         ax1.legend(*k_legend(), loc='upper left', prop={'size' : LEGEND_SIZE})
-        #ax1 = annot_ax(g, ax=ax1)
+        ax1 = annot_ax(g, ax=ax1)
 
         # ---- k_plot ----
         # ax1 = fig.add_subplot(gs[5:-1, ], sharex=ax0)
@@ -496,7 +505,7 @@ def select_best_examples():
         relevant_k = get_relevant_k(g)
         relevant_k[-3:-2] = [[2, 0] for _ in range(len(relevant_k[-3:-2]))]
         relevant_components = get_relevant_components(g, relevant_k)
-        ax3 = fig.add_subplot(gs[:, 2*m//3:])
+        ax3 = fig.add_subplot(gs[:, 2*m//3:], sharex=ax0)
         _, ax3 = plot_most_revelant_components(
             g, relevant_components=relevant_components,
             show_vertices=True, show_edges=True,ax=ax3,
@@ -510,15 +519,15 @@ def select_best_examples():
             ax=ax3,
         )
         ax3.legend(prop={'size' : LEGEND_SIZE}, loc='upper left')
-        ax3 = use_dates_as_xticks(ax3,  d['time'][i][:max_t[k]], freq = 1)
+        ax3 = use_dates_as_xticks(ax3,  d['time'][i][:max_t[k]], freq = 2)
         # We can not really share without that if they have been created
         # separately
         ax0.get_shared_y_axes().join(ax0, ax3)
         # Turn off ticks on this one
         ax3.set_yticklabels([])
 
-        fig_suptitle = filename + "\n" + d['var_name']
-        fig.suptitle(fig_suptitle)
+        # fig_suptitle = filename + "\n" + d['var_name']
+        # fig.suptitle(fig_suptitle)
 
 
         # ---------------------------
@@ -547,9 +556,10 @@ def select_best_examples():
         )
         name_graph = path_graph + filename[:-3] + '.pg'
 
-        fig = plt.figure(figsize = FIG_SIZE, tight_layout=True)
+        fig = plt.figure(figsize = FIG_SIZE, tight_layout=False)
         n, m = 12, 24
         gs = fig.add_gridspec(nrows=12, ncols=24)
+        fig.subplots_adjust(left=0.03, bottom=0.08, right=0.995, top=0.995)
 
         # ---------------------------
         # Construct graph
@@ -557,7 +567,7 @@ def select_best_examples():
 
         g = PersistentGraph(
                 time_axis = d['time'][i][:max_t[k]],
-                members = d['var'][i][:, :max_t[k]],
+                members = d['var'][i][:, :max_t[k]]/1000,
                 score_type = score,
                 zero_type = 'bounds',
                 model_type = 'KMeans',
@@ -576,45 +586,54 @@ def select_best_examples():
         ax0 = fig.add_subplot(gs[:, :m//2])
         ax0 = add_spaghetti(
             time_axis = d['time'][i][:max_t[k]],
-            var = d['var'][i][:, :max_t[k]],
+            var = d['var'][i][:, :max_t[k]]/1000,
             ax=ax0,
         )
         ax0 = add_ctrl(
-            ctrl_var=d['ctrl_var'][i][:max_t[k]],
+            ctrl_var=d['ctrl_var'][i][:max_t[k]]/1000,
             dates=d['ctrl_time'][i][:max_t[k]],
             ax=ax0,
         )
-        ax0.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+        # We switch to KPa instead of Pa
+        ylabel = "Mean sea level pressure (kPa)"
+        ax0.tick_params(axis='y', which='major', labelsize=15)
+        ax0.set_ylabel(ylabel, fontsize=14, )
+        title = 'Meteogram'
+        ax0 = add_title_inside(ax0, title, fontsize=25, xloc=0.67, yloc=0.94)
         ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]])
         # We can not really share without that if they have been created
         # separately
-        ax0.get_shared_y_axes().join(ax0, ax0)
-        ax0.legend(loc=(0.05, 0.6), prop={'size' : LEGEND_SIZE})
+        ax0.legend(loc=(0.09, 0.6), prop={'size' : LEGEND_SIZE})
+
 
         # ---- Plot Graph ----
-        ax1 = fig.add_subplot(gs[:, m//2:])
+        ax1 = fig.add_subplot(gs[:, m//2:], sharex=ax0)
         _, ax1 = plot_most_revelant_components(
             g, show_vertices=True, show_edges=True,ax=ax1,
             show_std=True)
         # Turn off ticks on this one
         ax1.set_yticklabels([])
-        ax1.set_title("Entire graph")
         ax1.set_xlabel(' ')
-
+        ax1.set_title(' ')
+        title = 'Revealed Modes'
+        ax1 = add_title_inside(ax1, title, fontsize=25, xloc=0.63, yloc=0.94)
         ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]])
         #ax0 = annot_ax(g, ax=ax0)
 
         # ---- k_plot ----
         ax2 = fig.add_subplot(gs[5:-1, (m//2)+1:(m//2)+7])
         _, ax2, _ = k_plot(g, k_max = 5, ax=ax2, show_legend=False)
-        ax2.set_ylabel("Relevance")
+        ax2.set_ylabel("Life span")
         ax2.set_xlabel("")
         title = 'Number of modes: relevance'
-        ax2 = add_title_inside(ax2, title, fontsize=20, xloc=0.1, yloc=0.93)
-        ax2 = use_dates_as_xticks(ax2,  d['time'][i][:max_t[k]], freq=8)
-        ax1.legend(*k_legend(), loc=(0.05, 0.6), prop={'size' : LEGEND_SIZE})
-        fig_suptitle = filename + "\n" + d['var_name']
-        fig.suptitle(fig_suptitle)
+        ax2 = add_title_inside(ax2, title, fontsize=20, xloc=0.1, yloc=0.91)
+        text_kw = {"fontsize" : 12}
+        ax2 = use_dates_as_xticks(
+            ax2,  d['time'][i][:max_t[k]], freq=8, text_kw=text_kw
+            )
+        ax1.legend(*k_legend(), loc=(0.09, 0.6), prop={'size' : LEGEND_SIZE})
+        # fig_suptitle = filename + "\n" + d['var_name']
+        # fig.suptitle(fig_suptitle)
 
 
         # ---------------------------
@@ -644,16 +663,25 @@ def select_best_examples():
         )
         name_graph = path_graph + filename[:-3] + '.pg'
 
-        fig = plt.figure(figsize = FIG_SIZE, tight_layout=True)
+
+        fig = plt.figure(figsize = FIG_SIZE, tight_layout=False)
         n, m = 30, 80
         gs = fig.add_gridspec(nrows=n, ncols=m)
+        fig.subplots_adjust(left=0.03, bottom=0.08, right=0.995, top=0.995)
+
+        common_t = find_common_dates(d['time'][i][:max_t[k]], d['obs_time'])
+        # Add control member
+        members = np.concatenate(
+            [d['var'][i][:, :max_t[k]],
+            d['obs_var'][common_t].reshape(1,-1)]
+        ) - 273.15
 
         # ---------------------------
         # Construct graph
         # ---------------------------
         g = PersistentGraph(
                 time_axis = d['time'][i][:max_t[k]],
-                members = d['var'][i][:, :max_t[k]],
+                members = members,
                 score_type = score,
                 zero_type = 'bounds',
                 model_type = 'KMeans',
@@ -666,7 +694,22 @@ def select_best_examples():
         # ---------------------------------
         # Plots
         # ---------------------------------
-        common_t = find_common_dates(d['time'][i][:max_t[k]], d['obs_time'])
+
+
+        temp = [
+            (j, d, np.mean(X), np.mean(X) - np.std(X), np.mean(X) + np.std(X), len(X))
+            for j, (d, X) in enumerate(zip(d['dates'][i], members.T))
+            ]
+        #print(temp)
+        for t in temp:
+            print(t)
+        relevant_components = get_relevant_components(g)
+        vertices = relevant_components[0][26]
+        print([v.info["params"] for v in vertices])
+        print([v.nb_members for v in vertices])
+        print(d['obs_var'][common_t][26]-273.15)
+        discarded_members = [m for m in members[:,26] if m>27]
+        print(len(discarded_members), discarded_members)
 
         # ---- Plot Graph ----
         ax0 = fig.add_subplot(gs[:, m//2:])
@@ -693,9 +736,9 @@ def select_best_examples():
         # )
 
         # # ---- k_plot ----
-        ax1 = fig.add_subplot(gs[:9, m//2+3:m//2+15])
+        ax1 = fig.add_subplot(gs[1:10, m//2+2:m//2+14])
         _, ax1, _ = k_plot(g, k_max = 5, ax=ax1, show_legend=False,)
-        ax1.set_ylabel("Relevance")
+        ax1.set_ylabel("Life span")
         ax1.set_xlabel("")
         #title = 'Number of modes: relevance'
         # Cut the upper part of the plot
@@ -703,13 +746,17 @@ def select_best_examples():
         # Remove the last ytick
         ax1.set_yticks(ax1.get_yticks()[:-1])
         #ax1 = add_title_inside(ax1, title, xloc=0.12, yloc=0.93)
-        ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq=8)
+        text_kw = {"fontsize" : 12}
+        ax1 = use_dates_as_xticks(
+            ax1,  d['time'][i][:max_t[k]], freq=8,
+            text_kw=text_kw
+            )
 
         # ---- Spaghetti ----
         ax2 = fig.add_subplot(gs[:, :m//2], sharex=ax0)
         ax2 = add_spaghetti(
             time_axis = d['time'][i][:max_t[k]],
-            var = d['var'][i][:, :max_t[k]],
+            var = members,
             ax=ax2,
         )
 
@@ -719,15 +766,18 @@ def select_best_examples():
         #     ax=ax2,
         # )
 
-        ax2.set_ylabel(d['long_name'] + ' ('+d['units']+')')
+        ax2.set_ylabel('Temperature (°C)', fontsize=15)
+        ax2.tick_params(axis='y', which='major', labelsize=18)
         ax2 = use_dates_as_xticks(ax2,  d['time'][i][:max_t[k]])
+        # Remove first xtick because of overlapping
+        ax2.set_xticks(ax2.get_xticks()[1:])
         # We can not really share without that if they have been created
         # separately
         ax0.get_shared_y_axes().join(ax0, ax2)
         ax2.legend(prop={'size' : LEGEND_SIZE}, loc='upper left')
 
-        fig_suptitle = filename + "\n" + d['var_name']
-        fig.suptitle(fig_suptitle)
+        # fig_suptitle = filename + "\n" + d['var_name']
+        # fig.suptitle(fig_suptitle)
 
 
         # ---------------------------
@@ -746,7 +796,8 @@ def use_dates_as_xticks(
     ax,
     time_axis,
     start_date = datetime.datetime(1900,1,1,0),
-    freq = 4
+    freq = 4,
+    text_kw = {"fontsize" : 20}
 ):
     # If you want to have dates as xticks  indpt of what you used to plot your curve
     # uniformly spaced hours between the min and max
@@ -765,11 +816,11 @@ def use_dates_as_xticks(
     labels = [
         (datetime.timedelta(
             hours=int(h)
-        ) + start_date).strftime('%m-%d') for h in kept_hours]
+        ) + start_date).strftime('%m/%d') for h in kept_hours]
     # Specify where you want the xticks
     ax.set_xticks(kept_hours)
     # Specify what you want as xtick labels
-    ax.set_xticklabels(labels)
+    ax.set_xticklabels(labels, **text_kw)
     # The only solution working if you want to change just one ax
     for tick in ax.get_xticklabels():
         tick.set_rotation(30)
