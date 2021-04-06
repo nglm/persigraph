@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 import datetime
 from netCDF4 import Dataset
 
@@ -244,6 +245,33 @@ def k_legend():
     labels = ['k='+str(i+1) for i in range(len(colors))]
     return (handles, labels)
 
+def add_annotation(
+    ax,
+    letter,
+    xloc = 0.01,
+    yloc = 0.01,
+    fontsize = 27,
+    ):
+
+    ax.annotate(letter+')',  # Your string
+
+                # The point that we'll place the text in relation to
+                xy=(xloc, yloc),
+                # Interpret the x as axes coords, and the y as figure coords
+                #xycoords=('axes fraction', 'figure fraction'),
+                xycoords=('axes fraction', 'axes fraction'),
+
+                # The distance from the point that the text will be at
+                xytext=(0, 0),
+                # Interpret `xytext` as an offset in points...
+                textcoords='offset points',
+
+                # Any other text parameters we'd like
+                fontsize=fontsize, alpha=1., zorder=11
+    )
+    return ax
+
+
 def add_obs(obs_var, obs_time, ax):
     obs_line, = ax.plot(
         obs_time,
@@ -475,6 +503,7 @@ def select_best_examples():
             )
         ax0.tick_params(axis='y', which='major', labelsize=18)
         ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]], freq = 2)
+        ax0 = add_annotation(ax0, 'a')
         ax0.legend(prop={'size' : LEGEND_SIZE}, loc='upper left')
 
         # ---- Plot Graph ----
@@ -484,6 +513,7 @@ def select_best_examples():
             show_std=True)
         ax1.set_title(" ")
         ax1.set_xlabel(' ')
+        ax1 = add_annotation(ax1, 'b')
 
         # Turn off ticks on this one
         ax1.set_yticklabels([])
@@ -519,6 +549,7 @@ def select_best_examples():
             ax=ax3,
         )
         ax3.legend(prop={'size' : LEGEND_SIZE}, loc='upper left')
+        ax3 = add_annotation(ax3, 'c')
         ax3 = use_dates_as_xticks(ax3,  d['time'][i][:max_t[k]], freq = 2)
         # We can not really share without that if they have been created
         # separately
@@ -601,6 +632,7 @@ def select_best_examples():
         title = 'Meteogram'
         ax0 = add_title_inside(ax0, title, fontsize=25, xloc=0.67, yloc=0.94)
         ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]])
+        ax0 = add_annotation(ax0, 'a')
         # We can not really share without that if they have been created
         # separately
         ax0.legend(loc=(0.09, 0.6), prop={'size' : LEGEND_SIZE})
@@ -617,6 +649,7 @@ def select_best_examples():
         ax1.set_title(' ')
         title = 'Revealed Modes'
         ax1 = add_title_inside(ax1, title, fontsize=25, xloc=0.63, yloc=0.94)
+        ax1 = add_annotation(ax1, 'b')
         ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]])
         #ax0 = annot_ax(g, ax=ax0)
 
@@ -632,6 +665,18 @@ def select_best_examples():
             ax2,  d['time'][i][:max_t[k]], freq=8, text_kw=text_kw
             )
         ax1.legend(*k_legend(), loc=(0.09, 0.6), prop={'size' : LEGEND_SIZE})
+
+        # Clean the area behind the annotation
+        ax2.add_patch(
+            Rectangle(
+                (0.01, 0.01),
+                0.07,
+                0.07,
+                transform=ax2.transAxes,
+                edgecolor='white',facecolor='white', zorder=10,
+                fill=True,      # remove background
+        ) )
+        ax2 = add_annotation(ax2, 'c')
         # fig_suptitle = filename + "\n" + d['var_name']
         # fig.suptitle(fig_suptitle)
 
@@ -670,7 +715,7 @@ def select_best_examples():
         fig.subplots_adjust(left=0.03, bottom=0.08, right=0.995, top=0.995)
 
         common_t = find_common_dates(d['time'][i][:max_t[k]], d['obs_time'])
-        # Add control member
+        # Add control member (because otherwise we had the special 50%-50% prop)
         members = np.concatenate(
             [d['var'][i][:, :max_t[k]],
             d['obs_var'][common_t].reshape(1,-1)]
@@ -696,21 +741,6 @@ def select_best_examples():
         # ---------------------------------
 
 
-        temp = [
-            (j, d, np.mean(X), np.mean(X) - np.std(X), np.mean(X) + np.std(X), len(X))
-            for j, (d, X) in enumerate(zip(d['dates'][i], members.T))
-            ]
-        #print(temp)
-        for t in temp:
-            print(t)
-        relevant_components = get_relevant_components(g)
-        vertices = relevant_components[0][26]
-        print([v.info["params"] for v in vertices])
-        print([v.nb_members for v in vertices])
-        print(d['obs_var'][common_t][26]-273.15)
-        discarded_members = [m for m in members[:,26] if m>27]
-        print(len(discarded_members), discarded_members)
-
         # ---- Plot Graph ----
         ax0 = fig.add_subplot(gs[:, m//2:])
         _, ax0 = plot_as_graph(
@@ -720,6 +750,7 @@ def select_best_examples():
         ax0.set_xlabel(' ')
 
         ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]])
+        ax0 = add_annotation(ax0, 'b')
         # Turn off ticks on this one
         ax0.set_yticklabels([])
         ax0 = annot_ax(g, ax=ax0)
@@ -729,11 +760,7 @@ def select_best_examples():
 
             )
 
-        # ax0 = add_obs(
-        #     d['obs_var'][common_t],
-        #     d['obs_time'][common_t],
-        #     ax=ax0,
-        # )
+
 
         # # ---- k_plot ----
         ax1 = fig.add_subplot(gs[1:10, m//2+2:m//2+14])
@@ -759,12 +786,69 @@ def select_best_examples():
             var = members,
             ax=ax2,
         )
+        ax2 = add_annotation(ax2, 'a')
 
-        # ax2 = add_obs(
-        #     d['obs_var'][common_t],
-        #     d['obs_time'][common_t],
-        #     ax=ax2,
-        # )
+
+        # Find the date of interest
+        temp = [
+            (j, d, np.mean(X), np.mean(X) - np.std(X), np.mean(X) + np.std(X), len(X))
+            for j, (d, X) in enumerate(zip(d['dates'][i], members.T))
+            ]
+
+        for t in temp:
+            print(t)
+        relevant_components = get_relevant_components(g)
+        indices_dates = [26, 30]
+        lw_ranges = 6
+        ls_ranges = (0, (1,1))
+        for idx_d in indices_dates:
+            # Get the method interpretation of the forecast on that date
+            vertices = relevant_components[0][idx_d]
+            ranges = [
+                (v.info["params"][0] - v.info["params"][2],
+                v.info["params"][0] + v.info["params"][3])
+                for v in vertices
+            ]
+            std_mean = np.std(members[:,idx_d])
+            range_mean = (
+                np.mean(members[:,idx_d]) - std_mean,
+                np.mean(members[:,idx_d]) + std_mean,
+            )
+            print("ranges vertices: ", ranges)
+            print("range using mean: ",range_mean)
+            print("std mean: ", std_mean)
+            print('max member value', np.amax(members[:,idx_d]))
+
+            print("member proportion: ", [v.nb_members for v in vertices])
+            # Get observation (actually not interesting)
+            print("temp observed", d['obs_var'][common_t[idx_d]]-273.15)
+
+            # Members that above the upper bound of the mean+std method
+            discarded_members = [m for m in members[:,idx_d] if m>range_mean[1]]
+            print("number of member discarded", len(discarded_members))
+            # Add predicted range on the date of interest
+            for v in vertices:
+                ax0.plot(
+                    d['time'][i][:max_t[k]][idx_d-1:idx_d+2],
+                    [v.info['params'][0] - v.info['params'][2]]*3,
+                    c='black', lw = lw_ranges, ls= ls_ranges
+                    )
+                ax0.plot(
+                    d['time'][i][:max_t[k]][idx_d-1:idx_d+2],
+                    [v.info['params'][0] + v.info['params'][3]]*3,
+                    c='black', lw = lw_ranges, ls = ls_ranges
+                    )
+            for std in [-np.std(members[:,idx_d]), np.std(members[:,idx_d])]:
+                if std == -np.std(members[:,idx_d]) and idx_d == 26:
+                    label = 'Predicted ranges'
+                else:
+                    label = None
+                ax2.plot(
+                    d['time'][i][:max_t[k]][idx_d-1:idx_d+2],
+                    [np.mean(members[:,idx_d]) + std]*3,
+                    c='black', lw = lw_ranges, ls = ls_ranges,
+                    label = label
+                    )
 
         ax2.set_ylabel('Temperature (°C)', fontsize=15)
         ax2.tick_params(axis='y', which='major', labelsize=18)
