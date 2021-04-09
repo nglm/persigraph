@@ -68,12 +68,12 @@ COLOR = 'lightgrey'
 
 OBS_LW = 3
 OBS_COLOR = 'green'
-OBS_LABEL = "obs"
+OBS_LABEL = "observations"
 OBS_ZORDER = 99
 
 CTRL_LW = 1.2
 CTRL_COLOR = 'orange'
-CTRL_LABEL = "ctrl"
+CTRL_LABEL = "control"
 CTRL_ZORDER = 98
 
 AX_TITLE_fontsize = 20
@@ -253,7 +253,7 @@ def add_annotation(
     fontsize = 27,
     ):
 
-    ax.annotate(letter+')',  # Your string
+    ax.annotate(letter,  # Your string
 
                 # The point that we'll place the text in relation to
                 xy=(xloc, yloc),
@@ -456,7 +456,7 @@ def select_best_examples():
         name_graph = path_graph + filename[:-3] + '.pg'
 
         fig = plt.figure(figsize = FIG_SIZE, tight_layout=False)
-        fig.subplots_adjust(left=0.03, bottom=0.08, right=0.995, top=0.995)
+        fig.subplots_adjust(left=0.03, bottom=0.08, right=0.998, top=0.995)
         n = 12
         m = 24
         gs = fig.add_gridspec(nrows=n, ncols=m)
@@ -498,12 +498,12 @@ def select_best_examples():
         #     ax=ax0,
         # )
         ax0.set_ylabel(
-            d['long_name'] + ' ('+d['units']+')',
-            fontsize=15,
+            'Wind speed (m/s)',
+            fontsize=18,
             )
         ax0.tick_params(axis='y', which='major', labelsize=18)
         ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]], freq = 2)
-        ax0 = add_annotation(ax0, 'a')
+        ax0 = add_annotation(ax0, 'a)')
         ax0.legend(prop={'size' : LEGEND_SIZE}, loc='upper left')
 
         # ---- Plot Graph ----
@@ -513,12 +513,13 @@ def select_best_examples():
             show_std=True)
         ax1.set_title(" ")
         ax1.set_xlabel(' ')
-        ax1 = add_annotation(ax1, 'b')
+        ax1 = add_annotation(ax1, 'b)')
 
         # Turn off ticks on this one
-        ax1.set_yticklabels([])
+        ax1.tick_params(labelleft=False)
         ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq = 2)
         ax1.legend(*k_legend(), loc='upper left', prop={'size' : LEGEND_SIZE})
+        ax1.sharey(ax0)
         ax1 = annot_ax(g, ax=ax1)
 
         # ---- k_plot ----
@@ -549,13 +550,13 @@ def select_best_examples():
             ax=ax3,
         )
         ax3.legend(prop={'size' : LEGEND_SIZE}, loc='upper left')
-        ax3 = add_annotation(ax3, 'c')
+        ax3 = add_annotation(ax3, 'c)')
         ax3 = use_dates_as_xticks(ax3,  d['time'][i][:max_t[k]], freq = 2)
         # We can not really share without that if they have been created
         # separately
-        ax0.get_shared_y_axes().join(ax0, ax3)
+        ax3.sharey(ax0)
         # Turn off ticks on this one
-        ax3.set_yticklabels([])
+        ax3.tick_params(labelleft=False)
 
         # fig_suptitle = filename + "\n" + d['var_name']
         # fig.suptitle(fig_suptitle)
@@ -590,7 +591,7 @@ def select_best_examples():
         fig = plt.figure(figsize = FIG_SIZE, tight_layout=False)
         n, m = 12, 24
         gs = fig.add_gridspec(nrows=12, ncols=24)
-        fig.subplots_adjust(left=0.03, bottom=0.08, right=0.995, top=0.995)
+        fig.subplots_adjust(left=0.04, bottom=0.08, right=0.998, top=0.995)
 
         # ---------------------------
         # Construct graph
@@ -628,11 +629,11 @@ def select_best_examples():
         # We switch to KPa instead of Pa
         ylabel = "Mean sea level pressure (kPa)"
         ax0.tick_params(axis='y', which='major', labelsize=15)
-        ax0.set_ylabel(ylabel, fontsize=14, )
+        ax0.set_ylabel(ylabel, fontsize=18, )
         title = 'Meteogram'
         ax0 = add_title_inside(ax0, title, fontsize=25, xloc=0.67, yloc=0.94)
         ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]])
-        ax0 = add_annotation(ax0, 'a')
+        ax0 = add_annotation(ax0, 'a)')
         # We can not really share without that if they have been created
         # separately
         ax0.legend(loc=(0.09, 0.6), prop={'size' : LEGEND_SIZE})
@@ -643,14 +644,17 @@ def select_best_examples():
         _, ax1 = plot_most_revelant_components(
             g, show_vertices=True, show_edges=True,ax=ax1,
             show_std=True)
+        ax1.sharey(ax0)
         # Turn off ticks on this one
-        ax1.set_yticklabels([])
+        ax1.tick_params(labelleft=False)
         ax1.set_xlabel(' ')
         ax1.set_title(' ')
         title = 'Revealed Modes'
         ax1 = add_title_inside(ax1, title, fontsize=25, xloc=0.63, yloc=0.94)
-        ax1 = add_annotation(ax1, 'b')
+        ax1 = add_annotation(ax1, 'b)')
         ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]])
+
+
         #ax0 = annot_ax(g, ax=ax0)
 
         # ---- k_plot ----
@@ -676,7 +680,7 @@ def select_best_examples():
                 edgecolor='white',facecolor='white', zorder=10,
                 fill=True,      # remove background
         ) )
-        ax2 = add_annotation(ax2, 'c')
+        ax2 = add_annotation(ax2, 'c)')
         # fig_suptitle = filename + "\n" + d['var_name']
         # fig.suptitle(fig_suptitle)
 
@@ -711,8 +715,9 @@ def select_best_examples():
 
         fig = plt.figure(figsize = FIG_SIZE, tight_layout=False)
         n, m = 30, 80
+        n_box = 4
         gs = fig.add_gridspec(nrows=n, ncols=m)
-        fig.subplots_adjust(left=0.03, bottom=0.08, right=0.995, top=0.995)
+        fig.subplots_adjust(left=0.03, bottom=0.08, right=0.998, top=0.995)
 
         common_t = find_common_dates(d['time'][i][:max_t[k]], d['obs_time'])
         # Add control member (because otherwise we had the special 50%-50% prop)
@@ -742,7 +747,7 @@ def select_best_examples():
 
 
         # ---- Plot Graph ----
-        ax0 = fig.add_subplot(gs[:, m//2:])
+        ax0 = fig.add_subplot(gs[:, (m-n_box)//2:-n_box])
         _, ax0 = plot_as_graph(
             g, show_vertices=True, show_edges=True,ax=ax0,
             show_std=True)
@@ -750,9 +755,9 @@ def select_best_examples():
         ax0.set_xlabel(' ')
 
         ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]])
-        ax0 = add_annotation(ax0, 'b')
+        ax0 = add_annotation(ax0, 'b)')
         # Turn off ticks on this one
-        ax0.set_yticklabels([])
+        ax0.tick_params(labelleft=False)
         ax0 = annot_ax(g, ax=ax0)
         ax0.legend(
             *k_legend(), prop={'size' : LEGEND_SIZE},
@@ -763,7 +768,7 @@ def select_best_examples():
 
 
         # # ---- k_plot ----
-        ax1 = fig.add_subplot(gs[1:10, m//2+2:m//2+14])
+        ax1 = fig.add_subplot(gs[1:10, (m-n_box)//2+2:(m-n_box)//2+14])
         _, ax1, _ = k_plot(g, k_max = 5, ax=ax1, show_legend=False,)
         ax1.set_ylabel("Life span")
         ax1.set_xlabel("")
@@ -780,14 +785,23 @@ def select_best_examples():
             )
 
         # ---- Spaghetti ----
-        ax2 = fig.add_subplot(gs[:, :m//2], sharex=ax0)
+        ax2 = fig.add_subplot(gs[:, :(m-n_box)//2], sharex=ax0)
         ax2 = add_spaghetti(
             time_axis = d['time'][i][:max_t[k]],
             var = members,
             ax=ax2,
         )
-        ax2 = add_annotation(ax2, 'a')
+        ax2 = add_annotation(ax2, 'a)')
+        ax2.sharey(ax0)
 
+
+        # ---- Boxplot ----
+        whiskerprops = dict(linewidth=3.0)
+        boxprops = dict(linewidth=3.0)
+        widths = 0.6
+        meanprops = dict(linewidth=3.0, c='black')
+        medianprops = dict(linewidth=3.0, c='black')
+        ax3 = fig.add_subplot(gs[:, -n_box:])
 
         # Find the date of interest
         temp = [
@@ -826,39 +840,81 @@ def select_best_examples():
             # Members that above the upper bound of the mean+std method
             discarded_members = [m for m in members[:,idx_d] if m>range_mean[1]]
             print("number of member discarded", len(discarded_members))
+
+            if idx_d == 26:
+                ax3.boxplot(
+                    members[:,idx_d], positions=[1], labels = ['A'],
+                    whiskerprops=whiskerprops, boxprops=boxprops,
+                    widths=widths, meanprops=meanprops,
+                    medianprops=medianprops,
+                    )
             # Add predicted range on the date of interest
             for v in vertices:
-                ax0.plot(
-                    d['time'][i][:max_t[k]][idx_d-1:idx_d+2],
-                    [v.info['params'][0] - v.info['params'][2]]*3,
-                    c='black', lw = lw_ranges, ls= ls_ranges
-                    )
-                ax0.plot(
-                    d['time'][i][:max_t[k]][idx_d-1:idx_d+2],
-                    [v.info['params'][0] + v.info['params'][3]]*3,
-                    c='black', lw = lw_ranges, ls = ls_ranges
-                    )
-            for std in [-np.std(members[:,idx_d]), np.std(members[:,idx_d])]:
-                if std == -np.std(members[:,idx_d]) and idx_d == 26:
-                    label = 'Predicted ranges'
-                else:
-                    label = None
-                ax2.plot(
-                    d['time'][i][:max_t[k]][idx_d-1:idx_d+2],
-                    [np.mean(members[:,idx_d]) + std]*3,
-                    c='black', lw = lw_ranges, ls = ls_ranges,
-                    label = label
-                    )
+                # ax0.plot(
+                #     d['time'][i][:max_t[k]][idx_d-1:idx_d+2],
+                #     [v.info['params'][0] - v.info['params'][2]]*3,
+                #     c='black', lw = lw_ranges, ls= ls_ranges
+                #     )
+                # ax0.plot(
+                #     d['time'][i][:max_t[k]][idx_d-1:idx_d+2],
+                #     [v.info['params'][0] + v.info['params'][3]]*3,
+                #     c='black', lw = lw_ranges, ls = ls_ranges
+                #     )
 
-        ax2.set_ylabel('Temperature (°C)', fontsize=15)
+                if idx_d == 26:
+                    ax3.boxplot(
+                        members[v.members,idx_d], positions=[2],
+                        labels = ['B'],
+                        whiskerprops=whiskerprops, boxprops=boxprops,
+                        widths=widths, meanprops=meanprops,
+                        medianprops=medianprops,
+                        )
+
+
+            # for std in [-np.std(members[:,idx_d]), np.std(members[:,idx_d])]:
+            #     if std == -np.std(members[:,idx_d]) and idx_d == 26:
+            #         label = 'Predicted ranges'
+            #     else:
+            #         label = None
+            #     ax2.plot(
+            #         d['time'][i][:max_t[k]][idx_d-1:idx_d+2],
+            #         [np.mean(members[:,idx_d]) + std]*3,
+            #         c='black', lw = lw_ranges, ls = ls_ranges,
+            #         label = label
+            #         )
+        ax3 = add_annotation(ax3, 'c)')
+        ax3.sharey(ax0)
+        ax3.tick_params(labelleft=False)
+        ax3.tick_params(axis='x', which='major', labelsize=30)
+
+        # Add vline for emphasizing the date of interest
+        lw_date = 3
+        ax2.plot([d['time'][i][26]]*2, [10,14.5], lw=lw_date, c='black')
+        ax2.plot([d['time'][i][26]]*2, [29,31.5], lw=lw_date, c='black')
+        ax2 = add_annotation(
+            ax2, 'A',
+            xloc = 0.66, yloc = 0.95, fontsize = 27,
+        )
+        ax0.plot([d['time'][i][26]]*2, [10,14.5], lw=lw_date, c='black')
+        ax0.plot([d['time'][i][26]]*2, [29,31.5], lw=lw_date, c='black')
+        ax0 = add_annotation(
+            ax0, 'B',
+            xloc = 0.66, yloc = 0.95, fontsize = 27,
+        )
+
+        ax2.set_ylabel('Temperature (°C)', fontsize=18)
         ax2.tick_params(axis='y', which='major', labelsize=18)
         ax2 = use_dates_as_xticks(ax2,  d['time'][i][:max_t[k]])
         # Remove first xtick because of overlapping
-        ax2.set_xticks(ax2.get_xticks()[1:])
+        ax2.set_xticks(ax2.get_xticks()[:-1])
         # We can not really share without that if they have been created
         # separately
-        ax0.get_shared_y_axes().join(ax0, ax2)
+        ax2.sharey(ax0)
         ax2.legend(prop={'size' : LEGEND_SIZE}, loc='upper left')
+
+
+
+
 
         # fig_suptitle = filename + "\n" + d['var_name']
         # fig.suptitle(fig_suptitle)
