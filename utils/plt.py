@@ -669,7 +669,7 @@ def plot_mean_and_std(
     std_color = dict_kwargs['plot']['std_color']
     # If None then give the same color as the mean line
     if std_color is None:
-        std_color = line[-1].get_color()
+        std_color = mean_line[-1].get_color()
     # --------- If alpha = 0 just show border lines ------------
     if dict_kwargs['plot']['std_alpha'] == 0:
         std_line, = ax.plot(
