@@ -761,7 +761,7 @@ def select_best_examples():
         ax0.set_xlabel(' ')
 
         ax0 = use_dates_as_xticks(ax0,  d['time'][i][:max_t[k]])
-        ax0 = add_annotation(ax0, 'b)')
+        ax0 = add_annotation(ax0, 'b)', clean=False, yloc=0.05)
         # Turn off ticks on this one
         ax0.tick_params(labelleft=False)
         ax0 = annot_ax(g, ax=ax0)
@@ -770,6 +770,8 @@ def select_best_examples():
             loc='upper right'
 
             )
+
+        print('ax0.get_y_lim()', ax0.get_ylim())
 
 
 
@@ -797,8 +799,9 @@ def select_best_examples():
             var = members,
             ax=ax2,
         )
-        ax2 = add_annotation(ax2, 'a)')
+        ax2 = add_annotation(ax2, 'a)', yloc=0.05)
         ax2.sharey(ax0)
+        print('ax2.get_y_lim()', ax2.get_ylim())
 
 
         # ---- Boxplot ----
@@ -888,8 +891,11 @@ def select_best_examples():
             #         c='black', lw = lw_ranges, ls = ls_ranges,
             #         label = label
             #         )
-        ax3 = add_annotation(ax3, 'c)')
-        ax3.sharey(ax0)
+        ax3 = add_annotation(ax3, 'c)', yloc=0.05)
+        print('ax3.get_y_lim()', ax3.get_ylim())
+        ax3.set_ylim(ax0.get_ylim())
+        print('ax3.get_y_lim()', ax3.get_ylim())
+        #ax3.sharey(ax0)
         ax3.tick_params(labelleft=False)
         ax3.tick_params(axis='x', which='major', labelsize=30)
 
