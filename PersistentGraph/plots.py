@@ -791,6 +791,7 @@ def annot_ax(
 def plot_most_revelant_components(
     g,
     relevant_components = None,
+    relevant_k = None,
     k_max = 8,
     show_vertices: bool = True,
     show_edges: bool = True,
@@ -806,7 +807,8 @@ def plot_most_revelant_components(
     k_max = min(k_max, g.k_max)
     # For each time step, get the most relevant number of clusters
     if relevant_components is None:
-        vertices, edges = get_relevant_components(g, k_max=k_max)
+        vertices, edges = get_relevant_components(
+            g, relevant_k=relevant_k, k_max=k_max)
     else:
         vertices, edges = relevant_components
 
