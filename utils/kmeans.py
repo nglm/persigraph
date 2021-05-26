@@ -4,6 +4,9 @@ from sklearn.utils import check_array
 import numpy as np
 import sklearn
 
+
+# REQUIRES v0.23.2 of sklearn!!
+
 # See sklearn.utils.extmath.row_norms
 def row_norms(X, squared=False):
     """Row-wise (squared) Euclidean norm of X.
