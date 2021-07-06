@@ -1,3 +1,8 @@
+"""
+This module depends on the clustering model and is meant to be called by
+the _clustering module.
+"""
+
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict
 
