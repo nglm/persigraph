@@ -63,8 +63,8 @@ def get_model_parameters(
 def generate_zero_component(
     pg,
     X: np.ndarray,
-    model_kw: Dict = {},
-    fit_predict_kw: Dict = {},
+    model_kw: dict = {},
+    fit_predict_kw: dict = {},
 ) -> Tuple[List[List[int]], List[Dict], Dict, Dict]:
     """
     Create the 0 component of the graph for all time steps
@@ -74,9 +74,9 @@ def generate_zero_component(
     :param X: Values of all members, defaults to None
     :type X: np.ndarray, shape: (N, d) optional
     :param model_kw: Dict of kw for the model initalization, defaults to {}
-    :type model_kw: Dict, optional
+    :type model_kw: dict, optional
     :param fit_predict_kw: Dict of kw for the fit_predict method, defaults to {}
-    :type fit_predict_kw: Dict, optional
+    :type fit_predict_kw: dict, optional
     :return: All data corresponding to the generated clustering
     :rtype: Tuple[List[List[int]], List[Dict], Dict, Dict]
     """
@@ -125,7 +125,21 @@ def clustering_model(
     X,
     model_kw : dict = {},
     fit_predict_kw : dict = {},
-    ):
+) -> Tuple[List[List[int]], List[Dict], Dict, Dict]:
+    """
+    Generate a clustering instance with the given model/fit parameters
+
+    :param pg: PersistentGraph
+    :type pg: PersistentGraph
+    :param X: Values of all members, defaults to None
+    :type X: np.ndarray, shape: (N, d) optional
+    :param model_kw: Dict of kw for the model initalization, defaults to {}
+    :type model_kw: dict, optional
+    :param fit_predict_kw: Dict of kw for the fit_predict method, defaults to {}
+    :type fit_predict_kw: dict, optional
+    :return: All data corresponding to the generated clustering
+    :rtype: Tuple[List[List[int]], List[Dict], Dict, Dict]
+    """
     if model_kw['n_clusters'] == 0:
         (
             clusters,
