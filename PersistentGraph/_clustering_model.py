@@ -62,10 +62,24 @@ def get_model_parameters(
 
 def generate_zero_component(
     pg,
-    X,    # (N, d) array
-    model_kw : Dict = {},
-    fit_predict_kw : Dict = {},
-):
+    X: np.ndarray,
+    model_kw: Dict = {},
+    fit_predict_kw: Dict = {},
+) -> Tuple[List[List[int]], List[Dict], Dict, Dict]:
+    """
+    Create the 0 component of the graph for all time steps
+
+    :param pg: PersistentGraph
+    :type pg: PersistentGraph
+    :param X: Values of all members, defaults to None
+    :type X: np.ndarray, shape: (N, d) optional
+    :param model_kw: Dict of kw for the model initalization, defaults to {}
+    :type model_kw: Dict, optional
+    :param fit_predict_kw: Dict of kw for the fit_predict method, defaults to {}
+    :type fit_predict_kw: Dict, optional
+    :return: All data corresponding to the generated clustering
+    :rtype: Tuple[List[List[int]], List[Dict], Dict, Dict]
+    """
     # ====================== Fit & predict part ========================
     if pg._zero_type == 'bounds':
 
