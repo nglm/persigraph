@@ -292,26 +292,43 @@ def _compute_ratio_scores(
                 score_bounds = score_bounds
             )
 
-def _compute_cluster_params(cluster):
+def _compute_cluster_params(
+    cluster: np.ndarray,
+) -> Dict:
+    """
+    Compute the mean, std, std_sup, inf, etc of a given cluster
 
-    #HERE!
-
-    mean = np.mean(cluster)
-    std = np.std(cluster)
-    X_inf = np.array([m for m in cluster if m < mean])
-    X_sup = np.array([m for m in cluster if m >= mean])
-    # std_inf
+    :param cluster: Values of the members belonging to that cluster
+    :type cluster: np.ndarray, shape (N_members, d)
+    :return: Dict of summary statistics
+    :rtype: Dict
+    """
+    #HERE_done
+    d = cluster.shape[1]
+    mean = np.mean(cluster, axis=0).reshape(-1)  # shape: (d)
+    std = np.std(cluster, axis=0).reshape(-1)    # shape: (d)
+    # Get the members below/above the average
+    X_inf = np.array(
+        [[m for i in range(d) if m < mean[i]] for m in cluster]
+    )
+    X_sup = np.array(
+        [[m for i in range(d) if m >= mean[i]] for m in cluster]
+    )
+    # How many members above/below the average
     n_inf = len(X_inf)
     n_sup = len(X_sup)
+    # if statement because of '<': No member below the average => std=0
     if n_inf == 0:
         std_inf = 0
     else:
-        std_inf = np.sqrt( 1/n_inf * np.sum((mean-X_inf)**2) )
-    if n_sup == 0:
-        std_sup = 0
-    else:
-        std_sup = np.sqrt( 1/n_sup * np.sum((mean-X_sup)**2) )
-    cluster_params = [mean, std, std_inf, std_sup]
+        std_inf = np.sqrt(np.sum((X_inf - mean)**2, axis=0) / n_inf).reshape(-1)
+    std_sup = np.sqrt(np.sum((X_sup - mean)**2) / n_sup).reshape(-1)
+
+    cluster_params = {}
+    cluster_params['mean'] = mean
+    cluster_params['std'] = std
+    cluster_params['std_inf'] = std_inf
+    cluster_params['std_sup'] = std_sup
     return cluster_params
 
 
