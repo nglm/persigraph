@@ -1,5 +1,7 @@
 
 from sklearn.metrics import pairwise_distances
+import numpy as np
+from typing import List, Sequence, Union, Any, Dict
 
 from . import _pg_kmeans, _pg_naive
 from ..utils._clustering import sort_dist_matrix
@@ -7,9 +9,21 @@ from ..utils._clustering import sort_dist_matrix
 
 def get_model_parameters(
     pg,
-    X,
-    t = None,
-):
+    X: np.ndarray,
+    t: int = None,
+) -> Tuple[Dict, Dict]:
+    """
+    Initialize clustering model parameters
+
+    :param pg: PersistentGraph
+    :type pg: PersistentGraph
+    :param X: Values of all members, defaults to None
+    :type X: np.ndarray, shape: (N, d) optional
+    :param t: current time step (for weights), defaults to None
+    :type t: int, optional
+    :return: 2 dict, for the model initialization and its fit method
+    :rtype: Tuple[Dict, Dict]
+    """
     # ----------- method specific key-words ------------------------
     if pg._model_type == "KMeans":
         model_kw, fit_predict_kw = _pg_kmeans.get_model_parameters(

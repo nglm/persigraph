@@ -58,7 +58,7 @@ def compute_score(
     """
     Compute the score of a given clustering
 
-    :param pg:
+    :param pg: PersistentGraph
     :type pg: PersistentGraph
     :param model: sklearn model, defaults to None
     :type model: sklearn model, optional
