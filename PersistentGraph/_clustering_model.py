@@ -1,4 +1,7 @@
-
+"""
+This module is supposed to manage any type of clustering model and to
+call _pg_* for more model-dependant code.
+"""
 from sklearn.metrics import pairwise_distances
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict

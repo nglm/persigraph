@@ -1,3 +1,8 @@
+"""
+This module deals with the score function and score ratio
+It is totally clustering model independant
+"""
+
 import numpy as np
 from numpy.linalg import norm
 from scipy.spatial.distance import sqeuclidean, cdist, euclidean
@@ -328,44 +333,7 @@ def _compute_ratio_scores(
                 score_bounds = score_bounds
             )
 
-def _compute_cluster_params(
-    cluster: np.ndarray,
-) -> Dict:
-    """
-    Compute the mean, std, std_sup, inf, etc of a given cluster
 
-    :param cluster: Values of the members belonging to that cluster
-    :type cluster: np.ndarray, shape (N_members, d)
-    :return: Dict of summary statistics
-    :rtype: Dict
-    """
-    #HERE_done
-    d = cluster.shape[1]
-    mean = np.mean(cluster, axis=0).reshape(-1)  # shape: (d)
-    std = np.std(cluster, axis=0).reshape(-1)    # shape: (d)
-    # Get the members below/above the average
-    X_inf = np.array(
-        [[m for i in range(d) if m < mean[i]] for m in cluster]
-    )
-    X_sup = np.array(
-        [[m for i in range(d) if m >= mean[i]] for m in cluster]
-    )
-    # How many members above/below the average
-    n_inf = len(X_inf)
-    n_sup = len(X_sup)
-    # if statement because of '<': No member below the average => std=0
-    if n_inf == 0:
-        std_inf = 0
-    else:
-        std_inf = np.sqrt(np.sum((X_inf - mean)**2, axis=0) / n_inf).reshape(-1)
-    std_sup = np.sqrt(np.sum((X_sup - mean)**2) / n_sup).reshape(-1)
-
-    cluster_params = {}
-    cluster_params['mean'] = mean
-    cluster_params['std'] = std
-    cluster_params['std_inf'] = std_inf
-    cluster_params['std_sup'] = std_sup
-    return cluster_params
 
 
 def better_score(pg, score1, score2, or_equal=False):

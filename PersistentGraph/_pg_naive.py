@@ -5,9 +5,8 @@ from bisect import insort
 from scipy.spatial.distance import sqeuclidean, cdist
 from typing import List, Sequence, Union, Any, Dict
 
-from ._scores import _compute_cluster_params
 from ..utils.sorted_lists import insert_no_duplicate
-from ..utils._clustering import get_centroids
+from ..utils._clustering import get_centroids, compute_cluster_params
 
 
 
@@ -119,7 +118,7 @@ def clustering_model(
         clusters.append(members)
 
         # Info related to this specific vertex
-        cluster_params =  _compute_cluster_params(X[members])
+        cluster_params =  compute_cluster_params(X[members])
         cluster_params.append(rep[i_cluster])
         clusters_info.append({
             'type' : 'Naive',
