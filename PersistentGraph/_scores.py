@@ -11,8 +11,10 @@ SCORES_TO_MINIMIZE = [
         'max_inertia',
         'min_inertia',       # Shouldn't be used: taking min makes no sense
         # ----------
-        'variance',
-        'mean_variance',
+        'distortion'
+        # ----------         # Shouldn't be used: use inertia instead
+        'variance',          # Shouldn't be used: use inertia instead
+        'mean_variance',     # Shouldn't be used: use inertia instead
         'weighted_variance', # Shouldn't be used: favors very high k values
         'min_variance',      # Shouldn't be used: taking min makes no sense
         'max_variance',
@@ -70,12 +72,13 @@ def compute_score(
     :return: Score of the given clustering
     :rtype: float
     """
-    #HERE!
+    #HERE_done
 
     # TODO: add weights for scores that requires global bounds
 
     # ------------------------------------------------------------------
     if pg._score_type == 'inertia':
+        # sklearn gives the inertia
         if (model is not None) and hasattr(model, 'inertia_'):
             score = model.inertia_
         else:
@@ -83,17 +86,17 @@ def compute_score(
             for i_cluster, members in enumerate(clusters):
                 score += np.sum(cdist(
                         X[members],
-                        np.mean(X[members], keepdims=True) ,
+                        np.mean(X[members], axis=0).reshape(-1),
                         metric='sqeuclidean'
                         )
                     )
     # ------------------------------------------------------------------
-    elif pg._score_type == 'mean_inertia':
+    elif pg._score_type in ['mean_inertia', 'distortion']:
         score = 0
         for i_cluster, members in enumerate(clusters):
             score += np.sum(cdist(
                     X[members],
-                    np.mean(X[members], keepdims=True) ,
+                    np.mean(X[members], axis=0).reshape(-1),
                     metric='sqeuclidean'
                     )
                 )
@@ -104,7 +107,7 @@ def compute_score(
         for i_cluster, members in enumerate(clusters):
             score += (len(clusters) / pg.N)* np.sum(cdist(
                     X[members],
-                    np.mean(X[members], keepdims=True) ,
+                    np.mean(X[members], axis=0).reshape(-1),
                     metric='sqeuclidean'
                     )
                 )
@@ -117,7 +120,7 @@ def compute_score(
                 score,
                 np.sum(cdist(
                     X[members],
-                    np.mean(X[members], keepdims=True) ,
+                    np.mean(X[members], axis=0).reshape(-1),
                     metric='sqeuclidean'
                     )
                 ))
@@ -131,41 +134,51 @@ def compute_score(
                 score,
                 np.sum(cdist(
                     X[members],
-                    np.mean(X[members], keepdims=True) ,
+                    np.mean(X[members], axis=0).reshape(-1),
                     metric='sqeuclidean'
                     )
                 ))
 
     # ------------------------------------------------------------------
-    elif pg._score_type in ['variance', 'distortion']:
+    elif pg._score_type in ['variance']:
+        # Shouldn't be used: use inertia or distortion instead
+        # Don't confuse generalized variance and total variation
+        # Here it's generalized variance
         score = 0
         for i_cluster, members in enumerate(clusters):
-            #score += (len(members)-1)/pg.N * np.var(X[members])
-            score += np.var(X[members])
+            score += np.linalg.det(np.cov(X[members], rowvar=True))
+            #score += np.var(X[members], ddof=1)
     # ------------------------------------------------------------------
     elif pg._score_type in ['mean_variance']:
+        # Shouldn't be used: use inertia instead
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score += np.var(X[members])
+            score += np.linalg.det(np.cov(X[members], rowvar=True))
         score /= len(clusters)
     # ------------------------------------------------------------------
     elif pg._score_type in ['weighted_variance']:
+        # Shouldn't be used: use inertia instead
         # This should not be used, it favours very high values of k
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score += (len(clusters) / pg.N) * np.var(X[members])
+            score += (
+                (len(clusters)/pg.N)
+                * np.linalg.det(np.cov(X[members], rowvar=True))
+            )
     # ------------------------------------------------------------------
     elif pg._score_type == 'max_variance':
+        # Shouldn't be used: use inertia instead
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score = max(np.var(X[members]), score)
+            score = max(np.linalg.det(np.cov(X[members], rowvar=True)), score)
 
     # ------------------------------------------------------------------
     # Shouldn't be used: taking min makes no sense
+    # Shouldn't be used: use inertia instead
     elif pg._score_type == 'min_variance':
         score = np.inf
         for i_cluster, members in enumerate(clusters):
-            score = min(np.var(X[members]), score)
+            score = min(np.linalg.det(np.cov(X[members], rowvar=True)), score)
     # ------------------------------------------------------------------
     elif pg._score_type == 'diameter':
         # WARNING: diameter should be used with weights
@@ -187,32 +200,32 @@ def compute_score(
     elif pg._score_type == 'MedDevMean':
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score += np.median(norm(X[members] - np.mean(X[members])))
+            score += np.median(norm(X[members] - np.mean(X[members], axis=0)))
     # ------------------------------------------------------------------
     elif pg._score_type == 'mean_MedDevMean':
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score += np.median(norm(X[members] - np.mean(X[members])))
+            score += np.median(norm(X[members] - np.mean(X[members], axis=0)))
         score /= len(clusters)
     # ------------------------------------------------------------------
     elif pg._score_type == 'max_MedDevMean':
         score = 0
         for i_cluster, members in enumerate(clusters):
             score = max(
-                np.median(norm(X[members] - np.mean(X[members]))),
+                np.median(norm(X[members] - np.mean(X[members], axis=0))),
                 score
             )
     # ------------------------------------------------------------------
     elif pg._score_type == 'MeanDevMed':
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score += np.mean(norm(X[members] - np.median(X[members])))
+            score += np.mean(norm(X[members] - np.median(X[members], axis=0)))
     # ------------------------------------------------------------------
     elif pg._score_type == 'max_MeanDevMed':
         score = 0
         for i_cluster, members in enumerate(clusters):
             score = max(
-                np.mean(norm(X[members] - np.median(X[members]))),
+                np.mean(norm(X[members] - np.median(X[members], axis=0))),
                 score
             )
     # ------------------------------------------------------------------
@@ -222,7 +235,7 @@ def compute_score(
         score = 0
         for i_cluster, members in enumerate(clusters):
             score = max(
-                np.median(norm(X[members] - np.median(X[members]))),
+                np.median(norm(X[members] - np.median(X[members], axis=0))),
                 score
             )
     else:
