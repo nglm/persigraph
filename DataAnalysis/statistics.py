@@ -113,11 +113,13 @@ def extract_variables(
     ind_long: Union[np.ndarray, int] = None,
     ind_lat: Union[np.ndarray, int] = None,
     multivariate: bool = False,
-    descr: bool = False,
     #HERE_done
 ) -> Union[List[np.ndarray], np.ndarray]:
     """
     Extract given variables and corresponding columns
+
+    Warning: if multivariate, the time axis dimension comes before the
+    variable dimension
 
     The objective is to extract quickly useful variables from
     all our nc files
@@ -146,24 +148,24 @@ def extract_variables(
     :param ind_long:
 
         Indices of longitudes to extract,
-        defaults to None, in this case the first element is extracted
+        defaults to None, in this case all elements are extracted
 
     :type ind_long: Union[np.ndarray, int], optional
     :param ind_lat:
 
         Indices of latitudes to extract,
-        defaults to None, in this case the first element is extracted
+        defaults to None, in this case all elements are extracted
 
     :type ind_lat: Union[np.ndarray, int], optional
     :param multivariate: Consider one multivariate variable, defaults to False
     :type multivariate: bool, optional
-    :param descr: If True var dimensions are printed, defaults to False
-    :type descr: bool, optional
     :return: Variables and their corresponding names
     :rtype: Tuple[Union[List[np.ndarray], np.ndarray], Union[List[str], str]]
     """
     if var_names is None:
         var_names =["t2m","d2m","msl","u10","v10","tcwv"]
+    if isinstance(var_names, str):
+        var_names = [var_names]
     if ind_time is None:
         ind_time = np.arange(nc.variables["time"].size)
     if ind_members is None:
@@ -172,42 +174,89 @@ def extract_variables(
         ind_long = np.arange(nc.variables["longitude"].size)
     if ind_lat is None:
         ind_lat = np.arange(nc.variables["latitude"].size)
-    #HERE!
+    #HERE_done
     list_var = [np.array(nc.variables[name]) for name in var_names]
     list_var = [var[ind_time,:,:,:] for var in list_var]
     list_var = [var[:,ind_members,:,:] for var in list_var]
     list_var = [var[:,:,ind_long,:] for var in list_var]
     list_var = [var[:,:,:,ind_lat] for var in list_var]
 
-    if multivariate:
-        list_var = np.array(list_var)
+    # Now List of (N, t, p, q) arrays
+    list_var = [np.swapaxes(var, 0, 1).squeeze() for var in list_var]
 
-    if descr:
-        d = len(list_var)
-        print("Total number of variables: ", d)
-        for i in range(d):
-            print("Variable: ", var_names[i], "Dimensions:", list_var[i].shape)
+    if multivariate:
+        # Now (N, d, t, p, q) arrays
+        list_var = np.swapaxes(list_var, 0, 1)
+
     return (list_var, var_names)
 # (list_var, var_names) = extract_variables(nc)
 
 
 def preprocess_data(
-    filename,
-    path_data='',
-    var_names=['t2m'],
-    ind_time=None,
-    ind_members=None,
-    ind_long=[0],
-    ind_lat=[0],
-    to_standardize = False,
-    return_scalers = False,
-    ):
+    filename: str,
+    path_data: str = '',
+    var_names: Union[List[str], str] = ['t2m'],
+    ind_time: Union[np.ndarray, int] = None,
+    ind_members: Union[np.ndarray, int] = None,
+    ind_long: Union[np.ndarray, int] = 0,
+    ind_lat: Union[np.ndarray, int] = 0,
+    multivariate: bool = False,
+    to_standardize: bool = False,
+    return_scalers: bool = False,
+) -> :
+    """
+    Extract and preprocess data
+
+    :param filename: nc filename
+    :type filename: str
+    :param path_data: path to nc file, defaults to ''
+    :type path_data: str, optional
+    :param var_names:
+
+        Names of the variables to extract,
+        defaults to None, in this case
+        ``` var_names =["t2m","d2m","msl","u10","v10","tcwv"]```
+
+    :type var_names: Union[List[str], str], optional
+    :param ind_time:
+
+        Indices of time steps to extract,
+        defaults to None, in this case all time steps are extracted
+
+    :type ind_time: Union[np.ndarray, int], optional
+    :param ind_members:
+
+        Indices of members to extract,
+        defaults to None, in this case all members are extracted
+
+    :type ind_members: Union[np.ndarray, int], optional
+    :param ind_long:
+
+        Indices of longitudes to extract,
+        defaults to None, in this case all elements are extracted
+
+    :type ind_long: Union[np.ndarray, int], optional
+    :param ind_lat:
+
+        Indices of latitudes to extract,
+        defaults to None, in this case all elements are extracted
+
+    :type ind_lat: Union[np.ndarray, int], optional
+    :param multivariate: Consider one multivariate variable, defaults to False
+    :type multivariate: bool, optional
+    :param to_standardize: Should variables be standardized, defaults to False
+    :type to_standardize: bool, optional
+    :param return_scalers: Should scalers be returned, defaults to False
+    :type return_scalers: bool, optional
+    :return: Variables, their corresponding names, time axis and scalers
+    :rtype: Tuple[Union[List[np.ndarray], np.ndarray], Union[List[str], str]]
+    """
 
     print(filename)
     f = path_data + filename
     nc = Dataset(f,'r')
 
-    #HERE! merge variables
+    #HERE_done merge variables
     (list_var, list_names) = extract_variables(
         nc=nc,
         var_names=var_names,
@@ -215,6 +264,7 @@ def preprocess_data(
         ind_members=ind_members,
         ind_long=ind_long,
         ind_lat=ind_lat,
+        multivariate=multivariate,
     )
 
     # Take the log for the tcwv variable
@@ -223,26 +273,30 @@ def preprocess_data(
         my_element="tcwv",
     )
 
-    #HERE! if tcwv is merged with other varibles
+    #HERE_done if tcwv is merged with other varibles
     if idx != -1:
+        if multivariate:
+            raise NotImplementedError("Multivariate with log tcwv")
         for i in idx:
             list_var[i] = np.log(list_var[i])
 
     # Take Celsius instead of Kelvin
-    #HERE! if t2m is merged with other variables
+    #HERE_done if t2m is merged with other variables
     if not to_standardize:
         idx = get_indices_element(
             my_list=list_names,
             my_element="t2m",
         )
         if idx != -1:
+            if multivariate:
+                raise NotImplementedError("Multivariate with t2m in °C")
             for i in idx:
                 list_var[i] = list_var[i] - 273.15
 
-    #HERE!
-    list_var = [np.swapaxes(var, 0, 1).squeeze() for var in list_var]
-
+    #HERE_done
     if to_standardize:
+        if multivariate:
+            raise NotImplementedError("Multivariate with standardization")
         (list_scalers, list_var) = standardize(
             list_var = list_var,
             each_loc = False,
