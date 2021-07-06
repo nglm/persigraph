@@ -46,7 +46,30 @@ def _set_score_type(pg, score_type):
         pg._global_bounds = False
     pg._score_type = score_type
 
-def compute_score(pg, model=None, X=None, clusters=None, t=None):
+def compute_score(
+    pg,
+    model=None,
+    X: np.ndarray = None,
+    clusters: List[List[int]] = None,
+    t: int = None
+) -> float :
+    """
+    Compute the score of a given clustering
+
+    :param pg:
+    :type pg: PersistentGraph
+    :param model: sklearn model, defaults to None
+    :type model: sklearn model, optional
+    :param X: Values of all members, defaults to None
+    :type X: np.ndarray, shape: (N, d) optional
+    :param clusters: Members ids of each cluster, defaults to None
+    :type clusters: List[List[int]], optional
+    :param t: current time step (for weights), defaults to None
+    :type t: int, optional
+    :raises ValueError: [description]
+    :return: Score of the given clustering
+    :rtype: float
+    """
     #HERE!
 
     # TODO: add weights for scores that requires global bounds
