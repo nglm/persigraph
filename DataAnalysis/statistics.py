@@ -81,6 +81,9 @@ def standardize(
     list_var,  # List[ndarray(n_members, n_time, n_long, n_lat)]
     each_loc: bool = False, # if true return List[ndarray(n_long, n_lat)] else return List[Scaler]
 ):
+
+    #FIXME: Outdated since multivariate
+
     list_scalers = []
     list_stand_var = []
     for var in list_var:
@@ -95,13 +98,9 @@ def standardize(
             if len(var.shape) > 2:
                 print("Not implemented yet")
             else:
-                #HERE!
                 mean = np.mean(var)
-                #HERE!
                 std = np.std(var)
-                #HERE!
                 list_stand_var.append((var - mean) / std)
-                #HERE!
                 list_scalers.append([mean, std])
     return (list_scalers, list_stand_var)
 
@@ -318,6 +317,8 @@ def extract_var_distrib(
 ):
     """Flatten all columns for each variable
 
+    #FIXME: Outdated since multivariate
+
     The objective is to facilitate the study of the distribution of
     each variable.
 
@@ -339,7 +340,6 @@ def extract_var_distrib(
     d = len(list_var)
     if list_names is None:
         list_names = np.array(["var_"+str(i) for i in range(d)])
-    #HERE! if var are merged
     var_distrib = np.array([var.flatten() for var in list_var])
 
     if descr:
