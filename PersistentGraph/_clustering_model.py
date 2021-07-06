@@ -44,6 +44,54 @@ def get_model_parameters(
 
     return model_kw, fit_predict_kw
 
+
+
+def generate_zero_component(
+    pg,
+    X,    # (N, d) array
+    model_kw : Dict = {},
+    fit_predict_kw : Dict = {},
+):
+    # ====================== Fit & predict part ========================
+    if pg._zero_type == 'bounds':
+
+        # Get the parameters of the uniform distrib using min and max
+        #HERE_done axis
+        mins = np.amin(X, axis=0)
+        #HERE_done axis
+        maxs = np.amax(X, axis=0)
+
+    else:
+        # I'm not sure if this type should be used at all actually.....
+        # Get the parameters of the uniform distrib using mean and variance
+        #HERE_done axis
+        var = np.var(X, axis=0)
+        #HERE_done axis
+        mean = np.mean(X, axis=0)
+
+        mins = (2*mean - np.sqrt(12*var)) / 2
+        maxs = (2*mean + np.sqrt(12*var)) / 2
+
+    # Generate a perfect uniform distribution
+    steps = (maxs-mins) / (pg.N-1)
+    #HERE_done (d, T)
+    values = np.array([mins + i*steps for i in range(pg.N)])
+
+    # ==================== clusters, cluster_info ======================
+    # Compute the score of that distribution
+    clusters = [[i for i in range(pg.N)]]
+    clusters_info = [{
+        'type' : 'uniform',
+        'params' : [values[0], values[-1]], # lower/upper bounds
+        'brotherhood_size' : [0]
+    }]
+
+    # ========================== step_info =============================
+    step_info = {'values': values}
+
+    return clusters, clusters_info, step_info, model_kw
+
+
 def clustering_model(
     pg,
     X,
