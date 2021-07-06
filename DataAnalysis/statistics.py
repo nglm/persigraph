@@ -31,6 +31,14 @@ def moving_average(
     list_var,   # List(ndarray(n_time, n_members [, n_long, n_lat])
     list_windows,
 ):
+    """
+    #FIXME: Outdated since multivariate
+
+    :param list_var: [description]
+    :type list_var: [type]
+    :return: [description]
+    :rtype: [type]
+    """
 # Source:
 # https://www.quora.com/How-do-I-perform-moving-average-in-Python
     # Create a figure canvas and plot the original, noisy data
@@ -86,9 +94,13 @@ def standardize(
             if len(var.shape) > 2:
                 print("Not implemented yet")
             else:
+                #HERE!
                 mean = np.mean(var)
+                #HERE!
                 std = np.std(var)
+                #HERE!
                 list_stand_var.append((var - mean) / std)
+                #HERE!
                 list_scalers.append([mean, std])
     return (list_scalers, list_stand_var)
 
@@ -100,6 +112,7 @@ def extract_variables(
     ind_long=None,
     ind_lat=None,
     descr: bool = False,
+    #HERE!
 ):
     """
     Extract given variables and corresponding columns
@@ -138,6 +151,7 @@ def extract_variables(
         ind_long = np.arange(nc.variables["longitude"].size)
     if ind_lat is None:
         ind_lat = np.arange(nc.variables["latitude"].size)
+    #HERE!
     list_var = [np.array(nc.variables[name]) for name in var_names]
     list_var = [var[ind_time,:,:,:] for var in list_var]
     list_var = [var[:,ind_members,:,:] for var in list_var]
@@ -169,6 +183,7 @@ def preprocess_data(
     f = path_data + filename
     nc = Dataset(f,'r')
 
+    #HERE! merge variables
     (list_var, list_names) = extract_variables(
         nc=nc,
         var_names=var_names,
@@ -183,11 +198,14 @@ def preprocess_data(
         my_list=list_names,
         my_element="tcwv",
     )
+
+    #HERE! if tcwv is merged with other varibles
     if idx != -1:
         for i in idx:
             list_var[i] = np.log(list_var[i])
 
     # Take Celsius instead of Kelvin
+    #HERE! if t2m is merged with other variables
     if not to_standardize:
         idx = get_indices_element(
             my_list=list_names,
@@ -197,6 +215,7 @@ def preprocess_data(
             for i in idx:
                 list_var[i] = list_var[i] - 273.15
 
+    #HERE!
     list_var = [np.swapaxes(var, 0, 1).squeeze() for var in list_var]
 
     if to_standardize:
@@ -242,6 +261,7 @@ def extract_var_distrib(
     d = len(list_var)
     if list_names is None:
         list_names = np.array(["var_"+str(i) for i in range(d)])
+    #HERE! if var are merged
     var_distrib = np.array([var.flatten() for var in list_var])
 
     if descr:
@@ -269,6 +289,8 @@ def plot_violinplots(
     The objective is to get a better idea of the distribution of
     the different without doing any assumptions (not assuming that
     the values are normally distributed for instance)
+
+    #FIXME: Outdated since multivariate
 
     :param data: [description]
     :type data: [type]

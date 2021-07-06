@@ -23,11 +23,12 @@ def get_model_parameters(
             t = t,
         )
     # ----------- Common keywords ------------------------
-    # 'pop' because we don't want it when we call clustering_model
     precompute_centroids = pg._model_kw['precompute_centroids']
+    # 'pop' because we don't want it when we call clustering_model
     model_kw.pop("precompute_centroids", None)
     if precompute_centroids:
         # Compute pairwise distances
+        #HERE!
         distance_matrix = pairwise_distances(X) / pg._weights[t]
         # Argsort of pairwise distances
         sorted_idx = sort_dist_matrix(pg, distance_matrix)

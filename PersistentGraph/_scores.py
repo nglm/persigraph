@@ -47,6 +47,8 @@ def _set_score_type(pg, score_type):
     pg._score_type = score_type
 
 def compute_score(pg, model=None, X=None, clusters=None, t=None):
+    #HERE!
+
     # TODO: add weights for scores that requires global bounds
 
     # ------------------------------------------------------------------
@@ -291,6 +293,8 @@ def _compute_ratio_scores(
             )
 
 def _compute_cluster_params(cluster):
+
+    #HERE!
 
     mean = np.mean(cluster)
     std = np.std(cluster)

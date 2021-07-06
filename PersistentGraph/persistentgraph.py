@@ -108,6 +108,7 @@ class PersistentGraph():
 
         # Variable dimension
         shape = members.shape
+        #HERE! (N,d, T)
         if len(shape) < 3:
             self._d = int(1)
         else:
@@ -122,6 +123,7 @@ class PersistentGraph():
         else:
             self._time_axis = time_axis
 
+        #HERE! (d, T)
         if weights is None:
             self._weights = np.ones_like(time_axis, dtype = float)
         else:
@@ -244,13 +246,17 @@ class PersistentGraph():
         if self._zero_type == 'bounds':
 
             # Get the parameters of the uniform distrib using min and max
+            #HERE! axis
             mins = np.amin(X)
+            #HERE! axis
             maxs = np.amax(X)
 
         else:
             # I'm not sure if this type should be used at all actually.....
             # Get the parameters of the uniform distrib using mean and variance
+            #HERE! axis
             var = np.var(X)
+            #HERE! axis
             mean = np.mean(X)
 
             mins = (2*mean - np.sqrt(12*var)) / 2
@@ -258,6 +264,7 @@ class PersistentGraph():
 
         # Generate a perfect uniform distribution
         steps = (maxs-mins) / (self.N-1)
+        #HERE! (d, T)
         values = np.array([mins + i*steps for i in range(self.N)]).reshape(-1,1)
 
         # ==================== clusters, cluster_info ==================
@@ -651,7 +658,7 @@ class PersistentGraph():
     def _generate_all_clusters(self):
 
         # --------------------- Preliminary ----------------------------
-        # Use bisect left in order to favor the lower number of clusters
+        # Use bisect left in order to favor the lowest number of clusters
         if self._maximize:
             sort_fc = reverse_bisect_left
         else:
@@ -666,6 +673,7 @@ class PersistentGraph():
                 print(" ========= ", t, " ========= ")
 
             # ------ clustering method specific parameters -------------
+            #HERE! (N, d, T)
             X = self._members[:, t].reshape(-1,1)
             # Get clustering model parameters required by the
             # clustering model
@@ -751,6 +759,7 @@ class PersistentGraph():
                 score = self._local_steps[t][step]['score']
 
                 # ---------------- Preliminary ---------------------
+                #HERE! (N, d, T)
                 self._members_v_distrib[t].append(
                     np.zeros(self.N, dtype = int)
                 )
@@ -1021,22 +1030,6 @@ class PersistentGraph():
                 print("nb new edges going FROM t: ", nb_new_edges_from)
                 print("nb new edges going TO t: ", nb_new_edges_to)
 
-    # def prune(self):
-    #     """
-    #     FIXME: Outdated
-    #     """
-    #     tot_count = 0
-    #     for t in range(self.T):
-    #         count = 0
-    #         for i, v in enumerate(self._vertices[t]):
-    #             if v.life_span < threshold:
-    #                 del self._vertices[t][i]
-    #                 count += 1
-    #         if self._verbose:
-    #             print("t = ", t, " nb vertices pruned = ", count)
-    #         tot_count += count
-    #         self._nb_vertices[t] -= count
-
 
     def construct_graph(
         self,
@@ -1080,15 +1073,6 @@ class PersistentGraph():
 
         # ================= Compute ratio scores =======================
         _compute_ratio_scores(self)
-
-        # if post_prune:
-        #     t_start = time.time()
-        #     if self._verbose:
-        #         print("Prune vertices...")
-        #     self.prune()
-        #     t_end = time.time()
-        #     if self._verbose:
-        #         print('Vertices pruned in %.2f s' %(t_end - t_start))
 
         # =================== Sort global steps ========================
         t_start = time.time()
@@ -1152,7 +1136,7 @@ class PersistentGraph():
     def members(self) -> np.ndarray:
         """Original data, ensemble of time series
 
-        :rtype: np.ndarray[float], shape: (N,T,d)
+        :rtype: np.ndarray[float], shape: (N,d, T)
         """
         return np.copy(self._members)
 
