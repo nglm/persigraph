@@ -9,8 +9,18 @@ from ._scores import _compute_cluster_params
 
 def get_model_parameters(
         pg,
-        X,
-):
+        X: np.ndarray,
+) -> Tuple[Dict, Dict]:
+    """
+    Initialize clustering model parameters
+
+    :param pg: PersistentGraph
+    :type pg: PersistentGraph
+    :param X: Values of all members, defaults to None
+    :type X: np.ndarray, shape: (N, d) optional
+    :return: 2 dict, for the model initialization and its fit method
+    :rtype: Tuple[Dict, Dict]
+    """
     # The same N datapoints X are use for all n_clusters values
     # Furthermore the clustering method might want to copy X
     # Each time it is called and compute pairwise distances
@@ -42,8 +52,21 @@ def clustering_model(
     X,
     model_kw : Dict = {},
     fit_predict_kw : Dict = {},
-):
+) -> Tuple[List[List[int]], List[Dict], Dict, Dict]:
+    """
+    Generate a clustering instance with the given model/fit parameters
 
+    :param pg: PersistentGraph
+    :type pg: PersistentGraph
+    :param X: Values of all members, defaults to None
+    :type X: np.ndarray, shape: (N, d) optional
+    :param model_kw: Dict of kw for the model initalization, defaults to {}
+    :type model_kw: dict, optional
+    :param fit_predict_kw: Dict of kw for the fit_predict method, defaults to {}
+    :type fit_predict_kw: dict, optional
+    :return: All data corresponding to the generated clustering
+    :rtype: Tuple[List[List[int]], List[Dict], Dict, Dict]
+    """
     # ====================== Fit & predict part =======================
     n_clusters = model_kw.pop('n_clusters')
 

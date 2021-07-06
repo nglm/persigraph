@@ -13,9 +13,21 @@ from ..utils._clustering import get_centroids
 
 def get_model_parameters(
     pg,
-    X = None,
-    t = None,
+    X: np.ndarray = None,
+    t: int = None,
 ):
+    """
+    Initialize clustering model parameters
+
+    :param pg: PersistentGraph
+    :type pg: PersistentGraph
+    :param X: Values of all members, defaults to None
+    :type X: np.ndarray, shape: (N, d) optional
+    :param t: current time step (for weights), defaults to None
+    :type t: int, optional
+    :return: 2 dict, for the model initialization and its fit method
+    :rtype: Tuple[Dict, Dict]
+    """
     model_kw = {}
     fit_predict_kw = {}
     return model_kw, fit_predict_kw
@@ -66,7 +78,21 @@ def clustering_model(
     X,
     model_kw : Dict = {},
     fit_predict_kw : Dict = {},
-):
+) -> Tuple[List[List[int]], List[Dict], Dict, Dict]:
+    """
+    Generate a clustering instance with the given model/fit parameters
+
+    :param pg: PersistentGraph
+    :type pg: PersistentGraph
+    :param X: Values of all members, defaults to None
+    :type X: np.ndarray, shape: (N, d) optional
+    :param model_kw: Dict of kw for the model initalization, defaults to {}
+    :type model_kw: dict, optional
+    :param fit_predict_kw: Dict of kw for the fit_predict method, defaults to {}
+    :type fit_predict_kw: dict, optional
+    :return: All data corresponding to the generated clustering
+    :rtype: Tuple[List[List[int]], List[Dict], Dict, Dict]
+    """
 
     # ====================== Fit & predict part =======================
     rep, members_r, model_kw = _fit(
