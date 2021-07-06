@@ -108,14 +108,14 @@ class PersistentGraph():
 
         # Variable dimension
         shape = members.shape
-        #HERE! (N,d, T)
+        #HERE_DONE (N,d, T)
         if len(shape) < 3:
             self._d = int(1)
         else:
-            self._d = shape[0]
+            self._d = shape[1]
 
-        self._N = shape[0]  # Number of members (time series)
-        self._T = shape[1]  # Length of the time series
+        self._N = shape[0]   # Number of members (time series)
+        self._T = shape[-1]  # Length of the time series
 
         # Shared x-axis values among the members
         if time_axis is None:
@@ -123,9 +123,9 @@ class PersistentGraph():
         else:
             self._time_axis = time_axis
 
-        #HERE! (d, T)
+        #HERE_DONE (d, T)
         if weights is None:
-            self._weights = np.ones_like(time_axis, dtype = float)
+            self._weights = np.ones((self.d, self.T), dtype = float)
         else:
             self._weights = np.array(weights)
 
@@ -234,52 +234,6 @@ class PersistentGraph():
         self._norm_bounds = None
         self._verbose = False
         self._quiet = False
-
-
-    def _generate_zero_component(
-        self,
-        X,
-        model_kw : Dict = {},
-        fit_predict_kw : Dict = {},
-    ):
-        # ====================== Fit & predict part ====================
-        if self._zero_type == 'bounds':
-
-            # Get the parameters of the uniform distrib using min and max
-            #HERE! axis
-            mins = np.amin(X)
-            #HERE! axis
-            maxs = np.amax(X)
-
-        else:
-            # I'm not sure if this type should be used at all actually.....
-            # Get the parameters of the uniform distrib using mean and variance
-            #HERE! axis
-            var = np.var(X)
-            #HERE! axis
-            mean = np.mean(X)
-
-            mins = (2*mean - np.sqrt(12*var)) / 2
-            maxs = (2*mean + np.sqrt(12*var)) / 2
-
-        # Generate a perfect uniform distribution
-        steps = (maxs-mins) / (self.N-1)
-        #HERE! (d, T)
-        values = np.array([mins + i*steps for i in range(self.N)]).reshape(-1,1)
-
-        # ==================== clusters, cluster_info ==================
-        # Compute the score of that distribution
-        clusters = [[i for i in range(self.N)]]
-        clusters_info = [{
-            'type' : 'uniform',
-            'params' : [values[0], values[-1]], # lower/upper bounds
-            'brotherhood_size' : [0]
-        }]
-
-        # ========================== step_info =========================
-        step_info = {'values': values}
-
-        return clusters, clusters_info, step_info, model_kw
 
 
 
@@ -673,8 +627,8 @@ class PersistentGraph():
                 print(" ========= ", t, " ========= ")
 
             # ------ clustering method specific parameters -------------
-            #HERE! (N, d, T)
-            X = self._members[:, t].reshape(-1,1)
+            #HERE_done (N, d, T)
+            X = self._members[:, :, t]
             # Get clustering model parameters required by the
             # clustering model
             model_kw, fit_predict_kw = get_model_parameters(
@@ -759,7 +713,6 @@ class PersistentGraph():
                 score = self._local_steps[t][step]['score']
 
                 # ---------------- Preliminary ---------------------
-                #HERE! (N, d, T)
                 self._members_v_distrib[t].append(
                     np.zeros(self.N, dtype = int)
                 )

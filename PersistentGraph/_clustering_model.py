@@ -28,8 +28,8 @@ def get_model_parameters(
     model_kw.pop("precompute_centroids", None)
     if precompute_centroids:
         # Compute pairwise distances
-        #HERE!
-        distance_matrix = pairwise_distances(X) / pg._weights[t]
+        #HERE_done
+        distance_matrix = pairwise_distances(X) * pg._weights[:, t]
         # Argsort of pairwise distances
         sorted_idx = sort_dist_matrix(pg, distance_matrix)
         pg._model_kw["distance_matrix"] = distance_matrix
@@ -104,7 +104,8 @@ def clustering_model(
             clusters_info,
             step_info,
             model_kw,
-        ) = pg._generate_zero_component(
+        ) = generate_zero_component(
+            pg = pg,
             X = X,
             model_kw = model_kw,
             fit_predict_kw = fit_predict_kw,

@@ -150,14 +150,14 @@ def compute_score(pg, model=None, X=None, clusters=None, t=None):
         # values of n_clusters
         score = 0
         for i_cluster, members in enumerate(clusters):
-            score += np.amax(pairwise_distances(X[members])) / pg._weights[t]
+            score += np.amax(pairwise_distances(X[members])) * pg._weights[:, t]
     # ------------------------------------------------------------------
     elif pg._score_type == 'max_diameter':
         # WARNING: Max diameter should be used with weights
         score = 0
         for i_cluster, members in enumerate(clusters):
             score = max(
-                np.amax(pairwise_distances(X[members])) / pg._weights[t],
+                np.amax(pairwise_distances(X[members])) * pg._weights[:, t],
                 score
             )
     # ------------------------------------------------------------------
