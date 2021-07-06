@@ -21,6 +21,7 @@ from netCDF4 import Dataset
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
 from scipy.stats import norm, kurtosis
+from typing import List, Sequence, Union, Any, Dict
 
 from ..utils.plt import get_nrows_ncols_from_nplots, get_subplot_indices
 from ..utils.npy import running_mean
@@ -106,18 +107,19 @@ def standardize(
 
 def extract_variables(
     nc,
-    var_names=None,
-    ind_time=None,
-    ind_members=None,
-    ind_long=None,
-    ind_lat=None,
+    var_names : Union[List[str], str] = None,
+    ind_time: Union[np.ndarray, int] = None,
+    ind_members: Union[np.ndarray, int] = None,
+    ind_long: Union[np.ndarray, int] = None,
+    ind_lat: Union[np.ndarray, int] = None,
+    multivariate: bool = False,
     descr: bool = False,
-    #HERE!
-):
+    #HERE_done
+) -> Union[List[np.ndarray], np.ndarray]:
     """
     Extract given variables and corresponding columns
 
-    The objective is to extract quickly usefull variables from
+    The objective is to extract quickly useful variables from
     all our nc files
 
     :param nc: Dataset (nc file) from which values are extracted
@@ -128,18 +130,37 @@ def extract_variables(
         defaults to None, in this case
         ``` var_names =["t2m","d2m","msl","u10","v10","tcwv"]```
 
-    :type var_names: List[string], optional
+    :type var_names: Union[List[str], str], optional
+    :param ind_time:
+
+        Indices of time steps to extract,
+        defaults to None, in this case all time steps are extracted
+
+    :type ind_time: Union[np.ndarray, int], optional
     :param ind_members:
 
-        Index of the members to extract,
-        defaults to None, in this case all the members are extracted
+        Indices of members to extract,
+        defaults to None, in this case all members are extracted
 
-    :type ind_members: ndarray[int], optional
-    :param descr:
+    :type ind_members: Union[np.ndarray, int], optional
+    :param ind_long:
 
-        If True var dimensions are printed, defaults to False
+        Indices of longitudes to extract,
+        defaults to None, in this case the first element is extracted
 
+    :type ind_long: Union[np.ndarray, int], optional
+    :param ind_lat:
+
+        Indices of latitudes to extract,
+        defaults to None, in this case the first element is extracted
+
+    :type ind_lat: Union[np.ndarray, int], optional
+    :param multivariate: Consider one multivariate variable, defaults to False
+    :type multivariate: bool, optional
+    :param descr: If True var dimensions are printed, defaults to False
     :type descr: bool, optional
+    :return: Variables and their corresponding names
+    :rtype: Tuple[Union[List[np.ndarray], np.ndarray], Union[List[str], str]]
     """
     if var_names is None:
         var_names =["t2m","d2m","msl","u10","v10","tcwv"]
@@ -158,12 +179,15 @@ def extract_variables(
     list_var = [var[:,:,ind_long,:] for var in list_var]
     list_var = [var[:,:,:,ind_lat] for var in list_var]
 
+    if multivariate:
+        list_var = np.array(list_var)
+
     if descr:
         d = len(list_var)
         print("Total number of variables: ", d)
         for i in range(d):
             print("Variable: ", var_names[i], "Dimensions:", list_var[i].shape)
-    return(list_var, var_names)
+    return (list_var, var_names)
 # (list_var, var_names) = extract_variables(nc)
 
 
