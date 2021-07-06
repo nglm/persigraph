@@ -163,13 +163,13 @@ def __std_polygon(g, edges):
     # std_inf(t) - >std_inf(t) -> std_sup(t+1) -> std_inf(t+1)
     polys = [[
         # std_inf at t
-        (t_start, e.v_start.info["params"][0] - e.v_start.info["params"][2]),
+        (t_start, e.v_start.info["mean"] - e.v_start.info["std_inf"]),
         # std_sup at t
-        (t_start, e.v_start.info["params"][0] + e.v_start.info["params"][3]),
+        (t_start, e.v_start.info["mean"] + e.v_start.info["std_sup"]),
         # std_sup at t+1
-        (t_end,   e.v_end.info["params"][0] + e.v_end.info["params"][3]),
+        (t_end,   e.v_end.info["mean"] + e.v_end.info["std_sup"]),
         # std_inf at t+1
-        (t_end,   e.v_end.info["params"][0] - e.v_end.info["params"][2]),]
+        (t_end,   e.v_end.info["mean"] - e.v_end.info["std_inf"]),]
         for e in edges
     ]
     return polys
@@ -177,6 +177,8 @@ def __std_polygon(g, edges):
 def __uniform_polygon(g, edges):
     '''
     Define a polygon representing a uniform distribution
+
+    #FIXME: Outdated since multivariate
 
     Return a nested list (1, 1 polygon)
     '''
@@ -242,8 +244,8 @@ def __edges_lines(g, edges):
     t_end = g.time_axis[edges[0].time_step + 1]
     lines = [
         (
-        (t_start,   e.v_start.info['params'][0]),
-        (t_end,     e.v_end.info['params'][0])
+        (t_start,   e.v_start.info['mean']),
+        (t_end,     e.v_end.info['mean'])
         ) for e in edges
     ]
     return lines
@@ -259,7 +261,7 @@ def __vertices_circles(
     Define a circle representing each vertex in vertices
     """
     t = g.time_axis[vertices[0].time_step]
-    offsets = [(t, v.info['params'][0]) for v in vertices ]
+    offsets = [(t, v.info['mean']) for v in vertices ]
     return offsets
 
 
@@ -277,7 +279,7 @@ def sort_components(
     if components:
         components = sort_components_by(
             components, criteron='life_span', descending=False
-        )[0]       # [0] because nents_by returns a nested list
+        )[0]       # [0] because sort_components_by returns a nested list
         if components:
             # VERTICES
             if isinstance(components[0], Vertex):
@@ -330,7 +332,7 @@ def plot_gaussian_vertices(
     ax=None,
 ):
     if vertices:
-        values = [ v.info['params'][0] for v in vertices ]
+        values = [ v.info['mean'] for v in vertices ]
         alphas = [ f(v.life_span) for v in vertices ]
 
         # colors = np.asarray(

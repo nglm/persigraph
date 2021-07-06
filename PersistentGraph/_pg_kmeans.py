@@ -109,9 +109,8 @@ def clustering_model(
         # Info related to this specific vertex
         clusters_info.append({
             'type' : 'KMeans',
-            'params' : compute_cluster_params(X[members]),
             'brotherhood_size' : [n_clusters]
-        })
+        }.update(compute_cluster_params(X[members])))
 
         if pg._model_kw['precompute_centroids']:
             # Associate members with a representative according

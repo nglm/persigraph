@@ -118,13 +118,11 @@ def clustering_model(
         clusters.append(members)
 
         # Info related to this specific vertex
-        cluster_params =  compute_cluster_params(X[members])
-        cluster_params.append(rep[i_cluster])
         clusters_info.append({
             'type' : 'Naive',
-            'params' : cluster_params,
             'brotherhood_size' : [n_clusters]
-            })
+            'rep' : rep[i_cluster]
+            }.update(compute_cluster_params(X[members])))
 
     # ====================== step_info =========================
     # Add method specific info here if necessary
