@@ -18,19 +18,21 @@ COLOR_BREWER_RGB = [
 COLOR_BREWER_RGBA = [np.r_[c, np.ones(1)] for c in COLOR_BREWER_RGB]
 
 
-    def get_list_colors(
-        N: int,
-    ) -> List:
-        """
-        Repeat COLOR_BREWER list until we get exactly N colors
+def get_list_colors(
+    N: int = None,
+) -> List:
+    """
+    Repeat COLOR_BREWER list until we get exactly N colors
 
-        :param N: Number of colors desired
-        :type N: int
-        :return: List of colors (taken from COLOR_BREWER list)
-        :rtype: List
-        """
-        n_cb = len(COLOR_BREWER)
-        list_colors = []
-        for i in range(1 + N//n_cb) :
-            list_colors += COLOR_BREWER_RGBA
-        return list_colors[:(N+1)]
+    :param N: Number of colors desired
+    :type N: int
+    :return: List of colors (taken from COLOR_BREWER list)
+    :rtype: List
+    """
+    if N is None:
+        N = 100
+    n_cb = len(COLOR_BREWER)
+    list_colors = []
+    for i in range(1 + N//n_cb) :
+        list_colors += COLOR_BREWER_RGBA
+    return list_colors[:(N+1)]

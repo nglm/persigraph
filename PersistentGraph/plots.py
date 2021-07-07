@@ -80,124 +80,27 @@ from . import Edge
 #
 
 
-
-
-
-def sort_components(
-    components,
-    threshold_m: int = 1,
-    threshold_l: float = 0.00,
-):
-    components = [
-        c for c in components
-        if (c.nb_members > threshold_m and c.life_span > threshold_l )
-    ]
-    if components:
-        components = sort_components_by(
-            components, criteron='life_span', descending=False
-        )[0]       # [0] because sort_components_by returns a nested list
-        if components:
-            # VERTICES
-            if isinstance(components[0], Vertex):
-                gaussians = [
-                    c for c in components
-                    if c.info['type'] in ['gaussian','KMeans','Naive']
-                ]
-                uniforms = [ c for c in components if c.info['type'] == 'uniform' ]
-            # EDGES
-            elif isinstance(components[0],Edge):
-                gaussians = [
-                    c for c in components
-                    if (
-                        c.v_start.info['type'] in ['gaussian','KMeans','Naive']
-                    and
-                        c.v_end.info['type'] in ['gaussian','KMeans', 'Naive']
-                    )]
-                from_to_uniforms = [
-                    c for c in components
-                    if (c.v_start.info['type'] == 'uniform')
-                    and (c.v_end.info['type'] == 'uniform')
-                    ]
-                to_uniforms = [
-                    c for c in components
-                    if (c.v_start.info['type'] != 'uniform')
-                    and (c.v_end.info['type'] == 'uniform')
-                    ]
-                from_uniforms = [
-                    c for c in components
-                    if (c.v_start.info['type'] == 'uniform')
-                    and (c.v_end.info['type'] != 'uniform')
-                    ]
-                uniforms = [to_uniforms, from_to_uniforms, from_uniforms]
-    else:
-        gaussians = []
-        uniforms = []
-
-    return gaussians, uniforms
-
 def plot_gaussian_vertices(
     g,
     vertices,
-    c1 = np.array([254,0,0,0]),
-    c2 = np.array([254,254,0,0]),
-    lw_min=0.5,
-    lw_max=8,
-    f=linear,
-    color_list = get_list_colors(51),
-    max_opacity=False,
     ax=None,
 ):
-    collect = vdraw(vertices)
+    circles = pg_style.vertices.cdraw(g, vertices)
     ax.add_collection(circles)
     return ax
 
 def plot_gaussian_edges(
     g,
     edges,
-    c1 = np.array([254,0,0,1]),
-    c2 = np.array([254,254,0,1]),
-    lw_min=0.3,
-    lw_max=8,
-    f=linear,
-    color_list = get_list_colors(51),
-    show_std = False,
-    max_opacity=False,
     ax=None,
 ):
     if edges:
 
-        # Colors
-        # The color of an edge is the color of its start vertex
-        colors = np.asarray(
-            [color_list[e.v_start.info['brotherhood_size'][0]] for e in edges]
-        ).reshape((-1, 4))
-
-        # Alphas
-        if max_opacity:
-            colors[:,3] = 1
-        else:
-            colors[:,3] = [f(e.life_span) for e in edges]
-
-        # Sizes
-        lw = np.asarray([
-            f(e.ratio_members, range0_1=False, f0=lw_min, f1=lw_max)
-            for e in edges
-        ])
-
-        # matplotlib.collections.Collection
-        lines = __edges_lines(g, edges)
-        lines = LineCollection(
-            lines,
-            colors=colors,
-            linewidths=lw,)
+        lines = pg_style.edges.cdraw(g, edges)
         ax.add_collection(lines)
 
-        if show_std:
-            colors[:,3] /= 6
-
-            # matplotlib.collections.Collection
-            polys = __std_polygon(g, edges)
-            polys = PolyCollection(polys, facecolors=colors)
+        if pg_style.show_std:
+            polys = pg_style.uncertainty.cdraw(g, edges)
             ax.add_collection(polys)
 
     return ax
@@ -240,12 +143,6 @@ def plot_vertices(
         max_opacity=max_opacity,
         ax=ax,
     )
-    # ax = plot_uniform_vertices(
-    #     g,
-    #     uniforms,
-    #     f=f,
-    #     ax=ax,
-    # )
     return ax
 
 def plot_edges(

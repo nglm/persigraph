@@ -19,8 +19,6 @@ def sigmoid(
 def linear(
     x,
     range0_1 = True,
-    shift=0.,
-    a=1.,
     f0=0.7,
     f1=6,
 ):
