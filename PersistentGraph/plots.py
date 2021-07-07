@@ -80,66 +80,6 @@ from . import Edge
 #
 
 
-def __uniform_polygon(g, edges):
-    '''
-    Define a polygon representing a uniform distribution
-
-    #FIXME: Outdated since multivariate
-
-    Return a nested list (1, 1 polygon)
-    '''
-
-    [to_uniforms, from_to_uniforms, from_uniforms] = edges
-    polys = []
-
-    if to_uniforms:
-        t_start = g.time_axis[to_uniforms[0].time_step]
-        t_end = g.time_axis[to_uniforms[0].time_step + 1]
-        polys += [[
-            # std_inf at t
-            (t_start, e.v_start.info["params"][0] - e.v_start.info["params"][2]),
-            # std_sup at t
-            (t_start, e.v_start.info["params"][0] + e.v_start.info["params"][3]),
-            # sup at t+1
-            (t_end,   e.v_end.info["params"][1]),
-            # inf at t+1
-            (t_end,   e.v_end.info["params"][0])]
-            for e in to_uniforms
-        ]
-
-
-    if from_to_uniforms:
-        t_start = g.time_axis[from_to_uniforms[0].time_step]
-        t_end = g.time_axis[from_to_uniforms[0].time_step + 1]
-        polys += [[
-            # inf at t
-            (t_start, e.v_start.info["params"][0]),
-            # sup at t
-            (t_start, e.v_start.info["params"][1]),
-            # sup at t+1
-            (t_end,   e.v_end.info["params"][1]),
-            # inf at t+1
-            (t_end,   e.v_end.info["params"][0])]
-            for e in from_to_uniforms
-        ]
-
-    if from_uniforms:
-        t_start = g.time_axis[from_uniforms[0].time_step]
-        t_end = g.time_axis[from_uniforms[0].time_step + 1]
-        polys += [[
-            # inf at t
-            (t_start, e.v_start.info["params"][0]),
-            # sup at t
-            (t_start, e.v_start.info["params"][1]),
-            # std_sup at t+1
-            (t_end,   e.v_end.info["params"][0] + e.v_end.info["params"][3]),
-            # std_inf at t+1
-            (t_end,   e.v_end.info["params"][0] - e.v_end.info["params"][2]),]
-            for e in from_uniforms
-        ]
-
-    return polys
-
 
 
 
@@ -209,48 +149,6 @@ def plot_gaussian_vertices(
 ):
     collect = vdraw(vertices)
     ax.add_collection(circles)
-    return ax
-
-def plot_uniform_edges(
-    g,
-    edges,
-    c1 = np.array([254,0,0,1]),
-    c2 = np.array([254,254,0,1]),
-    lw_min=0.3,
-    lw_max=8,
-    f=linear,
-    color_list = get_list_colors(51),
-    show_std = False,
-    max_opacity=False,
-    ax=None,
-):
-    [to_uniforms, from_to_uniforms, from_uniforms] = edges
-
-    # This must respect the order in polys (see __uniform_polygon)
-    alphas = []
-    alphas += [f(e.life_span) for e in to_uniforms]
-    alphas += [f(e.life_span) for e in from_to_uniforms]
-    alphas += [f(e.life_span) for e in from_uniforms]
-
-    # The color of a uniform edge is grey
-    colors = np.asarray(
-        [color_list[0] for e in to_uniforms]
-        + [color_list[0] for e in from_to_uniforms]
-        + [color_list[0] for e in from_uniforms]
-    ).reshape((-1, 4))
-
-    if max_opacity:
-        colors[:,3] = 1
-    else:
-        colors[:,3] = alphas
-
-    polys = __uniform_polygon(g, edges)
-
-
-    colors[:,3] /= 1
-    polys = PolyCollection(polys, facecolors=colors)
-    ax.add_collection(polys)
-
     return ax
 
 def plot_gaussian_edges(
