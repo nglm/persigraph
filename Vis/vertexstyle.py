@@ -6,10 +6,13 @@ class VertexStyle():
         color_function,
         alpha_function,
         vertex_function,
+        size_function,
         f_alpha,
         f_lw,
         max_opacity: bool = False,
-        color_list,
+        lw_min: float = 0.5,
+        lw_max: float = 8,
+        color_list: List = None,
     ):
         if color_function is None:
             self.color_function = self._color_function
@@ -36,7 +39,12 @@ class VertexStyle():
         else:
             self.f_lw = f_lw
 
+        if color_list is None:
+            
+
         self.max_opacity = max_opacity
+        self.lw_min = lw_min
+        self.lw_max = lw_max
 
 
     def _vertex_function(
