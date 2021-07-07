@@ -6,7 +6,7 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from matplotlib.path import Path
 import time
 import random
-from math import exp
+from math import exp, ceil, floor, sqrt
 from typing import List
 from PIL import ImageColor
 
@@ -117,62 +117,7 @@ def get_list_colors(
 
 
 
-def sigmoid(
-    x,
-    range0_1 = True,
-    shift=3.,
-    a=6.,
-    f0=0.7,
-    f1=6,
-):
-    # Here we will get f(0) = 0 and f(1) = 1
-    res = 1/(1+exp(-(a*x-shift))) + (2*x-1)/(1+exp(shift))
-    # Use min and max because of precision error
-    res = min(max(0, res), 1)
-    # Here we will get f(0) = f0 and f(1) = f1
-    if not range0_1:
-        res = f1*res + f0*(1-res)
-    return res
 
-
-
-def linear(
-    x,
-    range0_1 = True,
-    shift=0.,
-    a=1.,
-    f0=0.7,
-    f1=6,
-):
-    # Use min and max because of precision error
-    res = min(max(0, x), 1)
-    # Here we will get f(0) = f0 and f(1) = f1
-    if not range0_1:
-        res = f1*res + f0*(1-res)
-    return res
-
-
-def __std_polygon(g, edges):
-    '''
-    Define a polygon representing the uncertainty of each edge in edges
-
-    Return a nested list (nb edges, 1 polygon)
-    '''
-    t_start = g.time_axis[edges[0].time_step]
-    t_end = g.time_axis[edges[0].time_step + 1]
-    # std_inf(t) - >std_inf(t) -> std_sup(t+1) -> std_inf(t+1)
-    polys = [[
-        # std_inf at t
-        (t_start, e.v_start.info["mean"] - e.v_start.info["std_inf"]),
-        # std_sup at t
-        (t_start, e.v_start.info["mean"] + e.v_start.info["std_sup"]),
-        # std_sup at t+1
-        (t_end,   e.v_end.info["mean"] + e.v_end.info["std_sup"]),
-        # std_inf at t+1
-        (t_end,   e.v_end.info["mean"] - e.v_end.info["std_inf"]),]
-        for e in edges
-    ]
-    return polys
 
 def __uniform_polygon(g, edges):
     '''
@@ -233,36 +178,6 @@ def __uniform_polygon(g, edges):
         ]
 
     return polys
-
-def __edges_lines(g, edges):
-    '''
-    Define a line representing the edge for each edge in edges
-
-    Return a nested list (nb edges, 1 line)
-    '''
-    t_start = g.time_axis[edges[0].time_step]
-    t_end = g.time_axis[edges[0].time_step + 1]
-    lines = [
-        (
-        (t_start,   e.v_start.info['mean']),
-        (t_end,     e.v_end.info['mean'])
-        ) for e in edges
-    ]
-    return lines
-
-def __vertices_circles(
-    g,
-    vertices,
-    lw_min=0.5,
-    lw_max=8,
-    f=sigmoid,
-    ):
-    """
-    Define a circle representing each vertex in vertices
-    """
-    t = g.time_axis[vertices[0].time_step]
-    offsets = [(t, v.info['mean']) for v in vertices ]
-    return offsets
 
 
 
@@ -331,39 +246,8 @@ def plot_gaussian_vertices(
     max_opacity=False,
     ax=None,
 ):
-    if vertices:
-        values = [ v.info['mean'] for v in vertices ]
-        alphas = [ f(v.life_span) for v in vertices ]
-
-        # colors = np.asarray(
-        #     [(f(v.life_span)*c1 + (1-f(v.life_span))*c2) for v in vertices]
-        # ).reshape((-1, 4)) / 255
-
-        # The color of a vertex is the color of its smallest brotherhood size
-        colors = np.asarray(
-            [color_list[v.info['brotherhood_size'][0]] for v in vertices]
-        ).reshape((-1, 4))
-
-        if max_opacity:
-            colors[:,3] = 1
-        else:
-            colors[:,3] = alphas
-
-        lw = np.asarray([
-            f(v.ratio_members, range0_1=False, f0=lw_min, f1=lw_max)
-            for v in vertices
-        ])
-
-        offsets = __vertices_circles(g, vertices,)
-        circles = EllipseCollection(
-            widths=lw,
-            heights=lw,
-            angles=0,
-            units='points',
-            facecolors=colors,
-            offsets=offsets,
-            transOffset=ax.transData,)
-        ax.add_collection(circles)
+    collect = vdraw(vertices)
+    ax.add_collection(circles)
     return ax
 
 def plot_uniform_edges(
@@ -422,49 +306,26 @@ def plot_gaussian_edges(
     ax=None,
 ):
     if edges:
-        alphas = [f(e.life_span) for e in edges]
-        # colors = np.asarray(
-        #     [(f(e.life_span)*c1 + (1-f(e.life_span))*c2)
-        #     for e in edges]
-        # ).reshape((-1, 4)) / 255
 
-
-        # colors = np.asarray(
-        #     [color_list[
-        #         np.amax([
-        #             e.v_start.info['brotherhood_size'],
-        #             e.v_end.info['brotherhood_size']
-        #             ])
-        #         ] for e in edges]
-        # ).reshape((-1, 4))
-
+        # Colors
         # The color of an edge is the color of its start vertex
         colors = np.asarray(
             [color_list[e.v_start.info['brotherhood_size'][0]] for e in edges]
         ).reshape((-1, 4))
 
-        # colors = np.asarray(
-        #     [color_list[
-        #         [
-        #             e.v_start.info['brotherhood_size'],
-        #             e.v_end.info['brotherhood_size']
-        #         ][np.argmax([
-        #             e.v_start.life_span,
-        #             e.v_end.life_span,
-        #         ])]
-        #         ] for e in edges]
-        # ).reshape((-1, 4))
-
+        # Alphas
         if max_opacity:
             colors[:,3] = 1
         else:
-            colors[:,3] = alphas
+            colors[:,3] = [f(e.life_span) for e in edges]
 
+        # Sizes
         lw = np.asarray([
             f(e.ratio_members, range0_1=False, f0=lw_min, f1=lw_max)
             for e in edges
         ])
 
+        # matplotlib.collections.Collection
         lines = __edges_lines(g, edges)
         lines = LineCollection(
             lines,
@@ -473,9 +334,10 @@ def plot_gaussian_edges(
         ax.add_collection(lines)
 
         if show_std:
-
-            polys = __std_polygon(g, edges)
             colors[:,3] /= 6
+
+            # matplotlib.collections.Collection
+            polys = __std_polygon(g, edges)
             polys = PolyCollection(polys, facecolors=colors)
             ax.add_collection(polys)
 
@@ -584,9 +446,27 @@ def plot_edges(
 
     return ax
 
+def _nrows_ncols(n: int) -> Tuple[int, int]:
+    """
+    Get a number a rows and columns from a number of axes
+
+    :param n: Number of axes (ex: dimension of physical variable)
+    :type n: int
+    :return: Number of rows and columns of the figure
+    :rtype: Tuple[int, int]
+    """
+    if n == 1:
+        nrows = 1
+        ncols = 1
+    else:
+        nrows = floor(sqrt(n))
+        ncols = ceil(n/nrows)
+    return nrows, ncols
+
 def plot_as_graph(
     g,
-    s:float = None,
+    s:int = None,
+    i_var: int = None,
     show_vertices: bool = True,
     show_edges: bool = True,
     show_std: bool = True,
@@ -595,13 +475,15 @@ def plot_as_graph(
     threshold_l:float = 0.00,
     max_opacity: bool = False,
     fig = None,
-    ax = None,
+    axs = None,
     fig_kw: dict = {"figsize" : (20,12)},
     ax_kw: dict = {},
 ):
-    if ax is None:
-        fig, ax = plt.subplots(**fig_kw)
-        ax.autoscale()
+    if i_var is None:
+        i_range = range(g.d)
+    if axs is None:
+        fig, axs = plt.subplots(**fig_kw)
+        axs.autoscale()
 
     color_list = get_list_colors(g.k_max)
     if s is None:
