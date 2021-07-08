@@ -1,14 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection, PathCollection, PolyCollection, EllipseCollection
-from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.animation import FuncAnimation, PillowWriter
-from matplotlib.path import Path
+from matplotlib.collections import LineCollection, PolyCollection, EllipseCollection
+from matplotlib.animation import FuncAnimation
 import time
-import random
-from math import exp, ceil, floor, sqrt
 from typing import List
-from PIL import ImageColor
 
 from .analysis import sort_components_by, get_k_life_span, get_relevant_k, get_relevant_components
 from . import Vertex
@@ -30,7 +25,7 @@ from . import Edge
 # TODO:  Get a nice gradient between 2 nodes of different colors
 # -------------------------------------------------------------------------
 #
-# def colorline(
+# def# colorline(
 #     x, y, z=None, cmap=plt.get_cmap('copper'), norm=plt.Normalize(0.0, 1.0),
 #         linewidth=3, alpha=1.0):
 #     """
@@ -63,7 +58,7 @@ from . import Edge
 #     return lc
 
 
-# def make_segments(x, y):
+# def# make_segments(x, y):
 #     """
 #     Create list of line segments from x and y coordinates, in the correct format
 #     for LineCollection: an array of the form numlines x (points per line) x 2 (x

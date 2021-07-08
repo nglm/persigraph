@@ -1,3 +1,7 @@
+import numpy as np
+from PIL import ImageColor
+from math import ceil, floor, sqrt
+
 
 # See https://colorbrewer2.org/#type=qualitative&scheme=Set1&n=8
 COLOR_BREWER = [
@@ -36,3 +40,21 @@ def get_list_colors(
     for i in range(1 + N//n_cb) :
         list_colors += COLOR_BREWER_RGBA
     return list_colors[:(N+1)]
+
+
+def nrows_ncols(n: int) -> Tuple[int, int]:
+    """
+    Get a number a rows and columns from a number of axes
+
+    :param n: Number of axes (ex: dimension of physical variable)
+    :type n: int
+    :return: Number of rows and columns of the figure
+    :rtype: Tuple[int, int]
+    """
+    if n == 1:
+        nrows = 1
+        ncols = 1
+    else:
+        nrows = floor(sqrt(n))
+        ncols = ceil(n/nrows)
+    return nrows, ncols
