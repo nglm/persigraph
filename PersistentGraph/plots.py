@@ -202,22 +202,6 @@ def plot_edges(
 
     return ax
 
-def _nrows_ncols(n: int) -> Tuple[int, int]:
-    """
-    Get a number a rows and columns from a number of axes
-
-    :param n: Number of axes (ex: dimension of physical variable)
-    :type n: int
-    :return: Number of rows and columns of the figure
-    :rtype: Tuple[int, int]
-    """
-    if n == 1:
-        nrows = 1
-        ncols = 1
-    else:
-        nrows = floor(sqrt(n))
-        ncols = ceil(n/nrows)
-    return nrows, ncols
 
 def plot_as_graph(
     g,
