@@ -45,7 +45,7 @@ class PGraphStyle():
         else:
             self.vertices = vertices
         if edges is None:
-            self.edges = edges(
+            self.edges = EdgeStyle(
                 max_opacity = max_opacity,
                 lw_min = lw_min,
                 lw_max = lw_max,
@@ -54,7 +54,7 @@ class PGraphStyle():
         else:
             self.edges = edges
         if uncertainty is None:
-            self.uncertainty = uncertainty(
+            self.uncertainty = UncertaintyStyle(
                 max_opacity = max_opacity,
                 lw_min = lw_min,
                 lw_max = lw_max,
@@ -128,7 +128,7 @@ class PGraphStyle():
         else:
             t_range = to_iterable(t)
 
-        collections = []
+        axs_collections = [[] for _ in range(g.d)]
         for t in t_range:
 
             # Collections for vertices if necessary
@@ -141,7 +141,9 @@ class PGraphStyle():
                 gaussians, uniforms = sort_components(vertices)
 
                 # Collections for gaussian vertices
-                collections.append(pg_style.vertices.cdraw(g, gaussians))
+                axs_collect = pg_style.vertices.cdraw(g, gaussians)
+                for tot_col, part_col in zip(axs_collections, axs_collect):
+                    tot_col.append(part_col)
 
                 # Collections for uniform vertices if necessary
                 if self.show_uniform:
@@ -158,7 +160,9 @@ class PGraphStyle():
 
                 # Collections for gaussian edges
                 if self.show_edges:
-                    collections.append(pg_style.edges.cdraw(g, gaussians))
+                    axs_collect = pg_style.edges.cdraw(g, gaussians)
+                    for tot_col, part_col in zip(axs_collections, axs_collect):
+                        tot_col.append(part_col)
 
                 # Collections for uniform edges if necessary
                 if self.show_uniform:
@@ -168,8 +172,10 @@ class PGraphStyle():
                 if self.show_uncertainty:
 
                     # Collections for uncertainty
-                    collections.append(pg_style.uncertainty.cdraw(g, gaussians))
+                    axs_collect = pg_style.uncertainty.cdraw(g, gaussians)
+                    for tot_col, part_col in zip(axs_collections, axs_collect):
+                        tot_col.append(part_col)
 
-        return collections
+        return axs_collections
 
 

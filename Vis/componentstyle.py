@@ -19,7 +19,7 @@ class ComponentStyle(ABC):
         self.color_list = color_list
 
     @abstractmethod
-    def f_component(self, g, c):
+    def f_component(self, g, c, i):
         pass
 
     def component_function(
@@ -27,10 +27,14 @@ class ComponentStyle(ABC):
         components,
     ):
         """
-        Generates a collection from a set of graph components
+        Generates a nested list of objects to generate collections
         """
-        collects = [self.f_component(g, c) for c in components]
-        return collects
+        # One list of objects for each variable dimension
+        axs_objects = [
+            [self.f_component(g, c, i) for c in components]
+            for i in range(g.d)
+        ]
+        return axs_objects
 
     @abstractmethod
     def f_color(self, c):
@@ -71,15 +75,18 @@ class ComponentStyle(ABC):
     def cdraw(self, g, components):
         if components:
 
+            # Colors, alphas and lw are common between all subvertices
             colors = self.color_function(components)
             colors[:,3] = self.alpha_function(components)
             lw = self.size_function(components)
-            objects = self.component_function(g, components)
+
+            # One vertex gives g.d objects
+            axs_objects = self.component_function(g, components)
 
             # matplotlib.collections.Collection
-            collect = self.f_collect(
-                objects = objects,
-                colors = colors,
-                lw = lw,
-            )
-            return collect
+            # One collection for each in [0..g.d-1]
+            axs_collect = [
+                self.f_collect(objects = objects, colors = colors, lw = lw)
+                for objects in axs_objects
+            ]
+            return axs_collect

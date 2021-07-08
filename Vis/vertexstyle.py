@@ -18,8 +18,8 @@ class VertexStyle(ComponentStyle):
             color_list = color_list,
         )
 
-    def f_component(self, t, c):
-        return (g.time_axis[c.time_step], c.info['mean'])
+    def f_component(self, t, c, i):
+        return (g.time_axis[c.time_step], c.info['mean'][i])
 
     def f_color(self, c):
         return c.info['brotherhood_size'][0]

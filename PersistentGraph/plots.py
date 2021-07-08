@@ -14,79 +14,35 @@ from ..Vis.commonstyle import nrows_ncols, get_list_colors
 def plot_as_graph(
     g,
     s:int = None,
-    i_var: int = None,
-    show_vertices: bool = True,
-    show_edges: bool = True,
-    show_std: bool = True,
-    show_uniform: bool = False,
-    threshold_m:int = 0,
-    threshold_l:float = 0.00,
-    max_opacity: bool = False,
     fig = None,
     axs = None,
+    pgstyle = None,
+    pgstyle_kw: dict = {},
     fig_kw: dict = {"figsize" : (20,12)},
     ax_kw: dict = {},
 ):
-    if i_var is None:
-        i_range = range(g.d)
     if axs is None:
-        fig, axs = plt.subplots(**fig_kw)
-        axs.autoscale()
+        nrows, ncols = nrows_ncols(g.d)
+        fig, axs = plt.subplots(nrows = nrows, ncols = ncols, **fig_kw)
 
+    if pgstyle is None:
+        pgstyle = PGraphStyle(**pgstyle_kw)
+
+    #TODO: Check if we can put this in pgstyle instead
     color_list = get_list_colors(g.k_max)
-    if s is None:
-        title = "All steps"
-        for t in range(g.T):
-            if show_vertices:
-                ax = plot_vertices(
-                    g, t, g._vertices[t],
-                    threshold_m=threshold_m, threshold_l=threshold_l,
-                    color_list = color_list, max_opacity=max_opacity,
-                    ax=ax,
-                )
-            if show_edges and (t < g.T-1):
-                ax = plot_edges(
-                    g, t, g._edges[t],
-                    threshold_m=threshold_m, threshold_l=threshold_l,
-                    color_list = color_list, max_opacity=max_opacity,
-                    show_std = show_std, show_uniform=show_uniform,
-                    ax=ax
-                )
-    else:
-        title = "step = " + str(s)
-        for t in range(g.T):
-            if show_vertices:
-                vertices = g.get_alive_vertices(
-                    steps = s,
-                    t = t,
-                    get_only_num = False,
-                )
 
-                ax = plot_vertices(
-                    g, t, vertices,
-                    threshold_m=threshold_m, threshold_l=threshold_l,
-                    color_list = color_list, max_opacity=max_opacity,
-                    ax=ax
-                )
-            if (t < g.T-1) and show_edges:
-                edges = g.get_alive_edges(
-                    steps = s,
-                    t = t,
-                    get_only_num = False,
-                )
-                ax = plot_edges(
-                    g, t, edges,
-                    threshold_m=threshold_m, threshold_l=threshold_l,
-                    color_list = color_list, max_opacity=max_opacity,
-                    show_std = show_std, show_uniform=show_uniform,
-                    ax=ax,
-                )
-    ax.autoscale()
-    ax.set_xlabel(ax_kw.pop('xlabel', "Time (h)"))
-    ax.set_ylabel(ax_kw.pop('ylabel', ""))
-    ax.set_xlim([g.time_axis[0],g.time_axis[-1]])
-    ax.set_title(title)
-    return fig, ax
+    if s is None:
+        axs_collections = pgstyle.gdraw(g)
+        for ax, collections in zip(axs.flat, axs_collections):
+            ax.add_collection(collections)
+    else:
+        raise NotImplementedError("Cannot display a specific step of the graph")
+    # ax.autoscale()
+    # ax.set_xlabel(ax_kw.pop('xlabel', "Time (h)"))
+    # ax.set_ylabel(ax_kw.pop('ylabel', ""))
+    # ax.set_xlim([g.time_axis[0],g.time_axis[-1]])
+    # ax.set_title(title)
+    return fig, axs
 
 
 

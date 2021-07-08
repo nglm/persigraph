@@ -18,12 +18,12 @@ class EdgeStyle(ComponentStyle):
             color_list = color_list,
         )
 
-    def f_component(self, g, c):
+    def f_component(self, g, c, i):
         t_start = g.time_axis[c.time_step]
         t_end = g.time_axis[c.time_step + 1]
         line = (
-            (t_start, c.v_start.info['mean']),
-            (t_end,   c.v_end.info['mean'])
+            (t_start, c.v_start.info['mean'][i]),
+            (t_end,   c.v_end.info['mean'][i])
         )
         return line
 

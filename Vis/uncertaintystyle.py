@@ -18,18 +18,18 @@ class UncertaintyStyle(ComponentStyle):
             color_list = color_list,
         )
 
-    def f_component(self, g, c):
+    def f_component(self, g, c, i):
         t_start = g.time_axis[c.time_step]
         t_end = g.time_axis[c.time_step + 1]
         polys = (
             # std_inf at t
-            (t_start, c.v_start.info["mean"] - c.v_start.info["std_inf"]),
+            (t_start, c.v_start.info["mean"][i] - c.v_start.info["std_inf"][i]),
             # std_sup at t
-            (t_start, c.v_start.info["mean"] + c.v_start.info["std_sup"]),
+            (t_start, c.v_start.info["mean"][i] + c.v_start.info["std_sup"][i]),
             # std_sup at t+1
-            (t_end,   c.v_end.info["mean"] + c.v_end.info["std_sup"]),
+            (t_end,   c.v_end.info["mean"][i] + c.v_end.info["std_sup"][i]),
             # std_inf at t+1
-            (t_end,   c.v_end.info["mean"] - c.v_end.info["std_inf"])
+            (t_end,   c.v_end.info["mean"][i] - c.v_end.info["std_inf"][i])
         )
         return polys
 
