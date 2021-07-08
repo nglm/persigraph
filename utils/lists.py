@@ -1,4 +1,4 @@
-from typing import List, Tuple, Any, Sequence
+from typing import List, Tuple, Any, Sequence, Iterable
 
 def get_indices_element(
     my_list: List[Any],
@@ -55,5 +55,41 @@ def flatten(
             flat_list += flat_alist
     return(flat_list)
 
-def is_sorted(l):
+def to_iterable(x: Any) -> List:
+    """
+    Return ``x`` if ``x`` is iterable, otherwise return ``[x]``
+
+    :param x: Element to convert to iterable
+    :type x: Any
+    :return: ``x`` if ``x`` is iterable, otherwise ``[x]``
+    :rtype: List
+    """
+    if isinstance(x, Iterable):
+        return x
+    else:
+        return [x]
+
+def to_list(x: Any) -> List:
+    """
+    Return ``x`` if ``x`` is a list, otherwise return ``[x]``
+
+    :param x: Element to convert to a list
+    :type x: Any
+    :return: ``x`` if ``x`` is a list, otherwise ``[x]``
+    :rtype: List
+    """
+    if isinstance(x, List):
+        return x
+    else:
+        return [x]
+
+def is_sorted(l: List) -> bool:
+    """
+    Return True if ``l`` is sorted
+
+    :param l: List to check
+    :type l: List
+    :return: True if ``l`` is sorted, otherwise ``False``
+    :rtype: bool
+    """
     return (all(l[i] <= l[i + 1] for i in range(len(l)-1)))
