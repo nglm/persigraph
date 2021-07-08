@@ -1,3 +1,5 @@
+from math import exp
+
 def sigmoid(
     x,
     range0_1 = True,

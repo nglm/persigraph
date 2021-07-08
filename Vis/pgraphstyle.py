@@ -1,8 +1,10 @@
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict
+
+from . import VertexStyle, EdgeStyle, UncertaintyStyle
 from ..utils.lists import to_iterable, to_list
-
-
+from ..PersistentGraph import Vertex
+from ..PersistentGraph import Edge
 
 class PGraphStyle():
 

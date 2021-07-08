@@ -1,5 +1,8 @@
 
+import numpy as np
 from abc import ABC, abstractmethod
+
+from ..utils.functions import linear
 
 class ComponentStyle(ABC):
 

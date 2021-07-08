@@ -1,3 +1,7 @@
+from matplotlib.collections import LineCollection
+
+from . import ComponentStyle
+
 class EdgeStyle(ComponentStyle):
 
     def __init__(

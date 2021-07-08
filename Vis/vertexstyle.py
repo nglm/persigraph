@@ -1,3 +1,6 @@
+from matplotlib.collections import EllipseCollection
+
+from . import ComponentStyle
 
 class VertexStyle(ComponentStyle):
 

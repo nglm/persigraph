@@ -1,3 +1,7 @@
+from matplotlib.collections import PolyCollection
+
+from . import ComponentStyle
+
 class UncertaintyStyle(ComponentStyle):
 
     def __init__(
