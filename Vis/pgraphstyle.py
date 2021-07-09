@@ -5,6 +5,7 @@ from . import VertexStyle, EdgeStyle, UncertaintyStyle
 from ..utils.lists import to_iterable, to_list
 from ..PersistentGraph import Vertex
 from ..PersistentGraph import Edge
+from ..PersistentGraph.analysis import sort_components_by
 
 class PGraphStyle():
 
