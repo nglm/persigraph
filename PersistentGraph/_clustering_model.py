@@ -118,7 +118,8 @@ def generate_zero_component(
     clusters_info = [{
         'type' : 'uniform',
         'params' : [values[0], values[-1]], # lower/upper bounds
-        'brotherhood_size' : [0]
+        'brotherhood_size' : [0],
+        'mean' : (values[0] + values[-1])/2
     }]
 
     # ========================== step_info =============================
