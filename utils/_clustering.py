@@ -104,26 +104,27 @@ def compute_cluster_params(
     d = cluster.shape[1]
     mean = np.mean(cluster, axis=0).reshape(-1)  # shape: (d)
     std = np.std(cluster, axis=0).reshape(-1)    # shape: (d)
+    std_inf = []                        # shape: (d)
+    std_sup = []                     # shape: (d)
+
     # Get the members below/above the average
-    X_inf = np.array(
-        [[m for i in range(d) if m < mean[i]] for m in cluster]
-    )
-    X_sup = np.array(
-        [[m for i in range(d) if m >= mean[i]] for m in cluster]
-    )
-    # How many members above/below the average
-    n_inf = len(X_inf)
-    n_sup = len(X_sup)
-    # if statement because of '<': No member below the average => std=0
-    if n_inf == 0:
-        std_inf = 0
-    else:
-        std_inf = np.sqrt(np.sum((X_inf - mean)**2, axis=0) / n_inf).reshape(-1)
-    std_sup = np.sqrt(np.sum((X_sup - mean)**2) / n_sup).reshape(-1)
+    for i in range(d):
+        X_inf = np.array([m for m in cluster[:, i] if m < mean[i]])
+        X_sup = np.array([m for m in cluster[:, i] if m >= mean[i]])
+        # How many members above/below the average
+        n_inf = len(X_inf)
+        n_sup = len(X_sup)
+        # if statement because of '<': No member below the average => std=0
+        if n_inf == 0:
+            std_inf.append(0)
+        else:
+            std_inf.append(np.sqrt(np.sum((X_inf - mean[i])**2 / n_inf)))
+        std_sup.append(np.sqrt(np.sum((X_sup - mean[i])**2) / n_sup))
+
 
     cluster_params = {}
     cluster_params['mean'] = mean
     cluster_params['std'] = std
-    cluster_params['std_inf'] = std_inf
-    cluster_params['std_sup'] = std_sup
+    cluster_params['std_inf'] = np.array(std_inf)
+    cluster_params['std_sup'] = np.array(std_sup)
     return cluster_params
