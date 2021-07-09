@@ -112,10 +112,12 @@ def clustering_model(
             raise ValueError('No members in cluster')
 
         # Info related to this specific vertex
-        clusters_info.append({
+        info = {
             'type' : 'KMeans',
             'brotherhood_size' : [n_clusters]
-        }.update(compute_cluster_params(X[members])))
+        }
+        info.update(compute_cluster_params(X[members]))
+        clusters_info.append(info)
 
         if pg._model_kw['precompute_centroids']:
             # Associate members with a representative according
