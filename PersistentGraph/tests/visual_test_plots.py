@@ -21,6 +21,11 @@ def main():
         (0.05,  -0.4,  -0.6, -0.5, -1),
     ])
 
+    members_biv = np.ones((4,2,5))
+    members_biv[:,0,:] = members
+    members = members_biv
+    print(members.shape)
+
     PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
     # To get the right variable names and units
     filename = 'ec.ens.2020020200.sfc.meteogram.nc'
@@ -38,7 +43,7 @@ def main():
         to_standardize = False,
         )
 
-    members = list_var[0]
+    #members = list_var[0]
 
     model_type = "KMeans"
     #model_type = "Naive"
@@ -48,7 +53,7 @@ def main():
     g = PersistentGraph(
         members,
         time_axis = np.arange(members.shape[1]),
-        score_type = 'mean_inertia',
+        score_type = 'inertia',
         zero_type = 'bounds',
         model_type = model_type,
         k_max=8,
@@ -70,7 +75,7 @@ def main():
 
     for t in range(g.T):
         print(' ============== ', t, ' ============== ')
-        print("num, value:", [ (v.num, v.info['params'][0]) for v in g.vertices[t] ])
+        print("num, value:", [ (v.num, v.info['mean']) for v in g.vertices[t] ])
         print(g.v_at_step[t])
 
 
@@ -79,7 +84,6 @@ def main():
         print(' ----- ratio_scores ----- ')
         print("local_s['ratio_score'], local_s['score']: ", [(local_s['ratio_score'], local_s['score']) for local_s in g.local_steps[t] ])
         print(' ----- vertices ----- ')
-        print("v.info['params']: ",  [ (v.info['params']) for v in g.vertices[t] ])
         print("v.scores: ",  [ (v.scores) for v in g.vertices[t] ])
         print("v.life_span: ",  [ (v.life_span) for v in g.vertices[t] ])
         if t < g.T-1:
@@ -110,19 +114,23 @@ def main():
     # for s in range(g.nb_steps):
     #     fig, ax = plot_as_graph(g,s, show_vertices=True)
 
-    # fig, ax = plot_as_graph(
+    fig, ax = plot_as_graph(
+        g,
+        # show_vertices=True,
+        # show_edges=True,
+        # show_std = True
+    )
+    plt.show()
+
+    # fig, ax = plot_overview(
     #     g, show_vertices=True,
     #     show_edges=True,
     #     show_std = True)
 
-    fig, ax = plot_overview(
-        g, show_vertices=True,
-        show_edges=True,
-        show_std = True)
-
     plt.figure()
     for m in g.members:
-        plt.plot(m)
+        plt.plot(m[0])
+    plt.show()
 
     k_plot(g)
     plt.show()

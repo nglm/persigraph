@@ -24,7 +24,11 @@ def plot_as_graph(
 ):
     if axs is None:
         nrows, ncols = nrows_ncols(g.d)
-        fig, axs = plt.subplots(nrows = nrows, ncols = ncols, **fig_kw)
+        fig, axs = plt.subplots(
+            nrows = nrows,
+            ncols = ncols,
+            squeeze=False,
+            **fig_kw)
 
     #TODO: Check if we can put this in pgstyle instead
     color_list = get_list_colors(g.k_max)
@@ -35,13 +39,17 @@ def plot_as_graph(
     if s is None:
         axs_collections = pgstyle.gdraw(g, axs=axs, t=t)
         for ax, collections in zip(axs.flat, axs_collections):
-            ax.add_collection(collections)
+            print(ax)
+            for collect in collections:
+                ax.add_collection(collect)
+            ax.autoscale()
+            ax.set_xlim([g.time_axis[0],g.time_axis[-1]])
     else:
         raise NotImplementedError("Cannot display a specific step of the graph")
-    # ax.autoscale()
+
     # ax.set_xlabel(ax_kw.pop('xlabel', "Time (h)"))
     # ax.set_ylabel(ax_kw.pop('ylabel', ""))
-    # ax.set_xlim([g.time_axis[0],g.time_axis[-1]])
+    #
     # ax.set_title(title)
     return fig, axs
 
