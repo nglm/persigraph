@@ -19,44 +19,46 @@ class ComponentStyle(ABC):
         self.color_list = color_list
 
     @abstractmethod
-    def f_component(self, g, c, i):
+    def f_component(self, g, c, i, f_component_kw = {}):
         pass
 
     def component_function(
+        self,
         g,
         components,
+        f_component_kw = {},
     ):
         """
         Generates a nested list of objects to generate collections
         """
         # One list of objects for each variable dimension
         axs_objects = [
-            [self.f_component(g, c, i) for c in components]
+            [self.f_component(g, c, i, f_component_kw) for c in components]
             for i in range(g.d)
         ]
         return axs_objects
 
     @abstractmethod
-    def f_color(self, c):
+    def f_color(self, c, f_color_kw = {}):
         pass
 
-    def color_function(self, components):
+    def color_function(self, components, f_color_kw = {}):
         colors = np.asarray(
-            [self.color_list[self.f_color(c)] for c in components]
+            [self.color_list[self.f_color(c, f_color_kw)] for c in components]
         ).reshape((-1, 4))
         return colors
 
-    def f_alpha(self, c):
+    def f_alpha(self, c, f_alpha_kw = {}):
         return linear(c.life_span, range0_1 = True)
 
-    def alpha_function(self, components):
+    def alpha_function(self, components, f_alpha_kw = {}):
         if self.max_opacity:
             alphas = 1
         else:
-            alphas = [ self.f_alpha(c) for c in components ]
+            alphas = [ self.f_alpha(c, f_alpha_kw) for c in components ]
         return alphas
 
-    def f_size(self, c):
+    def f_size(self, c, f_size_kw = {}):
         sizes = linear(
             c.ratio_members,
             range0_1 = False,
@@ -65,28 +67,42 @@ class ComponentStyle(ABC):
         )
         return sizes
 
-    def size_function(self, components):
-        return np.asarray([ self.f_size(c) for c in components ])
+    def size_function(self, components, f_size_kw = {}):
+        return np.asarray([ self.f_size(c, f_size_kw) for c in components ])
 
     @abstractmethod
-    def f_collect(object, colors, lw):
+    def f_collect(self, object, colors, lw, f_collect_kw = {}):
         pass
 
-    def cdraw(self, g, components):
+    def cdraw(
+        self,
+        g,
+        components,
+        f_color_kw: dict = {},
+        f_alpha_kw: dict = {},
+        f_size_kw: dict = {},
+        f_component_kw: dict = {},
+        f_collect_kw: dict = {},
+        ):
         if components:
 
             # Colors, alphas and lw are common between all subvertices
-            colors = self.color_function(components)
-            colors[:,3] = self.alpha_function(components)
-            lw = self.size_function(components)
+            colors = self.color_function(components, f_color_kw)
+            colors[:,3] = self.alpha_function(components, f_alpha_kw)
+            lw = self.size_function(components, f_size_kw)
 
             # One vertex gives g.d objects
-            axs_objects = self.component_function(g, components)
+            axs_objects = self.component_function(g, components, f_component_kw)
 
             # matplotlib.collections.Collection
             # One collection for each in [0..g.d-1]
             axs_collect = [
-                self.f_collect(objects = objects, colors = colors, lw = lw)
-                for objects in axs_objects
+                self.f_collect(
+                    objects = objects,
+                    colors = colors,
+                    lw = lw,
+                    f_collect_kw = {'i' : i, **f_collect_kw}
+                ) for (i, objects) in enumerate(axs_objects)
             ]
+
             return axs_collect

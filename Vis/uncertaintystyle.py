@@ -20,7 +20,7 @@ class UncertaintyStyle(ComponentStyle):
             color_list = color_list,
         )
 
-    def f_component(self, g, c, i):
+    def f_component(self, g, c, i, f_component_kw = {}):
         t_start = g.time_axis[c.time_step]
         t_end = g.time_axis[c.time_step + 1]
         polys = (
@@ -35,12 +35,12 @@ class UncertaintyStyle(ComponentStyle):
         )
         return polys
 
-    def f_color(self, c):
+    def f_color(self, c, f_color_kw = {}):
         return c.v_start.info['brotherhood_size'][0]
 
-    def f_alpha(self, c):
+    def f_alpha(self, c, f_alpha_kw = {}):
         return linear(c.life_span, range0_1 = True)/6
 
-    def f_collect(objects, colors, lw):
+    def f_collect(self, objects, colors, lw, f_collect_kw = {}):
         polys = PolyCollection(objects, facecolors=colors)
         return polys

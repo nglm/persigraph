@@ -14,6 +14,7 @@ from ..Vis.commonstyle import nrows_ncols, get_list_colors
 def plot_as_graph(
     g,
     s:int = None,
+    t = None,
     fig = None,
     axs = None,
     pgstyle = None,
@@ -25,14 +26,14 @@ def plot_as_graph(
         nrows, ncols = nrows_ncols(g.d)
         fig, axs = plt.subplots(nrows = nrows, ncols = ncols, **fig_kw)
 
-    if pgstyle is None:
-        pgstyle = PGraphStyle(**pgstyle_kw)
-
     #TODO: Check if we can put this in pgstyle instead
     color_list = get_list_colors(g.k_max)
 
+    if pgstyle is None:
+        pgstyle = PGraphStyle(color_list = color_list, **pgstyle_kw)
+
     if s is None:
-        axs_collections = pgstyle.gdraw(g)
+        axs_collections = pgstyle.gdraw(g, axs=axs, t=t)
         for ax, collections in zip(axs.flat, axs_collections):
             ax.add_collection(collections)
     else:

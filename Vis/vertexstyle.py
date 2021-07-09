@@ -18,13 +18,13 @@ class VertexStyle(ComponentStyle):
             color_list = color_list,
         )
 
-    def f_component(self, t, c, i):
+    def f_component(self, g, c, i, f_component_kw = {}):
         return (g.time_axis[c.time_step], c.info['mean'][i])
 
-    def f_color(self, c):
+    def f_color(self, c, f_color_kw = {}):
         return c.info['brotherhood_size'][0]
 
-    def f_collect(objects, colors, lw):
+    def f_collect(self, objects, colors, lw, f_collect_kw = {}):
         circles = EllipseCollection(
             widths = lw,
             heights = lw,
@@ -32,5 +32,5 @@ class VertexStyle(ComponentStyle):
             units = 'points',
             facecolors = colors,
             offsets = objects,
-            transOffset = ax.transData)
+            transOffset = f_collect_kw['axs'][f_collect_kw['i']].transData)
         return circles

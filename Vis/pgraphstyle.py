@@ -66,6 +66,7 @@ class PGraphStyle():
 
 
     def sort_components(
+        self,
         components,
     ):
         components = [
@@ -120,7 +121,7 @@ class PGraphStyle():
 
         return gaussians, uniforms
 
-    def gdraw(self, g):
+    def gdraw(self, g, axs=None, t=None):
         """
         Returns an aggregation of collections
         """
@@ -134,15 +135,16 @@ class PGraphStyle():
 
             # Collections for vertices if necessary
             if self.show_vertices:
+                vertices = g._vertices[t]
                 if not isinstance(vertices, list):
-                    vertices = to_list(g._vertices[t])
+                    vertices = to_list(vertices)
 
                 # Keep only vertices respecting the thresholds,
                 # and distinguish between gaussian and uniform vertices
                 gaussians, uniforms = sort_components(vertices)
 
                 # Collections for gaussian vertices
-                axs_collect = pg_style.vertices.cdraw(g, gaussians)
+                axs_collect = self.vertices.cdraw(g, gaussians, axs=axs)
                 for tot_col, part_col in zip(axs_collections, axs_collect):
                     tot_col.append(part_col)
 
@@ -152,8 +154,9 @@ class PGraphStyle():
 
             # Collections for edges if necessary
             if (self.show_edges or self.show_uncertainty) and (t < g.T-1):
+                edges = g._edges[t]
                 if not isinstance(edges, list):
-                    edges = to_list(g._edges[t])
+                    edges = to_list(edges)
 
                 # Keep only edges respecting the thresholds,
                 # and distinguish between gaussian and uniform edges
@@ -161,7 +164,7 @@ class PGraphStyle():
 
                 # Collections for gaussian edges
                 if self.show_edges:
-                    axs_collect = pg_style.edges.cdraw(g, gaussians)
+                    axs_collect = self.edges.cdraw(g, gaussians)
                     for tot_col, part_col in zip(axs_collections, axs_collect):
                         tot_col.append(part_col)
 
@@ -173,7 +176,7 @@ class PGraphStyle():
                 if self.show_uncertainty:
 
                     # Collections for uncertainty
-                    axs_collect = pg_style.uncertainty.cdraw(g, gaussians)
+                    axs_collect = self.uncertainty.cdraw(g, gaussians)
                     for tot_col, part_col in zip(axs_collections, axs_collect):
                         tot_col.append(part_col)
 

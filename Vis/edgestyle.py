@@ -18,7 +18,7 @@ class EdgeStyle(ComponentStyle):
             color_list = color_list,
         )
 
-    def f_component(self, g, c, i):
+    def f_component(self, g, c, i, f_component_kw = {}):
         t_start = g.time_axis[c.time_step]
         t_end = g.time_axis[c.time_step + 1]
         line = (
@@ -27,10 +27,10 @@ class EdgeStyle(ComponentStyle):
         )
         return line
 
-    def f_color(self, c):
+    def f_color(self, c, f_color_kw = {}):
         return c.v_start.info['brotherhood_size'][0]
 
-    def f_collect(objects, colors, lw):
+    def f_collect(self, objects, colors, lw, f_collect_kw = {}):
         lines = LineCollection(
             objects,
             colors = colors,
