@@ -141,10 +141,14 @@ class PGraphStyle():
 
                 # Keep only vertices respecting the thresholds,
                 # and distinguish between gaussian and uniform vertices
-                gaussians, uniforms = sort_components(vertices)
+                gaussians, uniforms = self.sort_components(vertices)
 
                 # Collections for gaussian vertices
-                axs_collect = self.vertices.cdraw(g, gaussians, axs=axs)
+                axs_collect = self.vertices.cdraw(
+                    g,
+                    gaussians,
+                    f_collect_kw = {"axs": axs.flat}
+                )
                 for tot_col, part_col in zip(axs_collections, axs_collect):
                     tot_col.append(part_col)
 
@@ -160,7 +164,7 @@ class PGraphStyle():
 
                 # Keep only edges respecting the thresholds,
                 # and distinguish between gaussian and uniform edges
-                gaussians, uniforms = sort_components(edges)
+                gaussians, uniforms = self.sort_components(edges)
 
                 # Collections for gaussian edges
                 if self.show_edges:
