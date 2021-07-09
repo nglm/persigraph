@@ -111,6 +111,7 @@ class PersistentGraph():
         #HERE_DONE (N,d, T)
         if len(shape) < 3:
             self._d = int(1)
+            self._members = np.expand_dims(self._members, axis=1)
         else:
             self._d = shape[1]
 
@@ -128,6 +129,8 @@ class PersistentGraph():
             self._weights = np.ones((self.d, self.T), dtype = float)
         else:
             self._weights = np.array(weights)
+            if len(self._weights.shape) < 2:
+                self._weights = np.expand_dims(self._weights, axis=0)
 
         # --------------------------------------------------------------
         # --------- About the graph:   graph's attributes --------------
