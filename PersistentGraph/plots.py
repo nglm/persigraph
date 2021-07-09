@@ -4,7 +4,7 @@ from matplotlib.animation import FuncAnimation
 import time
 from typing import List
 
-from .analysis import sort_components_by, get_k_life_span, get_relevant_k, get_relevant_components
+from .analysis import get_k_life_span, get_relevant_k, get_relevant_components
 from ..Vis import PGraphStyle
 from ..Vis.commonstyle import nrows_ncols, get_list_colors
 
