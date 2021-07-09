@@ -91,7 +91,7 @@ def compute_score(
             for i_cluster, members in enumerate(clusters):
                 score += np.sum(cdist(
                         X[members],
-                        np.mean(X[members], axis=0).reshape(-1),
+                        np.mean(X[members], axis=0, keepdims=True),
                         metric='sqeuclidean'
                         )
                     )
@@ -101,7 +101,7 @@ def compute_score(
         for i_cluster, members in enumerate(clusters):
             score += np.sum(cdist(
                     X[members],
-                    np.mean(X[members], axis=0).reshape(-1),
+                    np.mean(X[members], axis=0, keepdims=True),
                     metric='sqeuclidean'
                     )
                 )
@@ -112,7 +112,7 @@ def compute_score(
         for i_cluster, members in enumerate(clusters):
             score += (len(clusters) / pg.N)* np.sum(cdist(
                     X[members],
-                    np.mean(X[members], axis=0).reshape(-1),
+                    np.mean(X[members], axis=0, keepdims=True),
                     metric='sqeuclidean'
                     )
                 )
@@ -125,7 +125,7 @@ def compute_score(
                 score,
                 np.sum(cdist(
                     X[members],
-                    np.mean(X[members], axis=0).reshape(-1),
+                    np.mean(X[members], axis=0, keepdims=True),
                     metric='sqeuclidean'
                     )
                 ))
@@ -139,7 +139,7 @@ def compute_score(
                 score,
                 np.sum(cdist(
                     X[members],
-                    np.mean(X[members], axis=0).reshape(-1),
+                    np.mean(X[members], axis=0, keepdims=True),
                     metric='sqeuclidean'
                     )
                 ))
