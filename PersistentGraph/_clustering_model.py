@@ -4,10 +4,14 @@ call _pg_* for more model-dependant code.
 """
 from sklearn.metrics import pairwise_distances
 import numpy as np
+from bisect import bisect_left
 from typing import List, Sequence, Union, Any, Dict
 
 from . import _pg_kmeans, _pg_naive
+from ._scores import compute_score
+
 from ..utils._clustering import sort_dist_matrix
+from ..utils.sorted_lists import reverse_bisect_left
 
 
 def get_model_parameters(
@@ -182,3 +186,102 @@ def clustering_model(
             )
 
     return clusters, clusters_info, step_info, model_kw
+
+
+
+def generate_all_clusters(
+    pg
+):
+    # --------------------- Preliminary ----------------------------
+    # Use bisect left in order to favor the lowest number of clusters
+    if pg._maximize:
+        sort_fc = reverse_bisect_left
+    else:
+        sort_fc = bisect_left
+
+    # temporary variable to help sort the local steps
+    cluster_data = [[] for _ in range(pg.T)]
+    local_scores = [[] for _ in range(pg.T)]
+
+    for t in range(pg.T):
+        if pg._verbose:
+            print(" ========= ", t, " ========= ")
+
+        # ------ clustering method specific parameters -------------
+        #HERE_done (N, d, T)
+        X = pg._members[:, :, t]
+        # Get clustering model parameters required by the
+        # clustering model
+        model_kw, fit_predict_kw = get_model_parameters(
+            pg,
+            X = X,
+            t = t,
+        )
+
+
+        for n_clusters in pg._n_clusters_range:
+
+            # Update model_kw
+            model_kw['n_clusters'] = n_clusters
+
+            # ---------- Fit & predict using clustering model-------
+            try :
+                (
+                    clusters,
+                    clusters_info,
+                    step_info,
+                    model_kw,
+                ) = clustering_model(
+                    pg,
+                    X,
+                    model_kw = model_kw,
+                    fit_predict_kw = fit_predict_kw,
+                )
+            except ValueError as ve:
+                if not pg._quiet:
+                    print(str(ve))
+                continue
+
+            # -------- Score corresponding to 'n_clusters' ---------
+
+            if n_clusters == 0:
+                score = compute_score(
+                    pg,
+                    X = step_info.pop('values'),
+                    clusters = clusters,
+                    t = t,
+                )
+                pg._zero_scores[t] = score
+            else:
+                score = compute_score(
+                    pg,
+                    X = X,
+                    clusters = clusters,
+                    t = t,
+                )
+            step_info['score'] = score
+
+            # ---------------- Finalize local step -----------------
+            # Find where should we insert this future local step
+            idx = sort_fc(local_scores[t], score)
+            local_scores[t].insert(idx, score)
+            cluster_data[t].insert(idx, [clusters, clusters_info])
+            pg._local_steps[t].insert(
+                idx,
+                {**{'param' : {"n_clusters" : n_clusters}},
+                    **step_info
+                }
+            )
+            pg._nb_steps += 1
+            pg._nb_local_steps[t] += 1
+
+
+            if pg._verbose:
+                msg = "n_clusters: " + str(n_clusters)
+                for (key,item) in step_info.items():
+                    msg += '  ||  ' + key + ":  " + str(item)
+                print(msg)
+
+
+
+    return cluster_data, local_scores

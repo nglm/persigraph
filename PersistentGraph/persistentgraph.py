@@ -12,10 +12,10 @@ from ._scores import (
     _set_score_type, worst_score, best_score, compute_score,
     _compute_ratio_scores, _compute_score_bounds
 )
-from ..utils.sorted_lists import (
-    insert_no_duplicate, concat_no_duplicate, reverse_bisect_left
+from ..utils.sorted_lists import insert_no_duplicate, concat_no_duplicate
+from ._clustering_model import (
+    get_model_parameters, clustering_model, generate_all_clusters
 )
-from ._clustering_model import get_model_parameters, clustering_model
 
 class PersistentGraph():
 
@@ -609,102 +609,6 @@ class PersistentGraph():
             e_alive = e_alive[0]
         return e_alive
 
-    def _generate_all_clusters(self):
-
-        # --------------------- Preliminary ----------------------------
-        # Use bisect left in order to favor the lowest number of clusters
-        if self._maximize:
-            sort_fc = reverse_bisect_left
-        else:
-            sort_fc = bisect_left
-
-        # temporary variable to help sort the local steps
-        cluster_data = [[] for _ in range(self.T)]
-        local_scores = [[] for _ in range(self.T)]
-
-        for t in range(self.T):
-            if self._verbose:
-                print(" ========= ", t, " ========= ")
-
-            # ------ clustering method specific parameters -------------
-            #HERE_done (N, d, T)
-            X = self._members[:, :, t]
-            # Get clustering model parameters required by the
-            # clustering model
-            model_kw, fit_predict_kw = get_model_parameters(
-                self,
-                X = X,
-                t = t,
-            )
-
-
-            for n_clusters in self._n_clusters_range:
-
-                # Update model_kw
-                model_kw['n_clusters'] = n_clusters
-
-                # ---------- Fit & predict using clustering model-------
-                try :
-                    (
-                        clusters,
-                        clusters_info,
-                        step_info,
-                        model_kw,
-                    ) = clustering_model(
-                        self,
-                        X,
-                        model_kw = model_kw,
-                        fit_predict_kw = fit_predict_kw,
-                    )
-                except ValueError as ve:
-                    if not self._quiet:
-                        print(str(ve))
-                    continue
-
-                # -------- Score corresponding to 'n_clusters' ---------
-
-                if n_clusters == 0:
-                    score = compute_score(
-                        self,
-                        X = step_info.pop('values'),
-                        clusters = clusters,
-                        t = t,
-                    )
-                    self._zero_scores[t] = score
-                else:
-                    score = compute_score(
-                        self,
-                        X = X,
-                        clusters = clusters,
-                        t = t,
-                    )
-                step_info['score'] = score
-
-                # ---------------- Finalize local step -----------------
-                # Find where should we insert this future local step
-                idx = sort_fc(local_scores[t], score)
-                local_scores[t].insert(idx, score)
-                cluster_data[t].insert(idx, [clusters, clusters_info])
-                self._local_steps[t].insert(
-                    idx,
-                    {**{'param' : {"n_clusters" : n_clusters}},
-                        **step_info
-                    }
-                )
-                self._nb_steps += 1
-                self._nb_local_steps[t] += 1
-
-
-                if self._verbose:
-                    msg = "n_clusters: " + str(n_clusters)
-                    for (key,item) in step_info.items():
-                        msg += '  ||  ' + key + ":  " + str(item)
-                    print(msg)
-
-
-
-        return cluster_data, local_scores
-
 
     def _construct_vertices(self, cluster_data, local_scores):
         for t in range(self.T):
@@ -1006,7 +910,7 @@ class PersistentGraph():
         t_start = time.time()
         if self._verbose:
             print("Clustering data...")
-        cluster_data, local_scores = self._generate_all_clusters()
+        cluster_data, local_scores = generate_all_clusters(self)
         t_end = time.time()
         if self._verbose:
             print('Data clustered in %.2f s' %(t_end - t_start))
