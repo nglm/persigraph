@@ -1,6 +1,7 @@
 import numpy as np
 from PIL import ImageColor
 from math import ceil, floor, sqrt
+from typing import List, Sequence, Union, Any, Dict, Tuple
 
 
 # See https://colorbrewer2.org/#type=qualitative&scheme=Set1&n=8

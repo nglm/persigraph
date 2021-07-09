@@ -202,7 +202,7 @@ def preprocess_data(
     multivariate: bool = False,
     to_standardize: bool = False,
     return_scalers: bool = False,
-) -> :
+):
     """
     Extract and preprocess data
 

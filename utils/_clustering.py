@@ -6,6 +6,7 @@ clustering model used
 from bisect import insort
 from math import isnan
 import numpy as np
+from typing import List, Sequence, Union, Any, Dict
 
 
 from .sorted_lists import insert_no_duplicate

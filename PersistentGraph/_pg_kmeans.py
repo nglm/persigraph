@@ -4,7 +4,7 @@ the _clustering module.
 """
 
 import numpy as np
-from typing import List, Sequence, Union, Any, Dict
+from typing import List, Sequence, Union, Any, Dict, Tuple
 
 from ..utils.kmeans import kmeans_custom, row_norms
 from ..utils._clustering import get_centroids, compute_cluster_params

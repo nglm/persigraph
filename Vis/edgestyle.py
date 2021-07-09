@@ -1,4 +1,5 @@
 from matplotlib.collections import LineCollection
+from typing import List, Sequence, Union, Any, Dict, Tuple
 
 from . import ComponentStyle
 

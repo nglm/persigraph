@@ -1,4 +1,5 @@
 from matplotlib.collections import EllipseCollection
+from typing import List, Sequence, Union, Any, Dict, Tuple
 
 from . import ComponentStyle
 

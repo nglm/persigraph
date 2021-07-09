@@ -5,7 +5,7 @@ call _pg_* for more model-dependant code.
 from sklearn.metrics import pairwise_distances
 import numpy as np
 from bisect import bisect_left
-from typing import List, Sequence, Union, Any, Dict
+from typing import List, Sequence, Union, Any, Dict, Tuple
 
 from . import _pg_kmeans, _pg_naive
 from ._scores import compute_score
