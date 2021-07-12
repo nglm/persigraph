@@ -39,7 +39,6 @@ def plot_as_graph(
     if s is None:
         axs_collections = pgstyle.gdraw(g, axs=axs, t=t)
         for ax, collections in zip(axs.flat, axs_collections):
-            print(ax)
             for collect in collections:
                 ax.add_collection(collect)
             ax.autoscale()

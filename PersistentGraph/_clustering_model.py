@@ -4,6 +4,7 @@ call _pg_* for more model-dependant code.
 """
 from sklearn.metrics import pairwise_distances
 import numpy as np
+from scipy.spatial.distance import pdist
 from bisect import bisect_left
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
@@ -50,7 +51,7 @@ def get_model_parameters(
     if precompute_centroids:
         # Compute pairwise distances
         #HERE_done
-        distance_matrix = pairwise_distances(X) * pg._weights[:, t]
+        distance_matrix = pdist(X, 'minkowski', 2, pg._weights[:, t].reshape(-1,1))
         # Argsort of pairwise distances
         sorted_idx = sort_dist_matrix(pg, distance_matrix)
         pg._model_kw["distance_matrix"] = distance_matrix

@@ -1,16 +1,10 @@
 """
 This module depends on the clustering model and is meant to be called by
-the _clustering module. 
+the _clustering module.
 """
 
 import numpy as np
-from sklearn.metrics import pairwise_distances
-from typing import List, Sequence, Union, Any, Dict
-from bisect import insort
-from scipy.spatial.distance import sqeuclidean, cdist
 from typing import List, Sequence, Union, Any, Dict, Tuple
-
-from ..utils.sorted_lists import insert_no_duplicate
 from ..utils._clustering import get_centroids, compute_cluster_params
 
 
