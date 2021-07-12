@@ -112,7 +112,6 @@ def extract_variables(
     ind_long: Union[np.ndarray, int] = None,
     ind_lat: Union[np.ndarray, int] = None,
     multivariate: bool = False,
-    #HERE_done
 ) -> Union[List[np.ndarray], np.ndarray]:
     """
     Extract given variables and corresponding columns
@@ -173,7 +172,6 @@ def extract_variables(
         ind_long = np.arange(nc.variables["longitude"].size)
     if ind_lat is None:
         ind_lat = np.arange(nc.variables["latitude"].size)
-    #HERE_done
     list_var = [np.array(nc.variables[name]) for name in var_names]
     list_var = [var[ind_time,:,:,:] for var in list_var]
     list_var = [var[:,ind_members,:,:] for var in list_var]
@@ -255,7 +253,6 @@ def preprocess_data(
     f = path_data + filename
     nc = Dataset(f,'r')
 
-    #HERE_done merge variables
     (list_var, list_names) = extract_variables(
         nc=nc,
         var_names=var_names,
@@ -272,7 +269,6 @@ def preprocess_data(
         my_element="tcwv",
     )
 
-    #HERE_done if tcwv is merged with other varibles
     if idx != -1:
         if multivariate:
             raise NotImplementedError("Multivariate with log tcwv")
@@ -280,7 +276,6 @@ def preprocess_data(
             list_var[i] = np.log(list_var[i])
 
     # Take Celsius instead of Kelvin
-    #HERE_done if t2m is merged with other variables
     if not to_standardize:
         idx = get_indices_element(
             my_list=list_names,
@@ -292,7 +287,6 @@ def preprocess_data(
             for i in idx:
                 list_var[i] = list_var[i] - 273.15
 
-    #HERE_done
     if to_standardize:
         if multivariate:
             raise NotImplementedError("Multivariate with standardization")

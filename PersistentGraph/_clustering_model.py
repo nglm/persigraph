@@ -4,7 +4,7 @@ call _pg_* for more model-dependant code.
 """
 from sklearn.metrics import pairwise_distances
 import numpy as np
-from scipy.spatial.distance import pdist
+from scipy.spatial.distance import cdist
 from bisect import bisect_left
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
@@ -13,6 +13,7 @@ from ._scores import compute_score
 
 from ..utils._clustering import sort_dist_matrix
 from ..utils.sorted_lists import reverse_bisect_left
+
 
 
 def get_model_parameters(
@@ -50,8 +51,7 @@ def get_model_parameters(
     model_kw.pop("precompute_centroids", None)
     if precompute_centroids:
         # Compute pairwise distances
-        #HERE_done
-        distance_matrix = pdist(X, 'minkowski', 2, pg._weights[:, t].reshape(-1,1))
+        distance_matrix = cdist(X, X, 'minkowski', 2, pg._weights[:, t])
         # Argsort of pairwise distances
         sorted_idx = sort_dist_matrix(pg, distance_matrix)
         pg._model_kw["distance_matrix"] = distance_matrix
@@ -92,17 +92,13 @@ def generate_zero_component(
     if pg._zero_type == 'bounds':
 
         # Get the parameters of the uniform distrib using min and max
-        #HERE_done axis
         mins = np.amin(X, axis=0)
-        #HERE_done axis
         maxs = np.amax(X, axis=0)
 
     else:
         # I'm not sure if this type should be used at all actually.....
         # Get the parameters of the uniform distrib using mean and variance
-        #HERE_done axis
         var = np.var(X, axis=0)
-        #HERE_done axis
         mean = np.mean(X, axis=0)
 
         mins = (2*mean - np.sqrt(12*var)) / 2
@@ -110,7 +106,6 @@ def generate_zero_component(
 
     # Generate a perfect uniform distribution
     steps = (maxs-mins) / (pg.N-1)
-    #HERE_done (d, T)
     values = np.array([mins + i*steps for i in range(pg.N)])
 
     # ==================== clusters, cluster_info ======================
@@ -210,7 +205,6 @@ def generate_all_clusters(
             print(" ========= ", t, " ========= ")
 
         # ------ clustering method specific parameters -------------
-        #HERE_done (N, d, T)
         X = pg._members[:, :, t]
         # Get clustering model parameters required by the
         # clustering model

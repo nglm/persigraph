@@ -100,7 +100,6 @@ def compute_cluster_params(
     :return: Dict of summary statistics
     :rtype: Dict
     """
-    #HERE_done
     d = cluster.shape[1]
     mean = np.mean(cluster, axis=0).reshape(-1)  # shape: (d)
     std = np.std(cluster, axis=0).reshape(-1)    # shape: (d)

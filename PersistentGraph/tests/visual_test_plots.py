@@ -21,8 +21,16 @@ def main():
         (0.05,  -0.4,  -0.6, -0.5, -1),
     ])
 
+    members_bis = np.array([
+        (0.2 ,  0.3,    1,   1.1,   0.6 ),
+        (0.1,    0.15,     0.5,    0.6,    0.4 ),
+        (-0.1,  -0.2,    -1,   -1.2,   -1 ),
+        (-0.3,  -0.4,  -0.6, -0.7, -1),
+    ])
+
     members_biv = np.ones((4,2,5))
     members_biv[:,0,:] = members
+    members_biv[:,1,:] = members_bis
     members = members_biv
     print(members.shape)
 
@@ -52,7 +60,7 @@ def main():
 
     g = PersistentGraph(
         members,
-        time_axis = np.arange(members.shape[1]),
+        time_axis = np.arange(members.shape[-1]),
         score_type = 'inertia',
         zero_type = 'bounds',
         model_type = model_type,
@@ -130,6 +138,11 @@ def main():
     plt.figure()
     for m in g.members:
         plt.plot(m[0])
+    plt.show()
+
+    plt.figure()
+    for m in g.members:
+        plt.plot(m[1])
     plt.show()
 
     k_plot(g)

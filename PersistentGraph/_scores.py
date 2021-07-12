@@ -77,7 +77,6 @@ def compute_score(
     :return: Score of the given clustering
     :rtype: float
     """
-    #HERE_done
 
     # TODO: add weights for scores that requires global bounds
 

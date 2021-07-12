@@ -86,7 +86,6 @@ def clustering_model(
         if rep_new == []:
             raise ValueError('No new centroid')
         # Get the inital centroids
-        #HERE_done
         model_kw['init'] = np.array([X[r] for r in rep_new])
         pg._model_kw['idx'] = idx
         members_r = np.zeros(pg.N, dtype=int)

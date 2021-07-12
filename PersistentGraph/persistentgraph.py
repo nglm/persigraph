@@ -108,7 +108,6 @@ class PersistentGraph():
 
         # Variable dimension
         shape = members.shape
-        #HERE_DONE (N,d, T)
         if len(shape) < 3:
             self._d = int(1)
             self._members = np.expand_dims(self._members, axis=1)
@@ -124,7 +123,6 @@ class PersistentGraph():
         else:
             self._time_axis = time_axis
 
-        #HERE_DONE (d, T)
         if weights is None:
             self._weights = np.ones((self.d, self.T), dtype = float)
         else:
