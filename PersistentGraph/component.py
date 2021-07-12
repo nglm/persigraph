@@ -1,9 +1,10 @@
-from typing import List, Sequence
 from scipy.spatial.distance import euclidean
+import numpy as np
+from typing import List, Sequence
 
 from ..utils.check_variable import check_O1_range, check_positive, check_all_positive
 from ..utils.sorted_lists import has_element, get_common_elements, bisect_search
-import numpy as np
+
 
 class Component():
     """

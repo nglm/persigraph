@@ -1,21 +1,18 @@
 import numpy as np
-from typing import List, Sequence, Union, Any, Dict
 from bisect import bisect, bisect_left, bisect_right, insort
 import time
 import pickle
-
+from typing import List, Sequence, Union, Any, Dict
 
 from . import Vertex
 from . import Edge
-
+from ._clustering_model import generate_all_clusters
 from ._scores import (
-    _set_score_type, worst_score, best_score, compute_score,
-    _compute_ratio_scores, _compute_score_bounds
+    _set_score_type, _compute_ratio_scores, _compute_score_bounds
 )
+
 from ..utils.sorted_lists import insert_no_duplicate, concat_no_duplicate
-from ._clustering_model import (
-    get_model_parameters, clustering_model, generate_all_clusters
-)
+
 
 class PersistentGraph():
 

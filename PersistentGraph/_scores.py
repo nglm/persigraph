@@ -5,7 +5,7 @@ It is totally clustering model independant
 
 import numpy as np
 from numpy.linalg import norm
-from scipy.spatial.distance import sqeuclidean, cdist, euclidean
+from scipy.spatial.distance import sqeuclidean, cdist
 from sklearn.metrics import pairwise_distances
 from typing import List, Sequence, Union, Any, Dict
 
