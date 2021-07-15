@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.lines import Line2D
 import time
-from typing import List
+from typing import List, Union
 
 from .analysis import get_k_life_span, get_relevant_k, get_relevant_components
 from ..Vis import PGraphStyle
@@ -24,6 +25,9 @@ def plot_as_graph(
     pgstyle_kw: dict = {},
     fig_kw: dict = {"figsize" : (20,12)},
     ax_kw: dict = {},
+    # ax_title: str = 'Entire Graph',
+    # xlabel: Union[str, List[str]] = 'Time (h)',
+    # ylabel: Union[str, List[str]] = 'Values'
 ):
     if axs is None:
         nrows, ncols = nrows_ncols(g.d)
@@ -57,13 +61,14 @@ def plot_as_graph(
                 ax.add_collection(collect)
             ax.autoscale()
             ax.set_xlim([g.time_axis[0],g.time_axis[-1]])
+            # ax.set_title(ax_title)
+            # ax.set_xlabel(xlabel)
+            # ax.set_ylabel(ylabel)
     else:
         raise NotImplementedError("Cannot display a specific step of the graph")
 
     # ax.set_xlabel(ax_kw.pop('xlabel', "Time (h)"))
     # ax.set_ylabel(ax_kw.pop('ylabel', ""))
-    #
-    # ax.set_title(title)
     return fig, axs
 
 
@@ -107,7 +112,19 @@ def k_plot(
         ax.set_ylim([0,1])
     return fig, ax, life_span
 
+def k_legend(color_list, k_max=8, lw=4):
+    k_max = min(len(color_list), k_max)
+    color_list = color_list[:k_max]
+    handles = [Line2D([0], [0], color=c, lw=lw) for c in color_list[1:]]
+    labels = ['k='+str(i) for i in range(1, len(color_list))]
+    return (handles, labels)
 
+def draw_legend(ax, color_list, k_max=None, size=12):
+    ax.legend(
+        *k_legend(color_list=color_list, k_max=k_max),
+        prop={'size' : size})
+    ax.axis('off')
+    return ax
 
 def annot_ax(
     g,
@@ -187,55 +204,89 @@ def plot_most_revelant_components(
 
 def plot_overview(
     g,
+    t = None,
     relevant_components = None,
+    relevant_k = None,
     k_max = 8,
-    show_vertices: bool = True,
-    show_edges: bool = True,
-    show_std: bool = True,
-    threshold_m:int = 0,
-    threshold_l:float = 0.00,
-    max_opacity:bool = True,
     fig = None,
-    ax = None,
-    fig_kw: dict = {},
+    axs = None,
+    pgstyle = None,
+    pgstyle_kw: dict = {},
+    fig_kw: dict = {"figsize" : (20,12)},
     ax_kw: dict = {},
 ):
     if fig is None:
-        fig = plt.figure(
-            figsize = fig_kw.pop('figsize', (40,12)), tight_layout=True
-        )
-    gs = fig.add_gridspec(nrows=2, ncols=5)
+        fig_kw["figsize"] = fig_kw.pop('figsize', (20*g.d+10,12))
+        fig = plt.figure(**fig_kw, tight_layout=True)
+    ncols = 12
+    gs = fig.add_gridspec(nrows=2*g.d+1, ncols=ncols)
+
+    # Create axs
+    axs01 = []
+    axs02 = []
+    for i in range(g.d):
+        # For entire graph view
+        axs01.append(fig.add_subplot(gs[2*i:2*(i+1), 0:ncols//2]))
+        # Most relevant component view
+        axs02.append(fig.add_subplot(gs[2*i:2*(i+1), ncols//2:]))
+        # We can not really share axis without that if they have been created
+        # separately
+        # Remove useless yaxis
+        axs02[i].sharey(axs01[i])
+        axs02[i].tick_params(labelleft=False)
+        if i>0:
+            # Remove useless xaxis
+            axs01[i-1].sharex(axs01[i])
+            axs01[i-1].tick_params(labelbottom=False)
+            axs02[i-1].sharex(axs02[i])
+            axs02[i-1].tick_params(labelbottom=False)
+
+    # Add ax titles
+    axs01[0].set_title("Entire Graph")
+    axs02[0].set_title("Most relevant Components")
+
+    axs01 = np.array(axs01)
+    axs02 = np.array(axs02)
+    # k plot
+    axs03 = fig.add_subplot(gs[-1, 0:ncols//4])
+    # legend
+    axs04 = fig.add_subplot(gs[-1, 0:ncols//4+1])
+
 
     # Plot entire graph
-    ax0 = fig.add_subplot(gs[:, 0:2])
-    _, ax0 = plot_as_graph(
-        g, show_vertices=show_vertices, show_edges=show_edges,
-        show_std=show_std, ax=ax0)
-    ax0.set_title("Entire graph")
-    ax0.set_xlabel("Time (h)")
-    ax0.set_ylabel("Values")
+    fix, axs01 = plot_as_graph(
+        g,
+        t = t,
+        fig = fig,
+        axs = axs01,
+        pgstyle = pgstyle,
+        fig_kw = fig_kw,
+        ax_kw = ax_kw,
+    )
 
-    # Arrows on entire graph
-    ax0 = annot_ax(g, ax=ax0)
+    # Plot most relevant components
+    fix, axs02 = plot_most_revelant_components(
+        g,
+        t = t,
+        relevant_components = relevant_components,
+        relevant_k = relevant_k,
+        k_max = k_max,
+        fig = fig,
+        axs = axs02,
+        pgstyle = pgstyle,
+        fig_kw = fig_kw,
+        ax_kw = ax_kw,
+    )
 
     # k_plot
-    ax1 = fig.add_subplot(gs[0, 2], sharex=ax0)
-    _, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
-    #ax1.set_xlabel("Time")
-    ax1.set_ylabel("Relevance")
-    ax1.set_title('Number of clusters: relevance')
+    _, axs03, _ = k_plot(g, k_max = k_max, ax=axs03, show_legend=False)
+    # legend
+    color_list = get_list_colors(g.k_max)
 
-    # most relevant components
-    ax2 = fig.add_subplot(gs[:, 3:], sharey=ax0, sharex=ax0)
-    _, ax2 = plot_most_revelant_components(
-        g, k_max=k_max, show_vertices=show_vertices,
-        show_edges=show_edges, show_std=show_std, max_opacity=True, ax=ax2)
-    ax2.set_title("Most relevant components")
-    #ax2.set_xlabel("Time")
-    ax2.set_ylabel("Values")
+    axs04 = draw_legend(ax=axs04, color_list=color_list, k_max = k_max)
 
     # Arrows on most relevant components
-    ax2 = annot_ax(g, ax=ax2)
+    # ax2 = annot_ax(g, ax=ax2)
 
     return fig, fig.axes
 

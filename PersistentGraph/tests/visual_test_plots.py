@@ -122,34 +122,27 @@ def main():
     # for s in range(g.nb_steps):
     #     fig, ax = plot_as_graph(g,s, show_vertices=True)
 
-    fig, ax = plot_as_graph(
-        g,
-        # show_vertices=True,
-        # show_edges=True,
-        # show_std = True
-    )
+    fig, ax = plot_as_graph(g)
     plt.show()
 
     fig, axs = plot_most_revelant_components(g)
     plt.show()
 
-    # fig, ax = plot_overview(
-    #     g, show_vertices=True,
-    #     show_edges=True,
-    #     show_std = True)
+    fig, ax = plot_overview(g)
+    fig.savefig('tmp')
 
     plt.figure()
     for m in g.members:
         plt.plot(m[0])
-    plt.show()
+    # plt.show()
 
     plt.figure()
     for m in g.members:
         plt.plot(m[1])
     plt.show()
 
-    k_plot(g)
-    plt.show()
+    # k_plot(g)
+    # plt.show()
 
 if __name__ == '__main__':
     main()
