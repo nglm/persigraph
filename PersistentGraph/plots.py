@@ -182,11 +182,6 @@ def plot_most_revelant_components(
         ax_kw = ax_kw,
     )
 
-    # ax.autoscale()
-    # ax.set_xlabel(ax_kw.pop('xlabel', "Time (h)"))
-    # ax.set_ylabel(ax_kw.pop('ylabel', ""))
-    # ax.set_xlim([g.time_axis[0], g.time_axis[-1]])
-    # ax.set_title('Only most relevant components')
     return fig, axs
 
 
@@ -334,47 +329,47 @@ def make_gif(
 
 
 
-def plot_barcodes(
-    barcodes,
-    c1 = np.array([254.,0.,0.,1.]),
-    c2 = np.array([254.,254.,0.,1.]),
-):
-    """
-    FIXME: Outdated
-    """
-    if not isinstance(barcodes[0], list):
-        barcodes = [barcodes]
-    for t in range(len(barcodes)):
-        fig, ax = plt.subplots(figsize=(10,10))
-        colors = []
-        lines = []
-        c = np.zeros_like(c1, dtype=float)
-        for i, (start, end, r_members) in enumerate(barcodes[t]):
-            c[:3] = (r_members*c1[:3] + (1-r_members)*c2[:3])/255.
-            c[-1] = 1.
-            lines.append(((i, start),(i, end)))
-            colors.append(c)
-        lines = LineCollection(lines,colors=np.asarray(colors))
-        ax.add_collection(lines)
-        ax.autoscale()
-        ax.set_xlabel("Components")
-        ax.set_ylabel("Life span")
-        plt.show()
+# def plot_barcodes(
+#     barcodes,
+#     c1 = np.array([254.,0.,0.,1.]),
+#     c2 = np.array([254.,254.,0.,1.]),
+# ):
+#     """
+#     FIXME: Outdated
+#     """
+#     if not isinstance(barcodes[0], list):
+#         barcodes = [barcodes]
+#     for t in range(len(barcodes)):
+#         fig, ax = plt.subplots(figsize=(10,10))
+#         colors = []
+#         lines = []
+#         c = np.zeros_like(c1, dtype=float)
+#         for i, (start, end, r_members) in enumerate(barcodes[t]):
+#             c[:3] = (r_members*c1[:3] + (1-r_members)*c2[:3])/255.
+#             c[-1] = 1.
+#             lines.append(((i, start),(i, end)))
+#             colors.append(c)
+#         lines = LineCollection(lines,colors=np.asarray(colors))
+#         ax.add_collection(lines)
+#         ax.autoscale()
+#         ax.set_xlabel("Components")
+#         ax.set_ylabel("Life span")
+#         plt.show()
 
-def plot_bottleneck_distances(
-    bn_distances,
-    c1 = np.array([254.,0.,0.,1.]),
-    c2 = np.array([254.,254.,0.,1.]),
-):
-    """
-    FIXME: Outdated
-    """
-    if isinstance(bn_distances[0], list):
-        bn_distances = [bn_distances]
-    fig, ax = plt.subplots(figsize=(10,10))
-    ax.plot(bn_distances)
-    ax.autoscale()
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Bottleneck distance")
-    plt.show()
-    return fig, ax
+# def plot_bottleneck_distances(
+#     bn_distances,
+#     c1 = np.array([254.,0.,0.,1.]),
+#     c2 = np.array([254.,254.,0.,1.]),
+# ):
+#     """
+#     FIXME: Outdated
+#     """
+#     if isinstance(bn_distances[0], list):
+#         bn_distances = [bn_distances]
+#     fig, ax = plt.subplots(figsize=(10,10))
+#     ax.plot(bn_distances)
+#     ax.autoscale()
+#     ax.set_xlabel("Time")
+#     ax.set_ylabel("Bottleneck distance")
+#     plt.show()
+#     return fig, ax
