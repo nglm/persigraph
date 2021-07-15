@@ -42,6 +42,13 @@ class UncertaintyStyle(ComponentStyle):
     def f_alpha(self, c, f_alpha_kw = {}):
         return linear(c.life_span, range0_1 = True)/6
 
+    def alpha_function(self, components, f_alpha_kw = {}):
+        if self.max_opacity:
+            alphas = 1/6
+        else:
+            alphas = [ self.f_alpha(c, f_alpha_kw) for c in components ]
+        return alphas
+
     def f_collect(self, objects, colors, lw, f_collect_kw = {}):
         polys = PolyCollection(objects, facecolors=colors)
         return polys

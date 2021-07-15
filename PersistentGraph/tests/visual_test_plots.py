@@ -130,6 +130,9 @@ def main():
     )
     plt.show()
 
+    fig, axs = plot_most_revelant_components(g)
+    plt.show()
+
     # fig, ax = plot_overview(
     #     g, show_vertices=True,
     #     show_edges=True,

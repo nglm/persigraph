@@ -2,7 +2,10 @@ import numpy as np
 from typing import List, Sequence, Union, Any, Dict
 
 from . import VertexStyle, EdgeStyle, UncertaintyStyle
-from ..utils.lists import to_iterable, to_list
+
+from .commonstyle import get_list_colors
+
+from ..utils.lists import to_iterable
 from ..PersistentGraph import Vertex
 from ..PersistentGraph import Edge
 from ..PersistentGraph.analysis import sort_components_by
@@ -32,7 +35,11 @@ class PGraphStyle():
         self.show_uncertainty = show_uncertainty
         self.show_vertices = show_vertices
         self.show_edges = show_edges
-        self.color_list = color_list
+        if color_list is None:
+            self.color_list = get_list_colors
+        else:
+            self.color_list = color_list
+
         self.lw_min = lw_min
         self.lw_max = lw_max
         self.max_opacity = max_opacity
@@ -121,7 +128,13 @@ class PGraphStyle():
 
         return gaussians, uniforms
 
-    def gdraw(self, g, axs=None, t=None):
+    def gdraw(
+        self,
+        g,
+        vertices,
+        edges,
+        axs,
+        t=None):
         """
         Returns an aggregation of collections
         """
@@ -135,13 +148,10 @@ class PGraphStyle():
 
             # Collections for vertices if necessary
             if self.show_vertices:
-                vertices = g._vertices[t]
-                if not isinstance(vertices, list):
-                    vertices = to_list(vertices)
 
                 # Keep only vertices respecting the thresholds,
                 # and distinguish between gaussian and uniform vertices
-                gaussians, uniforms = self.sort_components(vertices)
+                gaussians, uniforms = self.sort_components(vertices[t])
 
                 # Collections for gaussian vertices
                 axs_collect = self.vertices.cdraw(
@@ -158,13 +168,10 @@ class PGraphStyle():
 
             # Collections for edges if necessary
             if (self.show_edges or self.show_uncertainty) and (t < g.T-1):
-                edges = g._edges[t]
-                if not isinstance(edges, list):
-                    edges = to_list(edges)
 
                 # Keep only edges respecting the thresholds,
                 # and distinguish between gaussian and uniform edges
-                gaussians, uniforms = self.sort_components(edges)
+                gaussians, uniforms = self.sort_components(edges[t])
 
                 # Collections for gaussian edges
                 if self.show_edges:

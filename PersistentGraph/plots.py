@@ -7,7 +7,8 @@ from typing import List
 from .analysis import get_k_life_span, get_relevant_k, get_relevant_components
 from ..Vis import PGraphStyle
 from ..Vis.commonstyle import nrows_ncols, get_list_colors
-
+from ..Vis.barstyle import draw_arrow
+from ..utils.lists import to_list
 
 
 
@@ -15,6 +16,8 @@ def plot_as_graph(
     g,
     s:int = None,
     t = None,
+    vertices = None,
+    edges = None,
     fig = None,
     axs = None,
     pgstyle = None,
@@ -27,8 +30,18 @@ def plot_as_graph(
         fig, axs = plt.subplots(
             nrows = nrows,
             ncols = ncols,
-            squeeze=False,
+            squeeze = False,
             **fig_kw)
+
+    if vertices is None:
+        vertices = g._vertices
+    elif not isinstance(vertices, list):
+        vertices = to_list(vertices)
+
+    if edges is None:
+        edges = g._edges
+    elif not isinstance(edges, list):
+        edges = to_list(edges)
 
     #TODO: Check if we can put this in pgstyle instead
     color_list = get_list_colors(g.k_max)
@@ -37,7 +50,8 @@ def plot_as_graph(
         pgstyle = PGraphStyle(color_list = color_list, **pgstyle_kw)
 
     if s is None:
-        axs_collections = pgstyle.gdraw(g, axs=axs, t=t)
+        axs_collections = pgstyle.gdraw(
+            g,vertices=vertices, edges=edges, axs=axs, t=t)
         for ax, collections in zip(axs.flat, axs_collections):
             for collect in collections:
                 ax.add_collection(collect)
@@ -71,7 +85,7 @@ def k_plot(
     Spaghetti plots of ratio scores for each number of clusters
     """
     k_max = min(k_max, g.k_max)
-    colors = get_list_colors(g.N)
+    colors = get_list_colors(k_max)
     if life_span is None:
         life_span = get_k_life_span(g, k_max)
 
@@ -103,6 +117,7 @@ def annot_ax(
     arrow_kw = {}
 ):
     k_max = min(k_max, g.k_max)
+    colors = get_list_colors(k_max)
     # For each time step, get the most relevant number of clusters
     if relevant_k is None:
         relevant_k = get_relevant_k(g, k_max=k_max)
@@ -113,14 +128,16 @@ def annot_ax(
     for t, (k, _) in enumerate(relevant_k[1:]):
         if k != k_curr:
             t_end = t
-            _draw_arrow(
+            draw_arrow(
                 g, ax = ax, k=k_curr, t_start=t_start, t_end=t_end,
+                color_list = colors,
             )
             k_curr = k
             t_start = t
     # last arrow if not already done
-    _draw_arrow(
-        g, ax = ax, k = k_curr, t_start = t_start, t_end = -1
+    draw_arrow(
+        g, ax = ax, k = k_curr, t_start = t_start, t_end = -1,
+        color_list = colors,
     )
 
     return ax
@@ -128,17 +145,14 @@ def annot_ax(
 
 def plot_most_revelant_components(
     g,
+    t = None,
     relevant_components = None,
     relevant_k = None,
     k_max = 8,
-    show_vertices: bool = True,
-    show_edges: bool = True,
-    show_std: bool = True,
-    threshold_m:int = 0,
-    threshold_l:float = 0.00,
-    max_opacity:bool = True,
     fig = None,
-    ax = None,
+    axs = None,
+    pgstyle = None,
+    pgstyle_kw: dict = {'max_opacity' : True},
     fig_kw: dict = {"figsize" : (20,12)},
     ax_kw: dict = {},
 ):
@@ -150,33 +164,38 @@ def plot_most_revelant_components(
     else:
         vertices, edges = relevant_components
 
-    if ax is None:
-        fig, ax = plt.subplots(**fig_kw)
-        ax.autoscale()
+    # if axs is None:
+    #     nrows, ncols = nrows_ncols(g.d)
+    #     fig, axs = plt.subplots(
+    #         nrows = nrows,
+    #         ncols = ncols,
+    #         squeeze = False,
+    #         **fig_kw)
 
+    #TODO: Check if we can put this in pgstyle instead
     color_list = get_list_colors(k_max)
-    for t in range(g.T):
-        if show_vertices:
-            ax = plot_vertices(
-                g, t, vertices[t],
-                threshold_m=threshold_m, threshold_l=threshold_l,
-                color_list = color_list, max_opacity=max_opacity,
-                ax=ax,
-            )
-        if show_edges and (t < g.T-1):
-            ax = plot_edges(
-                g, t, edges[t],
-                threshold_m=threshold_m, threshold_l=threshold_l,
-                color_list = color_list, max_opacity=max_opacity,
-                show_std = show_std,
-                ax=ax
-            )
-    ax.autoscale()
-    ax.set_xlabel(ax_kw.pop('xlabel', "Time (h)"))
-    ax.set_ylabel(ax_kw.pop('ylabel', ""))
-    ax.set_xlim([g.time_axis[0], g.time_axis[-1]])
-    ax.set_title('Only most relevant components')
-    return fig, ax
+
+    if pgstyle is None:
+        pgstyle = PGraphStyle(color_list = color_list, **pgstyle_kw)
+
+    fig, axs =  plot_as_graph(
+        g,
+        t = t,
+        vertices = vertices,
+        edges = edges,
+        fig = fig,
+        axs = axs,
+        pgstyle = pgstyle,
+        fig_kw = fig_kw,
+        ax_kw = ax_kw,
+    )
+
+    # ax.autoscale()
+    # ax.set_xlabel(ax_kw.pop('xlabel', "Time (h)"))
+    # ax.set_ylabel(ax_kw.pop('ylabel', ""))
+    # ax.set_xlim([g.time_axis[0], g.time_axis[-1]])
+    # ax.set_title('Only most relevant components')
+    return fig, axs
 
 
 def plot_overview(
