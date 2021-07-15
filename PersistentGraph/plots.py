@@ -164,14 +164,6 @@ def plot_most_revelant_components(
     else:
         vertices, edges = relevant_components
 
-    # if axs is None:
-    #     nrows, ncols = nrows_ncols(g.d)
-    #     fig, axs = plt.subplots(
-    #         nrows = nrows,
-    #         ncols = ncols,
-    #         squeeze = False,
-    #         **fig_kw)
-
     #TODO: Check if we can put this in pgstyle instead
     color_list = get_list_colors(k_max)
 
