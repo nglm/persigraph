@@ -1,4 +1,6 @@
-def _draw_arrow(
+from ..Vis.commonstyle import get_list_colors
+
+def draw_arrow(
     g,
     ax,
     k,
@@ -7,9 +9,11 @@ def _draw_arrow(
     offset_arrow = +25,
     offset_text = +5,
     width = 5,
-    txt_kw = {'size':18}
+    txt_kw = {'size':18},
+    color_list = None,
 ):
-    colors = get_list_colors(g.N)
+    if color_list is None:
+        colors = get_list_colors(g.N)
     x_start = (
         (g.time_axis[t_start] - g.time_axis[0])
         / (g.time_axis[-1] - g.time_axis[0])
