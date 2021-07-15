@@ -29,6 +29,12 @@ def plot_as_graph(
     # xlabel: Union[str, List[str]] = 'Time (h)',
     # ylabel: Union[str, List[str]] = 'Values'
 ):
+    """
+    Plot the entire graph
+
+    If ``vertices`` is not specified, plot all the vertices in the graph.
+    Same holds for ``edges``. If ``relevant_k`` is not specified, take the automated solution
+    """
     if axs is None:
         nrows, ncols = nrows_ncols(g.d)
         fig, axs = plt.subplots(
@@ -133,6 +139,11 @@ def suggestion_bar(
     k_max = 8,
     arrow_kw = {}
 ):
+    """
+    Plot the suggestion bar
+
+    If ``relevant_k`` is not specified, take the automated solution
+    """
     k_max = min(k_max, g.k_max)
     colors = get_list_colors(k_max)
     # For each time step, get the most relevant number of clusters
@@ -173,6 +184,12 @@ def plot_most_revelant_components(
     fig_kw: dict = {"figsize" : (20,12)},
     ax_kw: dict = {},
 ):
+    """
+    Plot only the most relevant components (automated or user-adjusted)
+
+    If ``relevant_k`` nor ``relevant_components`` are specified, take
+    the automated solution
+    """
     k_max = min(k_max, g.k_max)
     # For each time step, get the most relevant number of clusters
     if relevant_components is None:
@@ -215,6 +232,15 @@ def plot_overview(
     fig_kw: dict = {"figsize" : (20,12)},
     ax_kw: dict = {},
 ):
+    """
+    Plot:
+
+    - The entire graph with its suggestion bar
+    - The most relevant components (automated or user-adjusted) with its
+    corresponding bar
+    - The k_plot
+    - The legend
+    """
     if fig is None:
         fig_kw["figsize"] = fig_kw.pop('figsize', (20*g.d+10,12))
         fig = plt.figure(**fig_kw, tight_layout=True)
