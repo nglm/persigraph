@@ -126,7 +126,7 @@ def draw_legend(ax, color_list, k_max=None, size=12):
     ax.axis('off')
     return ax
 
-def annot_ax(
+def suggestion_bar(
     g,
     ax,
     relevant_k = None,
@@ -285,8 +285,10 @@ def plot_overview(
 
     axs04 = draw_legend(ax=axs04, color_list=color_list, k_max = k_max)
 
-    # Arrows on most relevant components
-    # ax2 = annot_ax(g, ax=ax2)
+    # Suggestion bar on most relevant components
+    ax2 = suggestion_bar(g, ax=ax2)
+    # Suggestion bar on most relevant components
+    ax2 = suggestion_bar(g, ax=ax2)
 
     return fig, fig.axes
 

@@ -524,7 +524,7 @@ def select_best_examples():
         ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq = 2)
         ax1.legend(*k_legend(), loc='upper left', prop={'size' : LEGEND_SIZE})
         ax1.sharey(ax0)
-        ax1 = annot_ax(g, ax=ax1)
+        ax1 = suggestion_bar(g, ax=ax1)
 
         # ---- k_plot ----
         # ax1 = fig.add_subplot(gs[5:-1, ], sharex=ax0)
@@ -659,7 +659,7 @@ def select_best_examples():
         ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]])
 
 
-        #ax0 = annot_ax(g, ax=ax0)
+        #ax0 = suggestion_bar(g, ax=ax0)
 
         # ---- k_plot ----
         ax2 = fig.add_subplot(gs[5:-1, (m//2)+1:(m//2)+7])
@@ -762,7 +762,7 @@ def select_best_examples():
         ax0 = add_annotation(ax0, 'b)')
         # Turn off ticks on this one
         ax0.tick_params(labelleft=False)
-        ax0 = annot_ax(g, ax=ax0)
+        ax0 = suggestion_bar(g, ax=ax0)
         ax0.legend(
             *k_legend(), prop={'size' : LEGEND_SIZE},
             loc='upper right'
@@ -1179,7 +1179,7 @@ def talk_figs():
         ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq = 2)
         ax1.legend(*k_legend(), loc='upper left', prop={'size' : LEGEND_SIZE})
         ax1.sharey(ax0)
-        ax1 = annot_ax(g, ax=ax1)
+        ax1 = suggestion_bar(g, ax=ax1)
 
         # ---- k_plot ----
         axk = fig.add_subplot(gs[8:11, m//3+1:m//3+1+4], sharex=ax0)
@@ -1291,7 +1291,7 @@ def talk_figs():
         ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]], freq = 2)
         ax1.legend(*k_legend(), loc='upper left', prop={'size' : LEGEND_SIZE})
         ax1.sharey(ax0)
-        ax1 = annot_ax(g, ax=ax1)
+        ax1 = suggestion_bar(g, ax=ax1)
 
         # ---- Most relevant ----
         ax3 = fig.add_subplot(gs[:, 2*m//3:], sharex=ax0)
@@ -1404,7 +1404,7 @@ def talk_figs():
         ax1 = use_dates_as_xticks(ax1,  d['time'][i][:max_t[k]])
 
 
-        #ax0 = annot_ax(g, ax=ax0)
+        #ax0 = suggestion_bar(g, ax=ax0)
 
         # ---- k_plot ----
         ax2 = fig.add_subplot(gs[5:-1, (m//2)+1:(m//2)+7])
@@ -1510,7 +1510,7 @@ def talk_figs():
         ax0 = use_dates_as_xticks(ax0,  d['time'][i][min_t[k]:max_t[k]])
         # Turn off ticks on this one
         ax0.tick_params(labelleft=False)
-        ax0 = annot_ax(g, ax=ax0)
+        ax0 = suggestion_bar(g, ax=ax0)
         ax0.legend(
             *k_legend(), prop={'size' : LEGEND_SIZE},
             loc='upper right'

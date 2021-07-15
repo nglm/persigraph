@@ -128,7 +128,7 @@ def plot_pg_mean_std(
     ax0.set_title("Graph method")
     ax0.set_xlabel("Time")
     ax0.set_ylabel("Values")
-    ax0 = annot_ax(g, ax=ax0)
+    ax0 = suggestion_bar(g, ax=ax0)
 
     # k_plot
     ax1 = fig.add_subplot(gs[0, 2], sharex=ax0)

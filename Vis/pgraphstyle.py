@@ -21,6 +21,7 @@ class PGraphStyle():
         show_uncertainty: bool = True,
         show_vertices: bool = True,
         show_edges: bool = True,
+        show_bar: bool = True,
         color_list: List = None,
         lw_min: float = 0.5,
         lw_max: float = 8.,
@@ -35,6 +36,7 @@ class PGraphStyle():
         self.show_uncertainty = show_uncertainty
         self.show_vertices = show_vertices
         self.show_edges = show_edges
+        self.show_bar = show_bar
         if color_list is None:
             self.color_list = get_list_colors
         else:
@@ -130,10 +132,11 @@ class PGraphStyle():
 
     def gdraw(
         self,
-        g,
-        vertices,
-        edges,
         axs,
+        g,
+        vertices=None,
+        edges=None,
+        relevant_k=None,
         t=None):
         """
         Returns an aggregation of collections
