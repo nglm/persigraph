@@ -6,14 +6,14 @@ def draw_arrow(
     k,
     t_start,
     t_end,
-    offset_arrow = +25,
-    offset_text = +5,
+    offset_arrow = +5,
+    offset_text = +10,
     width = 5,
     txt_kw = {'size':18},
     color_list = None,
 ):
     if color_list is None:
-        colors = get_list_colors(g.N)
+        color_list = get_list_colors(g.N)
     x_start = (
         (g.time_axis[t_start] - g.time_axis[0])
         / (g.time_axis[-1] - g.time_axis[0])
@@ -37,7 +37,7 @@ def draw_arrow(
         #xytext=(x_end+0.001, 0),
         xytext=(x_end, 0),
         textcoords=('axes fraction', 'offset points'),
-        arrowprops=dict(arrowstyle=arrowstyle, color=colors[k]),
+        arrowprops=dict(arrowstyle=arrowstyle, color=color_list[k]),
     )
     # Thicker Arrow
     ax.annotate(
@@ -48,7 +48,7 @@ def draw_arrow(
         xytext=(x_end-0.0025, 0),
         textcoords=('axes fraction', 'offset points'),
         arrowprops=dict(
-            width=width, headwidth=0, headlength=0.0001, color=colors[k]
+            width=width, headwidth=0, headlength=0.0001, color=color_list[k]
         ),
     )
 
@@ -59,5 +59,5 @@ def draw_arrow(
         xycoords=('axes fraction', 'axes points'),
         xytext=(-4, 0),
         textcoords=('offset points', 'offset points'),
-        color=colors[k], **txt_kw
+        color=color_list[k], **txt_kw
     )

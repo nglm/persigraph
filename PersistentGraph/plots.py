@@ -19,6 +19,7 @@ def plot_as_graph(
     t = None,
     vertices = None,
     edges = None,
+    relevant_k = None,
     fig = None,
     axs = None,
     pgstyle = None,
@@ -60,11 +61,21 @@ def plot_as_graph(
         pgstyle = PGraphStyle(color_list = color_list, **pgstyle_kw)
 
     if s is None:
+        # Get all the collections associated with vertices, edges and std
         axs_collections = pgstyle.gdraw(
-            g,vertices=vertices, edges=edges, axs=axs, t=t)
+            axs, g, vertices=vertices, edges=edges,  t=t)
         for ax, collections in zip(axs.flat, axs_collections):
+
+            # Add the collections to their corresponding ax
             for collect in collections:
                 ax.add_collection(collect)
+
+            # Add suggestion bar (not a collection)
+            if pgstyle.show_bar:
+                suggestion_bar(
+                    g, ax, relevant_k=None, k_max=g.k_max,
+                    color_list=color_list)
+
             ax.autoscale()
             ax.set_xlim([g.time_axis[0],g.time_axis[-1]])
             # ax.set_title(ax_title)
@@ -137,6 +148,7 @@ def suggestion_bar(
     ax,
     relevant_k = None,
     k_max = 8,
+    color_list = None,
     arrow_kw = {}
 ):
     """
@@ -145,8 +157,11 @@ def suggestion_bar(
     If ``relevant_k`` is not specified, take the automated solution
     """
     k_max = min(k_max, g.k_max)
-    colors = get_list_colors(k_max)
+    if color_list is None:
+        color_list = get_list_colors(k_max)
     # For each time step, get the most relevant number of clusters
+    # If a custom value of relevant k is not given, take the automated
+    # solution
     if relevant_k is None:
         relevant_k = get_relevant_k(g, k_max=k_max)
 
@@ -158,14 +173,14 @@ def suggestion_bar(
             t_end = t
             draw_arrow(
                 g, ax = ax, k=k_curr, t_start=t_start, t_end=t_end,
-                color_list = colors,
+                color_list = color_list,
             )
             k_curr = k
             t_start = t
     # last arrow if not already done
     draw_arrow(
         g, ax = ax, k = k_curr, t_start = t_start, t_end = -1,
-        color_list = colors,
+        color_list = color_list,
     )
 
     return ax
@@ -311,10 +326,6 @@ def plot_overview(
 
     axs04 = draw_legend(ax=axs04, color_list=color_list, k_max = k_max)
 
-    # Suggestion bar on most relevant components
-    ax2 = suggestion_bar(g, ax=ax2)
-    # Suggestion bar on most relevant components
-    ax2 = suggestion_bar(g, ax=ax2)
 
     return fig, fig.axes
 

@@ -122,14 +122,16 @@ def main():
     # for s in range(g.nb_steps):
     #     fig, ax = plot_as_graph(g,s, show_vertices=True)
 
-    fig, ax = plot_as_graph(g)
-    plt.show()
+    # fig, ax = plot_as_graph(g)
+    # plt.show()
 
-    fig, axs = plot_most_revelant_components(g)
-    plt.show()
+    # fig, axs = plot_most_revelant_components(g)
+    # plt.show()
 
     fig, ax = plot_overview(g)
     fig.savefig('tmp')
+    plt.show()
+
 
     plt.figure()
     for m in g.members:
