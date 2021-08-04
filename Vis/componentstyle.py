@@ -3,7 +3,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
-from ..utils.functions import linear
+from ..utils.functions import linear, sigmoid
 
 class ComponentStyle(ABC):
 
@@ -50,7 +50,7 @@ class ComponentStyle(ABC):
         return colors
 
     def f_alpha(self, c, f_alpha_kw = {}):
-        return linear(c.life_span, range0_1 = True)
+        return sigmoid(c.life_span, range0_1=True)
 
     def alpha_function(self, components, f_alpha_kw = {}):
         if self.max_opacity:
