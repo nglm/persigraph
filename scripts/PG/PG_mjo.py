@@ -44,6 +44,7 @@ SCORE_TYPES = ['inertia']
 ZERO_TYPE = 'bounds'
 
 
+#FIXME: Outdated option
 # Use
 # - 'overview' if you want the overview plot (entire graph + k_plot +
 # most relevant components)
@@ -73,6 +74,7 @@ LIST_FILENAMES = [f for f in LIST_FILENAMES if f.endswith(".txt")]
 # ---------------------------------------------------------
 
 def main():
+    # FIXME: Outdated option
     # IGNORED: no weight used
     if PG_TYPE == 'Naive':
         weights_range = [True, False]
