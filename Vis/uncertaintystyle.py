@@ -36,17 +36,17 @@ class UncertaintyStyle(ComponentStyle):
         )
         return polys
 
-    def f_color(self, c, f_color_kw = {}):
+    def f_color(self, g, c, f_color_kw = {}):
         return c.v_start.info['brotherhood_size'][0]
 
-    def f_alpha(self, c, f_alpha_kw = {}):
+    def f_alpha(self, g, c, f_alpha_kw = {}):
         return linear(c.life_span, range0_1 = True)/6
 
-    def alpha_function(self, components, f_alpha_kw = {}):
+    def alpha_function(self, g, components, f_alpha_kw = {}):
         if self.max_opacity:
             alphas = 1/6
         else:
-            alphas = [ self.f_alpha(c, f_alpha_kw) for c in components ]
+            alphas = [ self.f_alpha(g, c, f_alpha_kw) for c in components ]
         return alphas
 
     def f_collect(self, objects, colors, lw, f_collect_kw = {}):

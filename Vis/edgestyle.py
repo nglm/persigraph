@@ -28,7 +28,7 @@ class EdgeStyle(ComponentStyle):
         )
         return line
 
-    def f_color(self, c, f_color_kw = {}):
+    def f_color(self, g,  c, f_color_kw = {}):
         return c.v_start.info['brotherhood_size'][0]
 
     def f_collect(self, objects, colors, lw, f_collect_kw = {}):

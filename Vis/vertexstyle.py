@@ -22,7 +22,7 @@ class VertexStyle(ComponentStyle):
     def f_component(self, g, c, i, f_component_kw = {}):
         return (g.time_axis[c.time_step], c.info['mean'][i])
 
-    def f_color(self, c, f_color_kw = {}):
+    def f_color(self, g, c, f_color_kw = {}):
         return c.info['brotherhood_size'][0]
 
     def f_collect(self, objects, colors, lw, f_collect_kw = {}):

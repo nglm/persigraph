@@ -3,7 +3,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
-from ..utils.functions import linear, sigmoid
+from ..utils.functions import linear, sigmoid, range_rescale
 
 class ComponentStyle(ABC):
 
@@ -40,26 +40,31 @@ class ComponentStyle(ABC):
         return axs_objects
 
     @abstractmethod
-    def f_color(self, c, f_color_kw = {}):
+    def f_color(self, g, c, f_color_kw = {}):
         pass
 
-    def color_function(self, components, f_color_kw = {}):
+    def color_function(self, g, components, f_color_kw = {}):
         colors = np.asarray(
-            [self.color_list[self.f_color(c, f_color_kw)] for c in components]
+            [
+                self.color_list[self.f_color(g, c, f_color_kw)]
+                for c in components
+            ]
         ).reshape((-1, 4))
         return colors
 
-    def f_alpha(self, c, f_alpha_kw = {}):
-        return sigmoid(c.life_span, range0_1=True)
+    def f_alpha(self, g, c, f_alpha_kw = {}):
+        # Choose the max life span as a opacity of 1
+        rescaled = range_rescale(c.life_span, x1=g._max_life_span)
+        return sigmoid(c.life_span, range0_1=True, f0=0, )
 
-    def alpha_function(self, components, f_alpha_kw = {}):
+    def alpha_function(self, g, components, f_alpha_kw = {}):
         if self.max_opacity:
             alphas = 1
         else:
-            alphas = [ self.f_alpha(c, f_alpha_kw) for c in components ]
+            alphas = [ self.f_alpha(g, c, f_alpha_kw) for c in components ]
         return alphas
 
-    def f_size(self, c, f_size_kw = {}):
+    def f_size(self, g, c, f_size_kw = {}):
         sizes = linear(
             c.ratio_members,
             range0_1 = False,
@@ -68,8 +73,8 @@ class ComponentStyle(ABC):
         )
         return sizes
 
-    def size_function(self, components, f_size_kw = {}):
-        return np.asarray([ self.f_size(c, f_size_kw) for c in components ])
+    def size_function(self, g, components, f_size_kw = {}):
+        return np.asarray([ self.f_size(g, c, f_size_kw) for c in components ])
 
     @abstractmethod
     def f_collect(self, object, colors, lw, f_collect_kw = {}):
@@ -88,9 +93,9 @@ class ComponentStyle(ABC):
         if components:
 
             # Colors, alphas and lw are common between all subvertices
-            colors = self.color_function(components, f_color_kw)
-            colors[:,3] = self.alpha_function(components, f_alpha_kw)
-            lw = self.size_function(components, f_size_kw)
+            colors = self.color_function(g, components, f_color_kw)
+            colors[:,3] = self.alpha_function(g, components, f_alpha_kw)
+            lw = self.size_function(g, components, f_size_kw)
 
             # One vertex gives g.d objects
             axs_objects = self.component_function(g, components, f_component_kw)
