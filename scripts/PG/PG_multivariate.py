@@ -44,8 +44,9 @@ SCORE_TYPES = ['inertia']
 
 ZERO_TYPE = 'bounds'
 
-var_names = ['u10', 'v10']
-#var_names = ['t2m']
+#var_names = ['u10', 'v10']
+var_names = ['tcwv']
+is_multivariate = False
 
 # Use
 # - 'overview' if you want the overview plot (entire graph + k_plot +
@@ -63,8 +64,8 @@ PATH_DATA = "/home/natacha/Documents/Work/Data/Bergen/"
 # type: str
 PATH_FIG_ROOT = (
     "/home/natacha/Documents/tmp/figs/PG/"
-    + PG_TYPE + "/" + str(var_names[0])
-    + "/entire_graph/multivariate"
+    + PG_TYPE + "/" + '-'.join(var_names) + '/'
+    + "/entire_graph/"
 )
 
 # Choose which files should be used
@@ -119,11 +120,14 @@ def main():
                     ind_members=None,
                     ind_long=[0],
                     ind_lat=[0],
-                    multivariate = True,
+                    multivariate = is_multivariate,
                     to_standardize = False,
                     )
 
-                members = list_var
+                if is_multivariate:
+                    members = list_var
+                else:
+                    members = list_var[0]
 
                 if weights:
                     pass
