@@ -17,6 +17,40 @@ def sigmoid(
         res = f1*res + f0*(1-res)
     return res
 
+def range_rescale(
+    x: float,
+    x0: float = 0,
+    x1: float = 1,
+    f0: float = 0,
+    f1: float = 1,
+) -> float:
+    """
+    Get the [x0 x1] range into a [f0 f1] range and return x accordingly
+
+
+    :param x: [description]
+    :type x: float
+    :param x0: [description], defaults to 0
+    :type x0: float
+    :param x1: [description], defaults to 1
+    :type x1: float
+    :param f0: [description], defaults to 0
+    :type f0: float, optional
+    :param f1: [description], defaults to 1
+    :type f1: float, optional
+    :return: [description]
+    :rtype: float
+    """
+    if x < x0 or x > x1:
+        raise ValueError('x must be within the [x0, x1] range: ',x, (x0, x1))
+    a = (f1-f0) / (x1-x0)
+    b = f0 - a*x0
+    return a*x+b
+
+
+
+
+
 
 def linear(
     x,
