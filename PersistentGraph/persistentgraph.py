@@ -227,6 +227,7 @@ class PersistentGraph():
             self._best_scores = np.inf*np.ones(self.T)
             self._worst_scores = -np.inf*np.ones(self.T)
         self._zero_scores = np.nan*np.ones(self.T)
+        self._max_life_span = 0
 
         self._are_bounds_known = False
         self._norm_bounds = None
@@ -380,6 +381,12 @@ class PersistentGraph():
                 self._vertices[t][v]._compute_ratio_scores(
                     (self._best_scores[t], self._worst_scores[t])
                 )
+
+            if vertices:
+                # Get the longest life span
+                self._max_life_span = max(self._max_life_span, max(
+                    [self._vertices[t][v].life_span for v in vertices]
+                ))
 
 
     def _keep_alive_edges(

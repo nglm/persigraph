@@ -339,6 +339,14 @@ def _compute_ratio_scores(
             pg._vertices[t][v]._compute_ratio_scores(
                 score_bounds = score_bounds
             )
+        if pg._v_at_step[t]['v'][-1]:
+                # Get the longest life span
+                pg._max_life_span = max(pg._max_life_span, max(
+                    [
+                        pg._vertices[t][v].life_span
+                        for v in pg._v_at_step[t]['v'][-1]
+                    ]
+                ))
 
 
 
