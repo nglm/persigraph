@@ -317,6 +317,14 @@ def _compute_ratio(
 def _compute_ratio_scores(
     pg,
 ):
+    """
+    Compute the ratio scores and life span of local scores and vertices
+
+    Update the pg._max_life_span if relevant
+
+    :param pg: [description]
+    :type pg: [type]
+    """
     for t in range(pg.T):
         score_bounds = (pg._best_scores[t], pg._worst_scores[t])
 

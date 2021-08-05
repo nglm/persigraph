@@ -361,6 +361,8 @@ class PersistentGraph():
         """
         Kill vertices
 
+        Update the self._max_life_span if relevant
+
         :param t: Time step at which the vertices should be killed
         :type t: int
         :param vertices: Vertex or list of vertices to be killed
