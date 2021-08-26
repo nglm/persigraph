@@ -38,10 +38,12 @@ SCORE_TYPES = [
     # ----------
     #'max_MedDevMed', # Shouldn't be used: see details below
 ]
-SCORE_TYPES = ['inertia']
+SCORE_TYPES = ['max_inertia']
 
 
 ZERO_TYPE = 'bounds'
+
+save_spaghetti = True
 
 
 #FIXME: Outdated option
@@ -62,6 +64,9 @@ PATH_DATA = "/home/natacha/Documents/Work/Data/MJO/"
 PATH_FIG_ROOT = (
     "/home/natacha/Documents/tmp/figs/PG/"
     + PG_TYPE + "/mjo/entire_graph/"
+)
+PATH_SPAGHETTI = (
+    "/home/natacha/Documents/tmp/figs/spaghetti/mjo/"
 )
 
 # Choose which files should be used
@@ -89,6 +94,9 @@ def main():
                 # --------------------------------------------
                 # ----- Prepare folders and paths ------------
                 # --------------------------------------------
+
+                name_spag = PATH_SPAGHETTI + filename[:-3] + ".png"
+                makedirs(PATH_SPAGHETTI, exist_ok = True)
 
                 path_fig = path_parent + "plots/"
                 name_fig = path_fig + filename[:-3]
@@ -131,29 +139,6 @@ def main():
                 )
                 g.construct_graph(verbose=True)
 
-                # ---------------------------------
-                # Plot entire graph (with k_plot)
-                # ---------------------------------
-
-                # ax0 = None
-                # fig0 = None
-                # if show_k_plot == 'inside' or show_k_plot == 'outside':
-                #     if show_k_plot == 'inside':
-                #         fig0 = plt.figure(figsize = (25,15), tight_layout=True)
-                #         gs = fig0.add_gridspec(nrows=2, ncols=3)
-                #         ax0 = fig0.add_subplot(gs[:, 0:2])
-                #         ax1 = fig0.add_subplot(gs[0, 2], sharex=ax0)
-                #     else:
-                #         ax1 = None
-                #     fig1, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
-                #     ax1_title = 'Number of clusters: relevance'
-                #     ax1.set_title(ax1_title)
-                #     ax1.set_xlabel("Time")
-                #     ax1.set_ylabel("Relevance")
-
-                #     if show_k_plot == 'outside':
-                #         fig1.savefig(name_fig + "_k_plots")
-
                 ax_kw = {
                     'xlabel' : "Time (h)",
                     'ylabel' :  'Values'
@@ -170,13 +155,6 @@ def main():
 
                 else:
                     pass
-                    # fig0, ax0 = plot_as_graph(
-                    #     g, show_vertices=True, show_edges=True, show_std = True,
-                    #     ax_kw=ax_kw, ax = ax0, fig=fig0,
-                    # )
-
-                    # ax0_title = 'Entire graph'
-                    # ax0.set_title(ax0_title)
 
 
                 if weights:
@@ -185,7 +163,6 @@ def main():
                     # name_fig += '_weights'
                 fig0.suptitle(fig_suptitle)
 
-
                 # ---------------------------
                 # Save plot and graph
                 # ---------------------------.
@@ -193,6 +170,11 @@ def main():
                 fig0.savefig(name_fig)
                 plt.close()
                 g.save(name_graph)
+
+                if save_spaghetti:
+                    fig_m, ax_m = plot_members(g)
+                    fig_m.savefig(name_spag)
+                    plt.close()
 
 if __name__ == "__main__":
     main()

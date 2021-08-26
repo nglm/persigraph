@@ -11,6 +11,25 @@ from ..Vis.commonstyle import nrows_ncols, get_list_colors
 from ..Vis.barstyle import draw_arrow
 from ..utils.lists import to_list
 
+def plot_members(
+    g,
+    fig = None,
+    axs = None,
+    fig_kw: dict = {"figsize" : (20,8)},
+    ax_kw: dict = {},
+    plt_kw : dict = {'lw' : 0.6, 'color' :'lightgrey'}
+):
+    if axs is None:
+        nrows, ncols = nrows_ncols(g.d)
+        fig, axs = plt.subplots(
+            nrows = nrows,
+            ncols = ncols,
+            squeeze = False,
+            **fig_kw)
+    for i, ax in enumerate(axs.flat):
+        for m in g.members[:,i,:]:
+            ax.plot(g.time_axis, m,  **plt_kw)
+    return fig, axs
 
 
 def plot_as_graph(

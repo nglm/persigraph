@@ -39,14 +39,14 @@ SCORE_TYPES = [
     # ----------
     #'max_MedDevMed', # Shouldn't be used: see details below
 ]
-SCORE_TYPES = ['inertia']
+SCORE_TYPES = ['max_inertia']
 
 
 ZERO_TYPE = 'bounds'
 
-#var_names = ['u10', 'v10']
-var_names = ['tcwv']
-is_multivariate = False
+var_names = ['u10', 'v10']
+#var_names = ['tcwv']
+is_multivariate = len(var_names) > 1
 
 # Use
 # - 'overview' if you want the overview plot (entire graph + k_plot +
@@ -79,6 +79,7 @@ LIST_FILENAMES = [
 # ---------------------------------------------------------
 # Functions
 # ---------------------------------------------------------
+
 
 def main():
     # IGNORED: no weight used
