@@ -9,6 +9,7 @@ from .analysis import get_k_life_span, get_relevant_k, get_relevant_components
 from ..Vis import PGraphStyle
 from ..Vis.commonstyle import nrows_ncols, get_list_colors
 from ..Vis.barstyle import draw_arrow
+from ..Vis.mjostyle import draw_mjo_classes, mjo_line
 from ..utils.lists import to_list
 
 def plot_members(
@@ -31,6 +32,42 @@ def plot_members(
             ax.plot(g.time_axis, m,  **plt_kw)
     return fig, axs
 
+def plot_mjo_members(
+    g,
+    fig = None,
+    ax = None,
+    show_classes = True,
+    show_members = False,
+    show_mean = True,
+    fig_kw: dict = {"figsize" : (15,15), 'tight_layout':True, },
+    ax_kw: dict = {},
+    plt_kw : dict = {'lw' : 0.8}
+):
+    if ax is None:
+        fig, ax = plt.subplots(**fig_kw)
+
+    if show_classes:
+        fig, ax = draw_mjo_classes(fig, ax)
+    if show_members:
+        for rmm in g.members:
+            fig, ax = mjo_line(rmm[0], rmm[1], fig=fig, ax=ax, line_kw=plt_kw)
+    if show_mean:
+        mean = np.mean(g.members, axis=0)
+        std = np.std(g.members, axis=0)
+        fig, ax = mjo_line(mean[0], mean[1], fig=fig, ax=ax, line_kw={'lw':5})
+        fig, ax = mjo_line(
+            mean[0]+std[0],
+            mean[1]+std[1],
+            fig=fig, ax=ax, line_kw={'lw':1.2, 'ls':'--'}
+        )
+        fig, ax = mjo_line(
+            mean[0]-std[0],
+            mean[1]-std[1],
+            fig=fig, ax=ax, line_kw={'lw':1.2, 'ls':'--'}
+        )
+    ax.set_xlim(-4, 4)
+    ax.set_ylim(-4, 4)
+    return fig, ax
 
 def plot_as_graph(
     g,

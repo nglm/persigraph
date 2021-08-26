@@ -172,7 +172,7 @@ def main():
                 g.save(name_graph)
 
                 if save_spaghetti:
-                    fig_m, ax_m = plot_members(g)
+                    fig_m, ax_m = plot_mjo_members(g)
                     fig_m.savefig(name_spag)
                     plt.close()
 
