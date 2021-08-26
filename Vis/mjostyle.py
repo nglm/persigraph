@@ -47,17 +47,11 @@ def add_mjo_mean(
     std_sup,
     z=None,
     cmap=None,
-    # fig=None,
-    # ax=None,
-    line_kw = {'lw' : 5},
+    line_kw = {'lw' : 10},
     fig_kw = {},
 ):
     """
-    http://nbviewer.ipython.org/github/dpsanders/matplotlib-examples/blob/master/colorline.ipynb
-    http://matplotlib.org/examples/pylab_examples/multicolored_line.html
-    Plot a colored line with coordinates x and y
-    Optionally specify colors in the array z
-    Optionally specify a colormap, a norm function and a line width
+
     """
     if cmap is None:
         cmap = plt.get_cmap('plasma').reversed()
@@ -73,7 +67,7 @@ def add_mjo_mean(
     z = np.asarray(z)
 
     polys = _make_polygons(mean, std_inf, std_sup)
-    polys = PolyCollection(polys, array=z, cmap=cmap, alpha=0.3)
+    polys = PolyCollection(polys, array=z, cmap=cmap, alpha=0.15)
     segments = _make_segments(mean[0], mean[1])
     segments = LineCollection(segments, array=z, cmap=cmap, **line_kw)
     return polys, segments
@@ -86,11 +80,7 @@ def add_mjo_member(
     line_kw = {'lw' : 0.8, "alpha":1},
 ):
     """
-    http://nbviewer.ipython.org/github/dpsanders/matplotlib-examples/blob/master/colorline.ipynb
-    http://matplotlib.org/examples/pylab_examples/multicolored_line.html
-    Plot a colored line with coordinates x and y
-    Optionally specify colors in the array z
-    Optionally specify a colormap, a norm function and a line width
+
     """
     if cmap is None:
         cmap = plt.get_cmap('plasma').reversed()

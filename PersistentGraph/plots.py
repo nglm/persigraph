@@ -57,19 +57,6 @@ def plot_mjo_members(
         polys, segments = add_mjo_mean(mean, std_inf, std_sup)
         ax.add_collection(polys)
         ax.add_collection(segments)
-
-
-        # fig, ax = mjo_line(mean[0], mean[1], line_kw={'lw':5})
-        # fig, ax = mjo_line(
-        #     mean[0]+std[0],
-        #     mean[1]+std[1],
-        #     line_kw={'lw':1.2, 'ls':'--'}
-        # )
-        # fig, ax = mjo_line(
-        #     mean[0]-std[0],
-        #     mean[1]-std[1],
-        #     line_kw={'lw':1.2, 'ls':'--'}
-        # )
     ax.set_xlim(-4, 4)
     ax.set_ylim(-4, 4)
     return fig, ax
