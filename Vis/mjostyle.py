@@ -19,6 +19,64 @@ def _make_segments(x, y):
     segments = np.concatenate([points[:-1], points[1:]], axis=1)
     return segments
 
+def _make_polygons(mean, std_sup, std_inf):
+    """
+    Create list of line segments from x and y coordinates, in the correct format
+    for PolyCollection
+    """
+    polys = []
+    N_points = np.shape(mean)[-1]
+    for i in range(N_points-1):
+        polys.append([
+            # std_inf at t
+            [mean[0, i]-std_inf[0, i], mean[1, i]-std_inf[1, i]],
+            # std_sup at t
+            [mean[0, i]+std_sup[0, i], mean[1, i]+std_sup[1, i]],
+            # std_sup at t+1
+            [mean[0, i+1]+std_sup[0, i+1], mean[1, i+1]+std_sup[1, i+1]],
+            # std_inf at t+1
+            [mean[0, i+1]-std_inf[0, i+1], mean[1, i+1]-std_inf[1, i+1]],
+        ])
+    polys = np.asarray(polys)
+    return polys
+
+
+def add_mjo_mean(
+    mean,
+    std_inf,
+    std_sup,
+    z=None,
+    cmap=None,
+    # fig=None,
+    # ax=None,
+    line_kw = {'lw' : 5},
+    fig_kw = {},
+):
+    """
+    http://nbviewer.ipython.org/github/dpsanders/matplotlib-examples/blob/master/colorline.ipynb
+    http://matplotlib.org/examples/pylab_examples/multicolored_line.html
+    Plot a colored line with coordinates x and y
+    Optionally specify colors in the array z
+    Optionally specify a colormap, a norm function and a line width
+    """
+    if cmap is None:
+        cmap = plt.get_cmap('plasma').reversed()
+    # if ax is None:
+    #     fig, ax = plt.subplots(**fig_kw)
+
+    # Default colors equally spaced on [0,1]:
+    if z is None:
+        z = np.linspace(0.0, 1.0, np.shape(mean)[-1])
+    # Special case if a single number:
+    if not hasattr(z, "__iter__"):  # to check for numerical input -- this is a hack
+        z = np.array([z])
+    z = np.asarray(z)
+
+    polys = _make_polygons(mean, std_inf, std_sup)
+    polys = PolyCollection(polys, array=z, cmap=cmap, alpha=0.3)
+    segments = _make_segments(mean[0], mean[1])
+    segments = LineCollection(segments, array=z, cmap=cmap, **line_kw)
+    return polys, segments
 
 def add_mjo_member(
     x,
@@ -35,7 +93,7 @@ def add_mjo_member(
     Optionally specify a colormap, a norm function and a line width
     """
     if cmap is None:
-        cmap = plt.get_cmap('plasma')
+        cmap = plt.get_cmap('plasma').reversed()
 
     # Default colors equally spaced on [0,1]:
     if z is None:

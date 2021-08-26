@@ -37,15 +37,14 @@ def plot_mjo_members(
     fig = None,
     ax = None,
     show_classes = True,
-    show_members = True,
-    show_mean = False,
+    show_members = False,
+    show_mean = True,
     fig_kw: dict = {"figsize" : (15,15), 'tight_layout':True, },
     ax_kw: dict = {},
     plt_kw : dict = {'lw' : 0.8}
 ):
     if ax is None:
         fig, ax = plt.subplots(**fig_kw)
-
     if show_classes:
         fig, ax = draw_mjo_classes(fig, ax)
     if show_members:
@@ -53,18 +52,24 @@ def plot_mjo_members(
             ax.add_collection(add_mjo_member(rmm[0], rmm[1], line_kw=plt_kw))
     if show_mean:
         mean = np.mean(g.members, axis=0)
-        std = np.std(g.members, axis=0)
-        fig, ax = mjo_line(mean[0], mean[1], fig=fig, ax=ax, line_kw={'lw':5})
-        fig, ax = mjo_line(
-            mean[0]+std[0],
-            mean[1]+std[1],
-            fig=fig, ax=ax, line_kw={'lw':1.2, 'ls':'--'}
-        )
-        fig, ax = mjo_line(
-            mean[0]-std[0],
-            mean[1]-std[1],
-            fig=fig, ax=ax, line_kw={'lw':1.2, 'ls':'--'}
-        )
+        std_sup = np.std(g.members, axis=0)
+        std_inf = np.std(g.members, axis=0)
+        polys, segments = add_mjo_mean(mean, std_inf, std_sup)
+        ax.add_collection(polys)
+        ax.add_collection(segments)
+
+
+        # fig, ax = mjo_line(mean[0], mean[1], line_kw={'lw':5})
+        # fig, ax = mjo_line(
+        #     mean[0]+std[0],
+        #     mean[1]+std[1],
+        #     line_kw={'lw':1.2, 'ls':'--'}
+        # )
+        # fig, ax = mjo_line(
+        #     mean[0]-std[0],
+        #     mean[1]-std[1],
+        #     line_kw={'lw':1.2, 'ls':'--'}
+        # )
     ax.set_xlim(-4, 4)
     ax.set_ylim(-4, 4)
     return fig, ax
