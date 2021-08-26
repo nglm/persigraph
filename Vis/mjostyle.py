@@ -1,4 +1,6 @@
-from matplotlib.collections import EllipseCollection, LineCollection
+from matplotlib.collections import (
+    EllipseCollection, LineCollection, PolyCollection
+)
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -17,16 +19,13 @@ def _make_segments(x, y):
     segments = np.concatenate([points[:-1], points[1:]], axis=1)
     return segments
 
-def mjo_line(
+
+def add_mjo_member(
     x,
     y,
     z=None,
     cmap=None,
-    norm=None,
-    fig=None,
-    ax=None,
     line_kw = {'lw' : 0.8, "alpha":1},
-    fig_kw = {},
 ):
     """
     http://nbviewer.ipython.org/github/dpsanders/matplotlib-examples/blob/master/colorline.ipynb
@@ -37,10 +36,6 @@ def mjo_line(
     """
     if cmap is None:
         cmap = plt.get_cmap('plasma')
-    if norm is None:
-        norm = plt.Normalize(0.0, 1.0)
-    if ax is None:
-        fig, ax = plt.subplots(**fig_kw)
 
     # Default colors equally spaced on [0,1]:
     if z is None:
@@ -51,9 +46,8 @@ def mjo_line(
     z = np.asarray(z)
 
     segments = _make_segments(x, y)
-    lc = LineCollection(segments, array=z, cmap=cmap, norm=None, **line_kw)
-    ax.add_collection(lc)
-    return fig, ax
+    lc = LineCollection(segments, array=z, cmap=cmap, **line_kw)
+    return lc
 
 
 def draw_mjo_classes(

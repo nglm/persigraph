@@ -9,7 +9,7 @@ from .analysis import get_k_life_span, get_relevant_k, get_relevant_components
 from ..Vis import PGraphStyle
 from ..Vis.commonstyle import nrows_ncols, get_list_colors
 from ..Vis.barstyle import draw_arrow
-from ..Vis.mjostyle import draw_mjo_classes, mjo_line
+from ..Vis.mjostyle import draw_mjo_classes, add_mjo_member ,add_mjo_mean
 from ..utils.lists import to_list
 
 def plot_members(
@@ -37,8 +37,8 @@ def plot_mjo_members(
     fig = None,
     ax = None,
     show_classes = True,
-    show_members = False,
-    show_mean = True,
+    show_members = True,
+    show_mean = False,
     fig_kw: dict = {"figsize" : (15,15), 'tight_layout':True, },
     ax_kw: dict = {},
     plt_kw : dict = {'lw' : 0.8}
@@ -50,7 +50,7 @@ def plot_mjo_members(
         fig, ax = draw_mjo_classes(fig, ax)
     if show_members:
         for rmm in g.members:
-            fig, ax = mjo_line(rmm[0], rmm[1], fig=fig, ax=ax, line_kw=plt_kw)
+            ax.add_collection(add_mjo_member(rmm[0], rmm[1], line_kw=plt_kw))
     if show_mean:
         mean = np.mean(g.members, axis=0)
         std = np.std(g.members, axis=0)
