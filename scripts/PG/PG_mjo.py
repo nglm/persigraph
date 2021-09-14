@@ -3,7 +3,7 @@ from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ...DataAnalysis.preprocess import preprocessing_mjo
+from ...DataAnalysis.preprocess import preprocessing_mjo, to_polar
 from ...PersistentGraph import PersistentGraph
 from ...PersistentGraph.plots import *
 
@@ -44,6 +44,9 @@ SCORE_TYPES = ['max_inertia']
 ZERO_TYPE = 'bounds'
 
 save_spaghetti = True
+save_individual = False
+show_mean = False
+polar_mean = False
 
 
 #FIXME: Outdated option
@@ -95,7 +98,7 @@ def main():
                 # ----- Prepare folders and paths ------------
                 # --------------------------------------------
 
-                name_spag = PATH_SPAGHETTI + filename[:-3] + ".png"
+
                 makedirs(PATH_SPAGHETTI, exist_ok = True)
 
                 path_fig = path_parent + "plots/"
@@ -125,56 +128,128 @@ def main():
                     weights_values = None
 
                 # ---------------------------
-                # Construct graph
+                # Spaghetti
                 # ---------------------------
-
-                g = PersistentGraph(
-                        time_axis = time,
-                        members = members,
-                        weights = weights_values,
-                        score_type = score,
-                        zero_type = ZERO_TYPE,
-                        model_type = PG_TYPE,
-                        k_max = 8,
-                )
-                g.construct_graph(verbose=True)
-
-                ax_kw = {
-                    'xlabel' : "Time (h)",
-                    'ylabel' :  'Values'
-                    }
-
-                fig_suptitle = filename
-
-                # If overview:
-                if show_k_plot == 'overview':
-                    fig0, ax0 = plot_overview(
-                        g, ax_kw=ax_kw, axs = None, fig= None,
-                    )
-                    name_fig += '_overview'
-
-                else:
-                    pass
-
-
-                if weights:
-                    pass
-                    # fig_suptitle += ", with weights"
-                    # name_fig += '_weights'
-                fig0.suptitle(fig_suptitle)
-
-                # ---------------------------
-                # Save plot and graph
-                # ---------------------------.
-                name_fig += '.png'
-                fig0.savefig(name_fig)
-                plt.close()
-                g.save(name_graph)
 
                 if save_spaghetti:
-                    fig_m, ax_m = plot_mjo_members(g)
+
+                    # ---- Typical MJO plot ----
+
+                    name_spag = PATH_SPAGHETTI + filename[:-4]
+
+                    fig_m, ax_m = plot_mjo_members(
+                        members = members,
+                        show_mean = show_mean,
+                        show_classes = True,
+                        show_members = not show_mean,
+                        polar = polar_mean,
+                        )
+                    if show_mean:
+                        name_spag += "_mean_std"
+                        if polar_mean:
+                            name_spag += '_polarmean'
+                    name_spag += '.png'
                     fig_m.savefig(name_spag)
                     plt.close()
+
+
+                    # ---- Plot members one by one ----
+                    if save_individual:
+                        for i in range(len(members)-1):
+                            m = members[i:i+1]
+                            name_spag = PATH_SPAGHETTI + filename[:-4]
+
+                            fig_m, ax_m = plot_mjo_members(
+                                members = m,
+                                show_mean = False,
+                                show_classes = True,
+                                show_members = True,
+                                polar = False,
+                                )
+                            name_spag += '_' + str(i) + '.png'
+                            fig_m.savefig(name_spag)
+                            plt.close()
+
+                    # ---- RMM1 RRM2 ----
+                    name_spag = PATH_SPAGHETTI + filename[:-4] + "_rmm.png"
+                    fig, ax = plot_members(
+                        members = members,
+                        time_axis = time,
+                    )
+                    fig, ax = plot_mean_std(
+                        members = members,
+                        time_axis = time,
+                        fig = fig,
+                        axs = ax,
+                    )
+                    fig.savefig(name_spag)
+                    plt.close()
+
+                    # ---- Polar coordinates ----
+                    name_spag = PATH_SPAGHETTI + filename[:-4] + "_polar.png"
+                    members_polar = to_polar(members)
+                    fig, ax = plot_members(
+                        members = members_polar,
+                        time_axis = time,
+                    )
+                    fig, ax = plot_mean_std(
+                        members = members_polar,
+                        time_axis = time,
+                        fig = fig,
+                        axs = ax,
+                    )
+                    fig.savefig(name_spag)
+                    plt.close()
+                else:
+
+                    # ---------------------------
+                    # Construct graph
+                    # ---------------------------
+
+                    g = PersistentGraph(
+                            time_axis = time,
+                            members = members,
+                            weights = weights_values,
+                            score_type = score,
+                            zero_type = ZERO_TYPE,
+                            model_type = PG_TYPE,
+                            k_max = 8,
+                    )
+                    g.construct_graph(verbose=True)
+
+                    ax_kw = {
+                        'xlabel' : "Time (h)",
+                        'ylabel' :  'Values'
+                        }
+
+                    fig_suptitle = filename
+
+                    # If overview:
+                    if show_k_plot == 'overview':
+                        fig0, ax0 = plot_overview(
+                            g, ax_kw=ax_kw, axs = None, fig= None,
+                        )
+                        name_fig += '_overview'
+
+                    else:
+                        pass
+
+
+                    if weights:
+                        pass
+                        # fig_suptitle += ", with weights"
+                        # name_fig += '_weights'
+                    fig0.suptitle(fig_suptitle)
+
+                    # ---------------------------
+                    # Save plot and graph
+                    # ---------------------------.
+                    name_fig += '.png'
+                    fig0.savefig(name_fig)
+                    plt.close()
+                    g.save(name_graph)
+
+
 
 if __name__ == "__main__":
     main()

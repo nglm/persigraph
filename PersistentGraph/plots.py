@@ -5,57 +5,133 @@ from matplotlib.lines import Line2D
 import time
 from typing import List, Union
 
+
 from .analysis import get_k_life_span, get_relevant_k, get_relevant_components
+from ..DataAnalysis.preprocess import to_polar, to_cartesian
 from ..Vis import PGraphStyle
 from ..Vis.commonstyle import nrows_ncols, get_list_colors
 from ..Vis.barstyle import draw_arrow
 from ..Vis.mjostyle import draw_mjo_classes, add_mjo_member ,add_mjo_mean
 from ..utils.lists import to_list
 
+def plot_mean_std(
+    g = None,
+    members = None,
+    time_axis = None,
+    fig = None,
+    axs = None,
+    fig_kw: dict = {"figsize" : (20,8)},
+    ax_kw: dict = {},
+    plt_kw : dict = {'lw' : 3, 'ls' : '--', 'color' :'grey'}
+):
+    if members is None:
+        if g is None:
+            raise ValueError("No members were given")
+        else:
+            members = g.members
+    if time_axis is None:
+        if g is None:
+            time_axis = np.arange(members.shape[-1])
+        else:
+            time_axis = g.time_axis
+    if len(members.shape) > 2:
+        d = members.shape[1]
+    else:
+        d = 1
+
+    if axs is None:
+        nrows, ncols = nrows_ncols(d)
+        fig, axs = plt.subplots(
+            nrows = nrows,
+            ncols = ncols,
+            squeeze = False,
+            **fig_kw)
+    mean = np.mean(members, axis=0)
+    std_sup = np.std(members, axis=0)
+    std_inf = np.std(members, axis=0)
+    for i, ax in enumerate(axs.flat):
+        lw = plt_kw.pop("lw", 3)
+        ax.plot(time_axis, mean[i], lw = lw, **plt_kw)
+        ax.plot(time_axis, mean[i] + std_sup[i], lw=lw/2, **plt_kw)
+        ax.plot(time_axis, mean[i] - std_inf[i], lw=lw/2, **plt_kw)
+    return fig, axs
+
 def plot_members(
-    g,
+    g = None,
+    members = None,
+    time_axis = None,
     fig = None,
     axs = None,
     fig_kw: dict = {"figsize" : (20,8)},
     ax_kw: dict = {},
     plt_kw : dict = {'lw' : 0.6, 'color' :'lightgrey'}
 ):
+    if members is None:
+        if g is None:
+            raise ValueError("No members were given")
+        else:
+            members = g.members
+    if time_axis is None:
+        if g is None:
+            time_axis = np.arange(members.shape[-1])
+        else:
+            time_axis = g.time_axis
+    if len(members.shape) > 2:
+        d = members.shape[1]
+    else:
+        d = 1
+
     if axs is None:
-        nrows, ncols = nrows_ncols(g.d)
+        nrows, ncols = nrows_ncols(d)
         fig, axs = plt.subplots(
             nrows = nrows,
             ncols = ncols,
             squeeze = False,
             **fig_kw)
     for i, ax in enumerate(axs.flat):
-        for m in g.members[:,i,:]:
-            ax.plot(g.time_axis, m,  **plt_kw)
+        for m in members[:,i,:]:
+            ax.plot(time_axis, m,  **plt_kw)
     return fig, axs
 
 def plot_mjo_members(
-    g,
+    g = None,
+    members = None,
     fig = None,
     ax = None,
     show_classes = True,
     show_members = False,
     show_mean = True,
+    polar = True,
     fig_kw: dict = {"figsize" : (15,15), 'tight_layout':True, },
     ax_kw: dict = {},
     plt_kw : dict = {'lw' : 0.8}
 ):
+    if members is None:
+        if g is None:
+            raise ValueError("No members were given")
+        else:
+            members = g.members
     if ax is None:
         fig, ax = plt.subplots(**fig_kw)
     if show_classes:
         fig, ax = draw_mjo_classes(fig, ax)
     if show_members:
-        for rmm in g.members:
-            ax.add_collection(add_mjo_member(rmm[0], rmm[1], line_kw=plt_kw))
+        for rmm in members:
+            ax.add_collection(add_mjo_member(rmm, line_kw=plt_kw))
     if show_mean:
-        mean = np.mean(g.members, axis=0)
-        std_sup = np.std(g.members, axis=0)
-        std_inf = np.std(g.members, axis=0)
+        if polar:
+            members = to_polar(members)
+        mean = np.mean(members, axis=0)
+        std_sup = np.std(members, axis=0)
+        std_inf = np.std(members, axis=0)
+        if polar:
+            print(mean)
+            mean = to_cartesian(mean)
+            std_inf = None
+            std_sup = None
         polys, segments = add_mjo_mean(mean, std_inf, std_sup)
-        ax.add_collection(polys)
+        if not polar:    # There is no poly if polar
+            ax.add_collection(polys)
         ax.add_collection(segments)
     ax.set_xlim(-4, 4)
     ax.set_ylim(-4, 4)

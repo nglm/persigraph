@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.collections as mcoll
 import matplotlib.path as mpath
+from matplotlib.colors import ListedColormap
+from typing import List, Sequence, Union, Any, Dict, Tuple
 
 def _make_segments(x, y):
     """
@@ -42,58 +44,75 @@ def _make_polygons(mean, std_sup, std_inf):
 
 
 def add_mjo_mean(
-    mean,
-    std_inf,
-    std_sup,
-    z=None,
-    cmap=None,
-    line_kw = {'lw' : 10},
-    fig_kw = {},
-):
+    mean: np.ndarray,
+    std_inf: np.ndarray = None,
+    std_sup: np.ndarray = None,
+    cmap: ListedColormap = None,
+    line_kw: dict = {'lw' : 10},
+    fig_kw: dict = {},
+) -> Tuple[PolyCollection, LineCollection]:
     """
+    Return collections corresponding to the mean and std of the MJO
 
+    :param mean: mean values
+    :type mean: np.ndarray
+    :param std_inf: std of the members below the mean
+    :type std_inf: np.ndarray, optional
+    :param std_sup: std of the members above the mean
+    :type std_sup: np.ndarray, optional
+    :param cmap: colormap (for timescale), defaults to None
+    :type cmap: ListedColormap, optional
+    :param line_kw: kw for the mean line, defaults to {'lw' : 10}
+    :type line_kw: dict, optional
+    :param fig_kw: Figure kw, defaults to {}
+    :type fig_kw: dict, optional
+    :return: 2 Collections corresponding to the std and the mean
+    :rtype: Tuple[PolyCollection, LineCollection]
     """
     if cmap is None:
         cmap = plt.get_cmap('plasma').reversed()
-    # if ax is None:
-    #     fig, ax = plt.subplots(**fig_kw)
 
     # Default colors equally spaced on [0,1]:
-    if z is None:
-        z = np.linspace(0.0, 1.0, np.shape(mean)[-1])
+    z = np.linspace(0.0, 1.0, np.shape(mean)[-1])
     # Special case if a single number:
-    if not hasattr(z, "__iter__"):  # to check for numerical input -- this is a hack
+    if not hasattr(z, "__iter__"):
         z = np.array([z])
-    z = np.asarray(z)
 
-    polys = _make_polygons(mean, std_inf, std_sup)
-    polys = PolyCollection(polys, array=z, cmap=cmap, alpha=0.15)
+    if std_inf is not None and std_sup is not None:
+        polys = _make_polygons(mean, std_inf, std_sup)
+        polys = PolyCollection(polys, array=z, cmap=cmap, alpha=0.15)
+    else:
+        polys = None
     segments = _make_segments(mean[0], mean[1])
     segments = LineCollection(segments, array=z, cmap=cmap, **line_kw)
     return polys, segments
 
 def add_mjo_member(
-    x,
-    y,
-    z=None,
-    cmap=None,
-    line_kw = {'lw' : 0.8, "alpha":1},
-):
+    rmm: np.ndarray,
+    cmap: ListedColormap = None,
+    line_kw: dict = {'lw' : 0.8, "alpha":1},
+) -> LineCollection:
     """
+    Return a collection corresponding to the trajectory of the given member
 
+    :param rmm1: RMM components (x and y axis)
+    :type rmm1: np.ndarray
+    :param cmap:  colormap (for timescale), defaults to None
+    :type cmap: ListedColormap, optional
+    :param line_kw: kw for the member line, defaults to {'lw' : 0.8, "alpha":1}
+    :type line_kw: dict, optional
+    :return: Collection member line
+    :rtype: LineCollection
     """
     if cmap is None:
         cmap = plt.get_cmap('plasma').reversed()
-
     # Default colors equally spaced on [0,1]:
-    if z is None:
-        z = np.linspace(0.0, 1.0, len(x))
+    z = np.linspace(0.0, 1.0, len(rmm[0]))
     # Special case if a single number:
-    if not hasattr(z, "__iter__"):  # to check for numerical input -- this is a hack
+    if not hasattr(z, "__iter__"):
         z = np.array([z])
-    z = np.asarray(z)
 
-    segments = _make_segments(x, y)
+    segments = _make_segments(x=rmm[0], y=rmm[1])
     lc = LineCollection(segments, array=z, cmap=cmap, **line_kw)
     return lc
 
