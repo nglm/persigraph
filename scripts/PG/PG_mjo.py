@@ -3,7 +3,7 @@ from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ...DataAnalysis.preprocess import preprocessing_mjo, to_polar
+from ...DataAnalysis.preprocess import preprocessing_mjo, smoothing_mjo, to_polar
 from ...PersistentGraph import PersistentGraph
 from ...PersistentGraph.plots import *
 
@@ -45,8 +45,8 @@ ZERO_TYPE = 'bounds'
 
 save_spaghetti = True
 save_individual = False
-show_mean = False
-polar_mean = False
+save_mean = True
+polar_mean = True
 
 
 #FIXME: Outdated option
@@ -115,6 +115,7 @@ def main():
                 f = PATH_DATA + filename
 
                 members, time = preprocessing_mjo(filename = f)
+                members_smoothed = smoothing_mjo(members)
 
                 if weights:
                     pass
@@ -135,28 +136,47 @@ def main():
 
                     # ---- Typical MJO plot ----
 
-                    name_spag = PATH_SPAGHETTI + filename[:-4]
+                    name_spag = PATH_SPAGHETTI + filename[:-4] + '.png'
 
                     fig_m, ax_m = plot_mjo_members(
-                        members = members,
-                        show_mean = show_mean,
+                        members = members_smoothed,
                         show_classes = True,
-                        show_members = not show_mean,
-                        polar = polar_mean,
+                        show_members =True,
                         )
-                    if show_mean:
-                        name_spag += "_mean_std"
-                        if polar_mean:
-                            name_spag += '_polarmean'
-                    name_spag += '.png'
+
                     fig_m.savefig(name_spag)
                     plt.close()
 
+                    # ---- Plot mean ----
+                    if save_mean:
+                        name_spag = (
+                            PATH_SPAGHETTI + filename[:-4]
+                            + "_mean_std"
+                        )
+                        if polar_mean:
+                            members_tmp = to_polar(members)
+                            members_smoothed_tmp = to_polar(members_smoothed)
+                        else:
+                            members_tmp = np.copy(members)
+                            members_smoothed_tmp = np.copy(members_smoothed)
+
+                        fig_m, ax_m = plot_mjo_mean_std(
+                            members = members_tmp,
+                            members_smoothed = members_smoothed_tmp,
+                            show_classes = True,
+                            polar = polar_mean,
+                            )
+                        name_spag
+                        if polar_mean:
+                            name_spag += '_polarmean'
+                        name_spag += '.png'
+                        fig_m.savefig(name_spag)
+                        plt.close()
 
                     # ---- Plot members one by one ----
                     if save_individual:
                         for i in range(len(members)-1):
-                            m = members[i:i+1]
+                            m = members_smoothed[i:i+1]
                             name_spag = PATH_SPAGHETTI + filename[:-4]
 
                             fig_m, ax_m = plot_mjo_members(
@@ -173,11 +193,11 @@ def main():
                     # ---- RMM1 RRM2 ----
                     name_spag = PATH_SPAGHETTI + filename[:-4] + "_rmm.png"
                     fig, ax = plot_members(
-                        members = members,
+                        members = members_smoothed,
                         time_axis = time,
                     )
                     fig, ax = plot_mean_std(
-                        members = members,
+                        members = members_smoothed,
                         time_axis = time,
                         fig = fig,
                         axs = ax,
@@ -187,7 +207,7 @@ def main():
 
                     # ---- Polar coordinates ----
                     name_spag = PATH_SPAGHETTI + filename[:-4] + "_polar.png"
-                    members_polar = to_polar(members)
+                    members_polar = to_polar(members_smoothed)
                     fig, ax = plot_members(
                         members = members_polar,
                         time_axis = time,

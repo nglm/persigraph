@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import warnings
+from math import atan2
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
 def clear_double_space(filename):
@@ -17,6 +18,7 @@ def clear_double_space(filename):
 
 def extract_from_files(
     filename: str,
+    smooth: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Extract "members, time" from MJO datafiles
@@ -59,17 +61,15 @@ def extract_from_files(
             values = df[(df.a == t) & (df.c == i)]
             members[i, 0, t] = float(values.d)
             members[i, 1, t] = float(values.e)
-    members = to_polar(members)
-    members = smoothing_mjo(members)
-    members = to_cartesian(members)
-
+    if smooth:
+        members = smoothing_mjo(members)
     return members, time
 
 def preprocessing_mjo(filename):
     clear_double_space(filename)
     return extract_from_files(filename)
 
-def _draw_mjo_line(start, end, steps):
+def _draw_mjo_line(start, end, steps, arc=True):
     # start is the first element inside the very weak circle
     # end is the last element inside the very weak circle
     # steps is the number of time steps spent inside this cercle
@@ -78,23 +78,53 @@ def _draw_mjo_line(start, end, steps):
     if steps == 1:
         return np.array([start]).T
     else:
-        return np.concatenate([
+        # Initialize the angle (note that if arc is false then phi is actually)
+        # RMM2
+        phi_start = start[1]
+        phi_end = end[1]
+        if arc:
+            # To polar
+            for p in [start, end]:
+                p_old = np.copy(p)
+                # radius
+                p[0] = np.sqrt(p_old[0]**2 + p_old[1]**2)
+                # angle
+                p[1] = (atan2(p_old[1], p_old[0])) % (2*np.pi)
+            # If    (end -> 2pi -> start)
+            phi_start = start[1]
+            phi_end = end[1]
+            if abs(2*np.pi+start[1] - end[1]) < abs(start[1] - end[1]):
+                # start is ahead of end yes, but if it is just a little bit
+                # then go backward (2/3, 1/3 rule)
+                if abs(2*np.pi+start[1] - end[1]) < np.pi/3:
+                    phi_start += 2*np.pi
+            # Elif  (start -> 2pi -> end)
+            elif abs(start[1] - (2*np.pi + end[1])) < abs(start[1] - end[1]):
+                # end if ahead of start, it's all good, just add 2pi to end
+                phi_end += 2*np.pi
+            # Else: the shortest path does not cross 2pi
+            else:
+                # if start is too ahead of end, do a loop (2/3, 1/3 rule)
+                if ((start[1] > end[1]) and (abs(start[1] - end[1]) > np.pi/3)):
+                    phi_end += 2*np.pi
+        path = np.concatenate([
             [np.linspace(start[0], end[0], num=steps, endpoint=True)],
-            [np.linspace(start[-1], end[-1], num=steps, endpoint=True)]
+            [np.linspace(phi_start, phi_end, num=steps, endpoint=True)]
         ], axis=0)
+        if arc:
+            # return to cartesian coordinates
+            return to_cartesian(path)
+        else:
+            return path
 
-# def _draw_mjo_arc(start, end, steps):
-#     # If there is just one step, return start
-#     # If 2 steps:  line from start to end
-#     # If 'steps' >= 3:
-#     # - 1 point from start to go to r=0.5 (constant phase)
-#     # - 'steps'-2 points on the arc (until we reach phase_end)
-#     # - 1 point to go to end ()
-#     pass
-
-def smoothing_mjo(members):
-    # If radius < 0.5, find the next time step with
-    # a radius > 0.5 and draw an arc between them
+def smoothing_mjo(members, cartesian=True, r=0.80):
+    def cond(m, t):
+        if cartesian:
+            return np.sqrt(m[0, t]**2 + m[1, t]**2) <= r
+        else:
+            return m[0, t] <= r
+    # If radius < r, find the next time step with
+    # a radius > r and draw an arc between them
     # To know the direction of the arc use a 1/3 - 2-3 rule since it is
     # supposed to go anti-clockwise
     T = members.shape[-1]
@@ -102,54 +132,45 @@ def smoothing_mjo(members):
         t = 0
         while (t < T):
             # If we enter the very weak circle
-            if m[0, t] <= 0.5:
+            if cond(m, t):
                 t_start = t
                 t_end = t + 1
                 # The first element inside the very weak circle:
                 start = np.copy(m[:, t])
-                while (t_end < T and m[0, t_end] <= 0.5):
+                while (t_end < T and cond(m, t_end)):
                     t_end += 1
                 # The last element inside the very weak circle:
                 end = np.copy(m[:, t_end-1])
                 m[:, t_start:t_end] =_draw_mjo_line(
-                    start, end, t_end-t_start
+                    start, end, t_end-t_start, arc=True
                 )
                 # update t for the next loop
                 t = t_end
             else:
                 t += 1
-        print(m)
     return members
 
 
 def _get_2pi_k(angles):
-    sign = np.sign(angles)
-    T = len(sign)
-    next_neg = sign[0] > 0
+    #sign = np.sign(angles)
+    T = len(angles)
+    #next_neg = sign[0] > 0
     k = [0]*T
-    for i in range(1, T):
-        k[i] = k[i-1]
-        # If we wait for the next neg to add 2pi...
-        if next_neg:
-            # And this is indeed neg
-            if sign[i] == 0:
-                # And coming from upper left to lower left corner
-                if (
-                    (angles[i-1] % (2*np.pi)) > np.pi/2     # upper left
-                    and (angles[i] % (2*np.pi)) < 3*np.pi/2 # lower left
-                ):
-                    k[i] += 1
-                next_neg = False
-        # We were in a neg phase
-        else:
-            # And we found a pos phase
-            if sign[i] > 0:
-                # And coming from lower right to upper right corner
-                if (
-                    (angles[i-1] % (2*np.pi)) > 3*np.pi/2   # lower right
-                    and (angles[i] % (2*np.pi)) < np.pi/2 # upper right
-                ):
-                    next_neg = True
+    for t in range(1, T):
+        k[t] = k[t-1]
+        # was positive and gets negative 'by the left' (+1: 4pi/3 rule)
+        if (
+
+            (angles[t-1] >= 0 and angles[t] < 0)
+            and (abs(angles[t]+2*np.pi - angles[t-1]) <= 4*np.pi/3)
+        ):
+            k[t] += 1
+        # was negative and gets positive 'by the left' (-1: 2pi/3 rule)
+        elif (
+            (angles[t] > 0 and angles[t-1] < 0)
+            and (abs(angles[t-1]+2*np.pi - angles[t]) < 2*np.pi/3)
+        ):
+            k[t] -= 1
     return np.array(k)
 
 def to_polar(members):
@@ -160,7 +181,7 @@ def to_polar(members):
         # Radii
         members_conv[0, :] = np.sqrt(members[0, :]**2 + members[1, :]**2)
         # Phase (arctan2(x1, x2) = arctan(x1/x2)) (range: [-pi, pi])
-        members_conv[1, :] = np.arctan(members[1, :], members[0, :])
+        members_conv[1, :] = np.arctan2(members[1, :], members[0, :])
         # transform to [0, 2pi] range
         k = _get_2pi_k(members_conv[1, :])
         members_conv[1, :] += 2*np.pi*k
@@ -170,9 +191,10 @@ def to_polar(members):
             members[:, 0, :]**2 + members[:, 1, :]**2
         )
         # Phase (arctan2(x1, x2) = arctan(x1/x2)) (range: [-pi, pi])
-        members_conv[:, 1, :] = np.arctan(members[:, 1, :], members[:, 0, :])
+        members_conv[:, 1, :] = np.arctan2(members[:, 1, :], members[:, 0, :])
         for m in members_conv[:, 1, :]:
             k = _get_2pi_k(m)
+            m_copy = np.copy(m)
             m += 2*np.pi*k
     return members_conv
 
