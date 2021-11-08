@@ -43,10 +43,10 @@ SCORE_TYPES = ['max_inertia']
 
 ZERO_TYPE = 'bounds'
 
+#smooth = False
 save_spaghetti = True
-save_individual = False
+save_individual = True
 save_mean = True
-polar_mean = True
 
 
 #FIXME: Outdated option
@@ -82,14 +82,9 @@ LIST_FILENAMES = [f for f in LIST_FILENAMES if f.endswith(".txt")]
 # ---------------------------------------------------------
 
 def main():
-    # FIXME: Outdated option
-    # IGNORED: no weight used
-    if PG_TYPE == 'Naive':
-        weights_range = [True, False]
-    else:
-        weights_range = [False]
-
-    for weights in [False]:
+    weights = False
+    weights_values = None
+    for smooth in [True, False]:
         for score in SCORE_TYPES:
             path_parent = PATH_FIG_ROOT + score + "/"
             for filename in LIST_FILENAMES:
@@ -114,19 +109,7 @@ def main():
                 # ---------------------------
                 f = PATH_DATA + filename
 
-                members, time = preprocessing_mjo(filename = f)
-                members_smoothed = smoothing_mjo(members)
-
-                if weights:
-                    pass
-                    # weights_file = (
-                    #     "/home/natacha/Documents/tmp/figs/global_variation_"
-                    #     + var_names[0] +'/'
-                    #     + "all_forecasts_max_distance.txt"
-                    # )
-                    # weights_values = np.loadtxt(weights_file)
-                else:
-                    weights_values = None
+                members, time = preprocessing_mjo(filename = f, smooth = smooth)
 
                 # ---------------------------
                 # Spaghetti
@@ -136,78 +119,91 @@ def main():
 
                     # ---- Typical MJO plot ----
 
-                    name_spag = PATH_SPAGHETTI + filename[:-4] + '.png'
+                    name_spag = PATH_SPAGHETTI + filename[:-4]
 
                     fig_m, ax_m = plot_mjo_members(
-                        members = members_smoothed,
+                        members = members,
                         show_classes = True,
-                        show_members =True,
                         )
 
+                    fig_m, ax_m = plot_mjo_mean_std(
+                            members = members,
+                            show_classes = True,
+                            polar = False,
+                            show_std = False,
+                            fig = fig_m,
+                            ax=ax_m
+                            )
+                    if smooth:
+                        name_spag += '_smooth'
+
+                    name_spag += '.png'
                     fig_m.savefig(name_spag)
                     plt.close()
 
-                    # ---- Plot mean ----
+                    # ---- Plot mean (polar and not polar) ----
                     if save_mean:
-                        name_spag = (
-                            PATH_SPAGHETTI + filename[:-4]
-                            + "_mean_std"
-                        )
-                        if polar_mean:
-                            members_tmp = to_polar(members)
-                            members_smoothed_tmp = to_polar(members_smoothed)
-                        else:
-                            members_tmp = np.copy(members)
-                            members_smoothed_tmp = np.copy(members_smoothed)
-
-                        fig_m, ax_m = plot_mjo_mean_std(
-                            members = members_tmp,
-                            members_smoothed = members_smoothed_tmp,
-                            show_classes = True,
-                            polar = polar_mean,
+                        for polar_mean in [True, False]:
+                            name_spag = (
+                                PATH_SPAGHETTI + filename[:-4]
+                                + "_mean_std"
                             )
-                        name_spag
-                        if polar_mean:
-                            name_spag += '_polarmean'
-                        name_spag += '.png'
-                        fig_m.savefig(name_spag)
-                        plt.close()
+                            if polar_mean:
+                                members_tmp = to_polar(members)
+                            else:
+                                members_tmp = np.copy(members)
+
+                            fig_m, ax_m = plot_mjo_mean_std(
+                                members = members_tmp,
+                                show_classes = True,
+                                polar = polar_mean,
+                                )
+                            name_spag
+                            if smooth:
+                                name_spag += '_smooth'
+                            if polar_mean:
+                                name_spag += '_polarmean'
+                            name_spag += '.png'
+                            fig_m.savefig(name_spag)
+                            plt.close()
 
                     # ---- Plot members one by one ----
                     if save_individual:
                         for i in range(len(members)-1):
-                            m = members_smoothed[i:i+1]
+                            m = members[i:i+1]
                             name_spag = PATH_SPAGHETTI + filename[:-4]
 
                             fig_m, ax_m = plot_mjo_members(
                                 members = m,
-                                show_mean = False,
                                 show_classes = True,
-                                show_members = True,
-                                polar = False,
                                 )
+                            if smooth:
+                                name_spag += '_smooth'
                             name_spag += '_' + str(i) + '.png'
                             fig_m.savefig(name_spag)
                             plt.close()
 
                     # ---- RMM1 RRM2 ----
-                    name_spag = PATH_SPAGHETTI + filename[:-4] + "_rmm.png"
+                    name_spag = PATH_SPAGHETTI + filename[:-4] + "_rmm"
                     fig, ax = plot_members(
-                        members = members_smoothed,
+                        members = members,
                         time_axis = time,
                     )
                     fig, ax = plot_mean_std(
-                        members = members_smoothed,
+                        members = members,
                         time_axis = time,
                         fig = fig,
                         axs = ax,
                     )
+                    if smooth:
+                        name_spag += '_smooth'
+                    name_spag += '.png'
                     fig.savefig(name_spag)
                     plt.close()
 
                     # ---- Polar coordinates ----
-                    name_spag = PATH_SPAGHETTI + filename[:-4] + "_polar.png"
-                    members_polar = to_polar(members_smoothed)
+                    name_spag = PATH_SPAGHETTI + filename[:-4] + "_polar"
+                    members_polar = to_polar(members)
                     fig, ax = plot_members(
                         members = members_polar,
                         time_axis = time,
@@ -218,6 +214,9 @@ def main():
                         fig = fig,
                         axs = ax,
                     )
+                    if smooth:
+                        name_spag += '_smooth'
+                    name_spag += '.png'
                     fig.savefig(name_spag)
                     plt.close()
                 else:

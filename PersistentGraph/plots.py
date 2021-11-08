@@ -96,10 +96,10 @@ def plot_members(
 def plot_mjo_mean_std(
     g = None,
     members = None,
-    members_smoothed = None,
     fig = None,
     ax = None,
     show_classes = True,
+    show_std = False,
     polar = True,  # True if members are in polar coordinate
     fig_kw: dict = {"figsize" : (15,15), 'tight_layout':True, },
 ):
@@ -108,8 +108,6 @@ def plot_mjo_mean_std(
             raise ValueError("No members were given")
         else:
             members = g.members
-    if members_smoothed is None:
-        members_smoothed = members
     if ax is None:
         fig, ax = plt.subplots(**fig_kw)
     if show_classes:
@@ -118,13 +116,11 @@ def plot_mjo_mean_std(
     std_sup = np.std(members, axis=0)
     std_inf = np.std(members, axis=0)
     if polar:
-        mean[0] = np.mean(members[:, 0, :], axis=0)
-        mean[1] = np.mean(members_smoothed[:, 1, :], axis=0)
         mean = to_cartesian(mean)
         std_inf = None
         std_sup = None
     polys, segments = add_mjo_mean(mean, std_inf, std_sup)
-    if not polar:    # There is no poly if polar
+    if not polar and show_std:    # There is no poly if polar
         ax.add_collection(polys)
     ax.add_collection(segments)
     ax.set_xlim(-4, 4)
@@ -137,7 +133,6 @@ def plot_mjo_members(
     fig = None,
     ax = None,
     show_classes = True,
-    show_members = False,
     fig_kw: dict = {"figsize" : (15,15), 'tight_layout':True, },
     ax_kw: dict = {},
     plt_kw : dict = {'lw' : 0.8}
@@ -151,9 +146,8 @@ def plot_mjo_members(
         fig, ax = plt.subplots(**fig_kw)
     if show_classes:
         fig, ax = draw_mjo_classes(fig, ax)
-    if show_members:
-        for rmm in members:
-            ax.add_collection(add_mjo_member(rmm, line_kw=plt_kw))
+    for rmm in members:
+        ax.add_collection(add_mjo_member(rmm, line_kw=plt_kw))
     ax.set_xlim(-4, 4)
     ax.set_ylim(-4, 4)
     return fig, ax

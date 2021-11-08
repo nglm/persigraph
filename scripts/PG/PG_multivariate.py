@@ -44,6 +44,7 @@ SCORE_TYPES = ['max_inertia']
 
 ZERO_TYPE = 'bounds'
 
+save_spaghetti = True
 var_names = ['u10', 'v10']
 #var_names = ['tcwv']
 is_multivariate = len(var_names) > 1
@@ -66,6 +67,9 @@ PATH_FIG_ROOT = (
     "/home/natacha/Documents/tmp/figs/PG/"
     + PG_TYPE + "/" + '-'.join(var_names) + '/'
     + "/entire_graph/"
+)
+PATH_SPAGHETTI = (
+    "/home/natacha/Documents/tmp/figs/spaghetti/" + '-'.join(var_names) + '/'
 )
 
 # Choose which files should be used
@@ -96,6 +100,7 @@ def main():
                 # --------------------------------------------
                 # ----- Prepare folders and paths ------------
                 # --------------------------------------------
+                makedirs(PATH_SPAGHETTI, exist_ok = True)
 
                 path_fig = path_parent + "plots/"
                 name_fig = path_fig + filename[:-3]
@@ -140,6 +145,35 @@ def main():
                     # weights_values = np.loadtxt(weights_file)
                 else:
                     weights_values = None
+
+
+                    # ---------------------------
+                    # Spaghetti
+                    # ---------------------------
+
+                    if save_spaghetti:
+                        name_spag = PATH_SPAGHETTI + filename[:-4]
+
+                        fig_m, ax_m = plot_members(
+                            members = members,
+                            time_axis = time,
+                            )
+
+                        for ax in ax_m.flat:
+                            ax.set_xlabel("Time (h)")
+                        ax_m[0, 0].set_ylabel("u10 (m/s)")
+                        ax_m[0, 1].set_ylabel("v10 (m/s)")
+
+                        # fig_m, ax_m = plot_mean_std(
+                        #         members = members,
+                        #         time_axis = time,
+                        #         fig = fig_m,
+                        #         axs=ax_m
+                        #         )
+
+                        name_spag += '.png'
+                        fig_m.savefig(name_spag)
+                        plt.close()
 
                 # ---------------------------
                 # Construct graph
