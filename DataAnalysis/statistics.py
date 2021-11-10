@@ -175,6 +175,8 @@ def extract_variables(
     list_var = [var[:,:,ind_long,:] for var in list_var]
     list_var = [var[:,:,:,ind_lat] for var in list_var]
 
+
+
     # Now List of (N, t, p, q) arrays
     list_var = [np.swapaxes(var, 0, 1).squeeze() for var in list_var]
 
@@ -182,8 +184,15 @@ def extract_variables(
         # Now (N, d, t, p, q) arrays
         list_var = np.swapaxes(list_var, 0, 1)
 
-    return (list_var, var_names)
-# (list_var, var_names) = extract_variables(nc)
+    d = {}
+    d['members'] = list_var
+    d['short_names'] = var_names
+    d['time'] = nc.variables["time"]
+    d['control'] = None
+    d['long_name'] = None
+    d['unit'] = None
+
+    return d
 
 
 def preprocess_data(
@@ -250,7 +259,7 @@ def preprocess_data(
     f = path_data + filename
     nc = Dataset(f,'r')
 
-    (list_var, list_names) = extract_variables(
+    data_dict = extract_variables(
         nc=nc,
         var_names=var_names,
         ind_time=ind_time,
@@ -259,6 +268,8 @@ def preprocess_data(
         ind_lat=ind_lat,
         multivariate=multivariate,
     )
+    list_var = data_dict['members']
+    list_names = data_dict['short_names']
 
     # Take the log for the tcwv variable
     idx = get_indices_element(
@@ -427,29 +438,6 @@ def pair_plots(
         plt.show()
     return fig, axs
 
-# extract only one member for each variable
-# (list_var, var_names) = extract_variables(nc,ind_members=np.arange(1))
-# var_distrib = extract_var_distrib(list_var, var_names)
-# d = len(var_distrib)
-
-# nrows=2
-# ncols=3
-
-# pair_plots()
-
-
-# # Did it to show if the relation was more of an exponential
-# fig, axs = plt.subplots(figsize=(36, 20))
-# axs.scatter(var_distrib[0], np.log(var_distrib[5]))
-# axs.set_title(var_names[0]+ " - log(" +var_names[5] +")")
-
-# # Same but with a sqrt.
-# fig, axs = plt.subplots(figsize=(36, 20))
-# axs.scatter(var_distrib[0], np.sqrt(var_distrib[5]))
-# axs.set_title(var_names[0]+ " - sqrt(" +var_names[5] +")")
-
-
-
 def plot_members_one_location(
     list_var,   # list_var: list of ndarray(n_members, n_time)
     same_fig:bool = False,
@@ -600,64 +588,3 @@ def plot_spread_one_location(
     if show:
         plt.show()
     return fig, axs
-
-
-
-
-# =========================================================
-# Plot the average spread across location
-# (with log and standardisation)
-# =========================================================
-
-# (list_var,list_names) = extract_variables(
-#     nc,
-#     var_names=None,
-#     ind_time=None,
-#     ind_members=None,
-#     ind_long=None,
-#     ind_lat=None,
-#     descr=True
-# )
-
-# list_var[5] = np.log(list_var[5])
-
-
-# (list_scalers, list_stand_var) = standardize(
-#     list_var = list_var,
-#     each_loc = False,
-# )
-# list_stand_var = [np.swapaxes(var, 0,1) for var in list_stand_var]
-# time = np.array(nc.variables["time"])
-# time -= time[0]
-
-# for var in list_stand_var:
-#     print(var.shape)
-
-# list_spread = get_list_spread(
-#     list_var=list_stand_var,
-#     arg_spread=False,
-# )
-
-# list_mean_spread = get_list_mean_spread(
-#     list_spread=list_spread,
-# )
-
-# plot_list_time_series(
-#     list_time_series=list_mean_spread,
-#     list_names=list_names,
-#     time=time,
-# )
-
-# list_std = get_list_std(
-#     list_var=list_stand_var,
-# )
-
-# list_mean_std = get_list_average_values(
-#     list_values=list_std,
-# )
-
-# plot_list_time_series(
-#     list_time_series=list_mean_std,
-#     list_names=list_names,
-#     time=time,
-# )

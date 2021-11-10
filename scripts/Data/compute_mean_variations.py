@@ -5,8 +5,7 @@ import numpy as np
 from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
-from ...DataAnalysis.statistics import extract_variables, standardize, get_list_std, get_list_average_values
-from ...utils.lists import get_indices_element
+from ...DataAnalysis.statistics import extract_variables
 from ...utils.plt import from_list_to_subplots
 
 
@@ -73,7 +72,7 @@ for op in type_op:
         # - Entire time series
         # - All members
         # - One location
-        (list_var,list_names) = extract_variables(
+        data_dict = extract_variables(
             nc=nc,
             var_names=var_names,
             ind_time=ind_time,
@@ -81,6 +80,8 @@ for op in type_op:
             ind_long=ind_long,
             ind_lat=ind_lat,
         )
+        list_var = data_dict['members']
+        list_names = data_dict['short_names']
 
         list_var = [np.swapaxes(var, 0,1) for var in list_var]
         list_var = [np.squeeze(var) for var in list_var]
