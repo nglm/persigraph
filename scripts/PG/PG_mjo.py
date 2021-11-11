@@ -3,7 +3,7 @@ from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ...DataAnalysis.preprocess import preprocessing_mjo, smoothing_mjo, to_polar
+from ...Preprocessing.extraction import preprocess_mjo, smoothing_mjo, to_polar
 from ...PersistentGraph import PersistentGraph
 from ...PersistentGraph.plots import *
 
@@ -109,7 +109,9 @@ def main():
                 # ---------------------------
                 f = PATH_DATA + filename
 
-                members, time = preprocessing_mjo(filename = f, smooth = smooth)
+                data_dict = preprocess_mjo(filename = f, smooth = smooth)
+                members = data_dict['members']
+                time = data_dict['time']
 
                 # ---------------------------
                 # Spaghetti

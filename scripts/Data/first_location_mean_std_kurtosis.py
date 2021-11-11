@@ -8,11 +8,7 @@ from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-
-
-from ...DataAnalysis.statistics import preprocess_data, get_list_stats
-from ...utils.lists import get_indices_element
+from ...Preprocessing.statistics import preprocess_meteogram, get_list_stats
 from ...utils.plt import from_list_to_subplots
 
 # ---------------------------------------------------------
@@ -67,7 +63,7 @@ for use_log_tcwv in [False]:
     for use_standardise in [True]:
         for filename in LIST_FILENAMES:
 
-            list_var, list_names, time = preprocess_data(
+            data_dict = preprocess_meteogram(
                 filename = filename,
                 path_data = PATH_DATA,
                 var_names = var_names,
@@ -79,7 +75,7 @@ for use_log_tcwv in [False]:
                 )
 
             list_stats = get_list_stats(
-                list_values=list_var,
+                list_values=data_dict['members'],
             )
 
             for i_plot, type_plot in enumerate(list_type_plots):
@@ -96,7 +92,7 @@ for use_log_tcwv in [False]:
                 list_ylabels = type_plot
 
                 list_xlabels = ["Time (h)"]
-                list_list_legends = list_names
+                list_list_legends = data_dict['short_names']
 
                 dict_kwargs = {
                     "fig_suptitle" : fig_suptitle,
@@ -107,8 +103,8 @@ for use_log_tcwv in [False]:
                 }
 
                 fig, axs = from_list_to_subplots(
-                    list_yvalues=list_stats[i_plot],  # List[ndarray([n_lines, ] n_values )]
-                    list_xvalues=time, #ndarray(n_values)
+                    list_yvalues=list_stats[i_plot],
+                    list_xvalues=data_dict['time'],
                     plt_type = "plot",
                     dict_kwargs = dict_kwargs,
                     show=False,

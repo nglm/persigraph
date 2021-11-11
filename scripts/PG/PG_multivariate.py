@@ -2,9 +2,9 @@
 from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
-from netCDF4 import Dataset
 
-from ...DataAnalysis.statistics import preprocess_data
+
+from ...Preprocessing.statistics import preprocess_meteogram
 from ...PersistentGraph import PersistentGraph
 from ...PersistentGraph.plots import *
 
@@ -114,11 +114,7 @@ def main():
                 # Load and preprocess data
                 # ---------------------------
 
-
-                # To get the right variable names and units
-                nc = Dataset(PATH_DATA + filename,'r')
-
-                list_var, list_names, time = preprocess_data(
+                data_dict = preprocess_meteogram(
                     filename = filename,
                     path_data = PATH_DATA,
                     var_names=var_names,
@@ -130,10 +126,9 @@ def main():
                     to_standardize = False,
                     )
 
-                if is_multivariate:
-                    members = list_var
-                else:
-                    members = list_var[0]
+                members = data_dict['members']
+                if not is_multivariate:
+                    members = data_dict[members][0]
 
                 if weights:
                     pass
@@ -217,13 +212,14 @@ def main():
 
                 ax_kw = {
                     'xlabel' : "Time (h)",
-                    'ylabel' :  (
-                        nc.variables[var_names[0]].long_name
-                        + ' (' + nc.variables[var_names[0]].units + ')'
-                    )
+                    'ylabel' :  [
+                        data_dict['short_names'][i]
+                        + ' (' + data_dict['units'][i] + ')'
+                        for i in len(data_dict['units'])
+                    ]
                     }
 
-                fig_suptitle = (filename + "\n" +str(var_names[0]))
+                fig_suptitle = filename
 
                 # If overview:
                 if show_k_plot == 'overview':

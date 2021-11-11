@@ -6,8 +6,7 @@ from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ...DataAnalysis.statistics import preprocess_data, get_list_std, get_list_average_values
-from ...utils.lists import get_indices_element
+from ...Preprocessing.statistics import preprocess_meteogram, get_list_std, get_list_average_values
 from ...utils.plt import from_list_to_subplots
 
 
@@ -59,7 +58,7 @@ LIST_FILENAMES = [
 ]
 for filename in LIST_FILENAMES:
 
-    list_var, list_names, time = preprocess_data(
+    data_dict = preprocess_meteogram(
         filename = filename,
         path_data = PATH_DATA,
         var_names = var_names,
@@ -71,7 +70,7 @@ for filename in LIST_FILENAMES:
         )
 
     list_std = get_list_std(
-        list_var=list_var,
+        list_var=data_dict['members'],
     )
 
     list_std = get_list_average_values(
@@ -83,11 +82,11 @@ for filename in LIST_FILENAMES:
         + filename[:-3]
         + "\n Standard deviation between all members - averaged over all locations"
     )
-    list_ax_titles = ["Variable: " + name for name in list_names]
+    list_ax_titles = ["Variable: " + name for name in data_dict['short_names']]
 
     xlabel = "Time (h)"
     ylabel = "Standard deviation (on standardized values (1))"
-    list_list_legend = [list_names]
+    list_list_legend = [data_dict['short_names']]
 
     dict_kwargs = {
             "fig_suptitle" : fig_suptitle,
@@ -97,8 +96,8 @@ for filename in LIST_FILENAMES:
         }
 
     fig, axs = from_list_to_subplots(
-        list_yvalues=np.array(list_std),  # List[ndarray([n_lines, ] n_values )]
-        list_xvalues=time, #ndarray(n_values)
+        list_yvalues = np.array(list_std),
+        list_xvalues = data_dict["time"],
         plt_type = "plot",
         dict_kwargs = dict_kwargs,
         show=False,

@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 
-from ...DataAnalysis.statistics import preprocess_data
+from ...Preprocessing.statistics import preprocess_meteogram
 from ...utils.plt import from_list_to_subplots
 
 # ---------------------------------------------------------
@@ -63,7 +63,7 @@ for filename in LIST_FILENAMES:
     # To get the right variable names and units
     nc = Dataset(PATH_DATA + filename,'r')
 
-    list_var, list_names, time = preprocess_data(
+    data_dict = preprocess_meteogram(
         filename = filename,
         path_data = PATH_DATA,
         var_names = var_names,
@@ -75,15 +75,15 @@ for filename in LIST_FILENAMES:
         )
 
     fig_suptitle = "Bergen Forecast: " + filename[:-3] + "\n First grid point, All members"
-    list_ax_titles = ["Variable: " + name for name in list_names]
+    list_ax_titles = ["Variable: " + name for name in data_dict['short_names']]
     xlabel = "Time (h)"
 
     if to_standardize:
         ylabel = "Standardized values (1)"
     else:
         ylabel = (
-            nc.variables[var_names[0]].long_name
-            + ' (' + nc.variables[var_names[0]].units + ')'
+            data_dict['long_names'][0]
+            + ' (' + data_dict['units'][0] + ')'
         )
 
     dict_kwargs = {
@@ -94,8 +94,8 @@ for filename in LIST_FILENAMES:
     }
 
     fig, axs = from_list_to_subplots(
-        list_yvalues=list_var,  # List[ndarray([n_lines, ] n_values )]
-        list_xvalues=time, #ndarray(n_values)
+        list_yvalues = data_dict['members'],# List[array([n_lines, ] n_values)]
+        list_xvalues = data_dict['time'], #ndarray(n_values)
         plt_type = "plot",
         dict_kwargs = dict_kwargs,
         show=False,

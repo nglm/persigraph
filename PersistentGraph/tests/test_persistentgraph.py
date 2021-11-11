@@ -4,7 +4,7 @@ from numpy.testing import assert_array_equal
 from netCDF4 import Dataset
 
 from TopEns.PersistentGraph import PersistentGraph
-from TopEns.DataAnalysis.statistics import extract_variables
+from TopEns.Preprocessing.statistics import extract_from_meteogram
 
 members = np.array([
     (0. ,1., 2., 1.,0.),
@@ -14,7 +14,7 @@ members = np.array([
 ])
 
 nc = Dataset("PersistentGraph/tests/ec.ens.2020012900.sfc.meteogram.nc","r")
-(list_var, var_names) = extract_variables(nc, var_names=["t2m"], ind_lat=np.array([0]), ind_long=np.array([0]))
+(list_var, var_names) = extract_from_meteogram(nc, var_names=["t2m"], ind_lat=np.array([0]), ind_long=np.array([0]))
 members_nc = np.transpose(list_var[0].squeeze())
 
 N_exp = int(4)

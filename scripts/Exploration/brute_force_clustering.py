@@ -4,7 +4,7 @@ from os import listdir, makedirs
 import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage
 
-from ...DataAnalysis.statistics import preprocess_data
+from ...Preprocessing.statistics import preprocess_meteogram
 from ...utils.plt import plot_mean_and_std
 
 
@@ -157,7 +157,7 @@ def PCA_2_components_pipeline(
 def main():
     for filename in LIST_FILENAMES:
 
-        list_var, list_names, time = preprocess_data(
+        data_dict = preprocess_meteogram(
             filename = filename,
             path_data = PATH_DATA,
             var_names=['t2m'],
@@ -168,11 +168,13 @@ def main():
             to_standardize = False,
             )
 
-        t2m = list_var[0]
+        t2m = data_dict['members'][0]
 
         #PCA_2_components_pipeline(X = t2m, filename = filename)
         #find_pca_n_components(X = t2m, explained_var_threshold = 0.95)
-        hierarchical_pipeline(X = t2m, x_axis=time, filename = filename)
+        hierarchical_pipeline(
+            X = t2m, x_axis=data_dict['time'], filename = filename
+        )
 
 
 

@@ -7,7 +7,7 @@ from typing import List, Union
 
 
 from .analysis import get_k_life_span, get_relevant_k, get_relevant_components
-from ..DataAnalysis.preprocess import to_polar, to_cartesian
+from ..Preprocessing.extraction import to_polar, to_cartesian
 from ..Vis import PGraphStyle
 from ..Vis.commonstyle import nrows_ncols, get_list_colors
 from ..Vis.barstyle import draw_arrow

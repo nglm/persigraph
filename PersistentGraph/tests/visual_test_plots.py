@@ -4,7 +4,7 @@ from netCDF4 import Dataset
 
 from .. import PersistentGraph
 from ..plots import *
-from ...DataAnalysis.statistics import preprocess_data
+from ...Preprocessing.statistics import preprocess_meteogram
 
 
 def warn(*args, **kwargs):
@@ -40,7 +40,7 @@ def main():
     nc = Dataset(PATH_DATA + filename,'r')
     var_names = ['tcwv']
 
-    list_var, list_names, time = preprocess_data(
+    data_dict = preprocess_meteogram(
         filename = filename,
         path_data = PATH_DATA,
         var_names= var_names,
@@ -51,7 +51,7 @@ def main():
         to_standardize = False,
         )
 
-    #members = list_var[0]
+    #members = data_dict['members'][0]
 
     model_type = "KMeans"
     #model_type = "Naive"

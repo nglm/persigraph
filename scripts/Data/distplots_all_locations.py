@@ -8,11 +8,7 @@ from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-
-
-from ...DataAnalysis.statistics import preprocess_data
-from ...utils.lists import get_indices_element
+from ...Preprocessing.statistics import preprocess_meteogram
 from ...utils.plt import from_list_to_subplots
 
 # ---------------------------------------------------------
@@ -63,7 +59,7 @@ for use_log_tcwv in [False, False]:
     for to_standardize in [True, False]:
         for filename in LIST_FILENAMES:
 
-            list_var, list_names, time = preprocess_data(
+            data_dict = preprocess_meteogram(
                 filename = filename,
                 path_data = PATH_DATA,
                 var_names = var_names,
@@ -88,11 +84,11 @@ for use_log_tcwv in [False, False]:
                 )
 
 
-            list_ax_titles = ["Variable: " + name for name in list_names]
+            list_ax_titles = ["Variable: " + name for name in data_dict['short_names']]
 
             if to_standardize:
                 list_xlabels = [
-                    "Standardized values (1)" for name in list_names
+                    "Standardized values (1)" for _ in data_dict['short_names']
                 ]
             else:
                 list_xlabels = [""]
@@ -110,7 +106,7 @@ for use_log_tcwv in [False, False]:
                 kwargs['fit_show_std'] = False
 
             fig, axs = from_list_to_subplots(
-                list_yvalues=list_var,  # List[ndarray([n_lines, ] n_values )]
+                list_yvalues = data_dict['members'],
                 plt_type = "distplot",
                 show=False,
                 **kwargs,

@@ -11,8 +11,7 @@ from scipy.stats import kurtosis
 
 
 
-from ...DataAnalysis.statistics import preprocess_data
-from ...utils.lists import get_indices_element
+from ...Preprocessing.statistics import preprocess_meteogram
 from ...utils.plt import pretty_subplots
 
 import cartopy.crs as ccrs
@@ -86,7 +85,7 @@ for use_log_tcwv in [False]:
                 f = path_data + filename
                 nc = Dataset(f,'r')
 
-                list_var, list_names, time = preprocess_data(
+                data_dict = preprocess_meteogram(
                     filename = filename,
                     path_data = path_data,
                     var_names = var_names,
@@ -118,25 +117,29 @@ for use_log_tcwv in [False]:
                     #for j, lat_j in enumerate(lat):
                         trans_lon[i,j], trans_lat[i,j] = nsp_trans.transform_point(lon_i, lat_j, geodetic)
 
-                list_ax_titles = [type_plot + ", variable: " + name for name in list_names]
+                list_ax_titles = [
+                    type_plot + ", variable: " + name
+                    for name in data_dict["short_names"]
+                ]
 
                 if use_standardise:
                     list_xlabels = [
-                        "Standardized values (1)" for name in list_names
+                        "Standardized values (1)"
+                        for _ in data_dict["short_names"]
                     ]
                 else:
                     list_xlabels = [
                         "Values ("
                         + nc.variables[name].__dict__["units"]
-                        +")" for name in list_names
+                        +")" for name in data_dict['short_names']
                     ]
 
                 if type_plot == "mean":
-                    var = np.mean(list_var[0], axis = 1)
+                    var = np.mean(data_dict["members"][0], axis = 1)
                 elif type_plot == "std":
-                    var = np.std(list_var[0], axis = 1)
+                    var = np.std(data_dict["members"][0], axis = 1)
                 else:
-                    var = kurtosis(list_var[0], axis = 1)
+                    var = kurtosis(data_dict["members"][0], axis = 1)
                 vmin = np.amin(var)
                 vmax = np.amax(var)
 

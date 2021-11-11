@@ -5,14 +5,10 @@
 
 from os import listdir, makedirs
 import numpy as np
-from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
 
-
-
-from ...DataAnalysis.statistics import preprocess_data
-from ...utils.lists import get_indices_element
+from ...Preprocessing.statistics import preprocess_meteogram
 from ...utils.plt import from_list_to_pairplots
 
 
@@ -69,10 +65,7 @@ use_standardise = True
 makedirs(path_fig, exist_ok = True)
 for filename in list_filenames:
 
-    f = path_data + filename
-    nc = Dataset(f,'r')
-
-    list_var, list_names, time = preprocess_data(
+    data_dict = preprocess_meteogram(
         filename = filename,
         path_data = path_data,
         var_names = var_names,
@@ -96,14 +89,10 @@ for filename in list_filenames:
             + "\n First grid points, All members"
         )
 
-    list_labels = [
-        name for name in list_names
-    ]
-
     ax = from_list_to_pairplots(
-        list_values=list_var,  # List[ndarray([1|2,] nvalues )]
+        list_values = data_dict['members'],
         fig_suptitle = fig_suptitle,
-        list_labels = list_labels,
+        list_labels = data_dict['short_names'],
         show = False,
     )
     suffix = ""

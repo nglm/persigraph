@@ -4,9 +4,8 @@
 from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
-from netCDF4 import Dataset
 
-from ...DataAnalysis.statistics import preprocess_data, moving_average
+from ...Preprocessing.statistics import preprocess_meteogram, moving_average
 from ...utils.plt import from_list_to_subplots
 
 
@@ -61,10 +60,7 @@ LIST_FILENAMES = [
 
 for filename in LIST_FILENAMES:
 
-    # To get the right variable names and units
-    nc = Dataset(PATH_DATA + filename,'r')
-
-    list_var, list_names, time = preprocess_data(
+    data_dict = preprocess_meteogram(
         filename = filename,
         path_data = PATH_DATA,
         var_names = var_names,
@@ -76,7 +72,7 @@ for filename in LIST_FILENAMES:
         )
 
     list_list_avg_var = moving_average(
-        list_var = list_var,   # List(ndarray(n_time, n_members [, n_long, n_lat])
+        list_var = data_dict["members"],
         list_windows = list_windows,
     )
 
@@ -85,7 +81,7 @@ for filename in LIST_FILENAMES:
 
         fig_suptitle = (
             "Bergen Forecast: " + filename[:-3]
-            + "\n Variable: " + list_names[i]
+            + "\n Variable: " + data_dict["short_names"][i]
             + " First grid point, All members"
             )
         list_ax_titles = [

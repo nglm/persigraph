@@ -5,7 +5,7 @@ import numpy as np
 from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 
-from ...DataAnalysis.statistics import extract_variables
+from ...Preprocessing.statistics import extract_from_meteogram
 from ...utils.plt import from_list_to_subplots
 
 
@@ -72,7 +72,7 @@ for op in type_op:
         # - Entire time series
         # - All members
         # - One location
-        data_dict = extract_variables(
+        data_dict = extract_from_meteogram(
             nc=nc,
             var_names=var_names,
             ind_time=ind_time,
