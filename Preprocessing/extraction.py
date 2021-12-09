@@ -84,21 +84,23 @@ def extract_from_meteogram(
     list_var = [var[:,:,ind_long,:] for var in list_var]
     list_var = [var[:,:,:,ind_lat] for var in list_var]
 
-    # Now List of (N, t, p, q) arrays
+    # Now List of d (N, t, p, q) arrays
     list_var = [np.swapaxes(var, 0, 1).squeeze() for var in list_var]
 
     if multivariate:
         # Now (N, d, t, p, q) arrays
         list_var = np.swapaxes(list_var, 0, 1)
+    else:
+        # Now List of d (N, 1, t, p, q) arrays
+        list_var = [np.expand_dims(var, axis=1) for var in list_var]
 
     d = {}
     d['members'] = list_var
     d['short_names'] = var_names
-    d['time'] = nc.variables["time"]
+    d['time'] = nc.variables["time"][ind_time].data
     d['control'] = None
     d['long_names'] = [nc.variables[name].long_name for name in var_names]
     d['units'] = [nc.variables[name].units for name in var_names]
-
 
     return d
 
@@ -182,7 +184,7 @@ def preprocess_meteogram(
         + filename[i+6:i+8] + '-'   # Day
         + filename[i+8:i+10]        # Hour
     )
-    data_dict['filename'] = filename
+    data_dict['filename'] = filename[:-3]
 
     # Take the log for the tcwv variable
     idx = get_indices_element(
@@ -295,13 +297,27 @@ def extract_from_mjo(
         + filename[i+6:i+8] + '-'   # Day
         + filename[i+8:i+10]        # Hour
     )
-    d['filename'] = filename
+    d['filename'] = filename[:-5]
 
     return d
 
 def preprocess_mjo(filename, smooth=False):
     clear_double_space(filename)
     return extract_from_mjo(filename, smooth=smooth)
+
+def jsonify(data_dict):
+    res = dict(data_dict)
+    for key, item in res.items():
+        if isinstance(item, np.ndarray):
+            res[key] = item.tolist()
+    return res
+
+def numpify(data_dict):
+    res = dict(data_dict)
+    for key, item in res.items():
+        if isinstance(item, list):
+            res[key] = np.array(item)
+    return res
 
 def _draw_mjo_line(values, arc=True):
     # values[0] is the first element inside the very weak circle

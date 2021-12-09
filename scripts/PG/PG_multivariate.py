@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 from os import listdir, makedirs
 import numpy as np
+import json
 import matplotlib.pyplot as plt
 
 
-from ...Preprocessing.statistics import preprocess_meteogram
+from ...Preprocessing.extraction import preprocess_meteogram, jsonify, numpify
 from ...PersistentGraph import PersistentGraph
 from ...PersistentGraph.plots import *
 
@@ -40,8 +41,6 @@ SCORE_TYPES = [
     #'max_MedDevMed', # Shouldn't be used: see details below
 ]
 SCORE_TYPES = ['max_inertia']
-
-
 ZERO_TYPE = 'bounds'
 
 save_spaghetti = True
@@ -72,11 +71,16 @@ PATH_SPAGHETTI = (
     "/home/natacha/Documents/tmp/figs/spaghetti/" + '-'.join(var_names) + '/'
 )
 
+PATH_SPAG_FIG = PATH_SPAGHETTI + 'plots/'
+PATH_SPAG_DICT = PATH_SPAGHETTI + 'dict/'
+makedirs(PATH_SPAG_FIG, exist_ok = True)
+makedirs(PATH_SPAG_DICT, exist_ok = True)
+
 # Choose which files should be used
 LIST_FILENAMES = listdir(PATH_DATA)
 LIST_FILENAMES = [
     fname for fname in LIST_FILENAMES
-    if fname.startswith("ec.ens.") and  fname.endswith(".nc")
+    if fname.startswith("ec.ens.") and fname.endswith(".nc")
 ]
 
 
@@ -85,50 +89,77 @@ LIST_FILENAMES = [
 # ---------------------------------------------------------
 
 
+
 def main():
-    # IGNORED: no weight used
-    if PG_TYPE == 'Naive':
-        weights_range = [True, False]
-    else:
-        weights_range = [False]
 
-    for weights in [False]:
-        for score in SCORE_TYPES:
-            path_parent = PATH_FIG_ROOT + score + "/"
-            for filename in LIST_FILENAMES:
+    for filename in LIST_FILENAMES:
 
-                # --------------------------------------------
-                # ----- Prepare folders and paths ------------
-                # --------------------------------------------
-                makedirs(PATH_SPAGHETTI, exist_ok = True)
+        # ---------------------------------------
+        # Load and preprocess data
+        # ---------------------------------------
 
-                path_fig = path_parent + "plots/"
-                name_fig = path_fig + filename[:-3]
-                makedirs(path_fig, exist_ok = True)
+        data_dict = preprocess_meteogram(
+            filename = filename,
+            path_data = PATH_DATA,
+            var_names=var_names,
+            ind_time=None,
+            ind_members=None,
+            ind_long=[0],
+            ind_lat=[0],
+            multivariate = is_multivariate,
+            to_standardize = False,
+            )
 
-                path_graph = path_parent + "graphs/"
-                makedirs(path_graph, exist_ok = True)
-                name_graph = path_graph + filename[:-3]
+        if not is_multivariate:
+            data_dict['members'] = data_dict['members'][0]
+        members = data_dict['members']
 
-                # ---------------------------
-                # Load and preprocess data
-                # ---------------------------
 
-                data_dict = preprocess_meteogram(
-                    filename = filename,
-                    path_data = PATH_DATA,
-                    var_names=var_names,
-                    ind_time=None,
-                    ind_members=None,
-                    ind_long=[0],
-                    ind_lat=[0],
-                    multivariate = is_multivariate,
-                    to_standardize = False,
-                    )
+        # ---------------------------------------
+        # Spaghetti
+        # ---------------------------------------
+        if save_spaghetti:
 
-                members = data_dict['members']
-                if not is_multivariate:
-                    members = data_dict[members][0]
+            fig_m, ax_m = plot_members(
+                members = members,
+                time_axis = data_dict['time'],
+                )
+
+            for i, ax in enumerate(ax_m.flat):
+                ax.set_xlabel("Time (h)")
+                ax.set_ylabel(
+                    data_dict['long_names'][i]
+                    + ' (' + data_dict['units'][i] + ')'
+                )
+            fig_m.suptitle(data_dict["filename"])
+
+            # fig_m, ax_m = plot_mean_std(
+            #         members = members,
+            #         time_axis = time,
+            #         fig = fig_m,
+            #         axs=ax_m
+            #         )
+
+            fig_m.savefig(PATH_SPAG_FIG + data_dict["filename"] + ".png")
+            plt.close()
+
+            json_file = PATH_SPAG_DICT + data_dict["filename"]+".json"
+            with open(json_file, 'w', encoding='utf-8') as f:
+                res = jsonify(data_dict)
+                json.dump(res, f, ensure_ascii=False, indent=4)
+
+        # ---------------------------------------
+        # Graphs
+        # ---------------------------------------
+        else:
+
+            # IGNORED: no weight used
+            if PG_TYPE == 'Naive':
+                weights_range = [True, False]
+            else:
+                weights_range = [False]
+
+            for weights in weights_range:
 
                 if weights:
                     pass
@@ -141,118 +172,104 @@ def main():
                 else:
                     weights_values = None
 
+                for score in SCORE_TYPES:
+
+                    # --------------------------------------------
+                    # ----- Prepare folders and paths ------------
+                    # --------------------------------------------
+                    path_parent = PATH_FIG_ROOT + score + "/"
+
+                    path_fig = path_parent + "plots/"
+                    name_fig = path_fig + filename[:-3]
+                    makedirs(path_fig, exist_ok = True)
+
+                    path_graph = path_parent + "graphs/"
+                    makedirs(path_graph, exist_ok = True)
+                    name_graph = path_graph + filename[:-3]
 
                     # ---------------------------
-                    # Spaghetti
+                    # Construct graph
                     # ---------------------------
 
-                    if save_spaghetti:
-                        name_spag = PATH_SPAGHETTI + filename[:-4]
-
-                        fig_m, ax_m = plot_members(
+                    g = PersistentGraph(
+                            time_axis = data_dict['time'],
                             members = members,
-                            time_axis = time,
-                            )
-
-                        for ax in ax_m.flat:
-                            ax.set_xlabel("Time (h)")
-                        ax_m[0, 0].set_ylabel("u10 (m/s)")
-                        ax_m[0, 1].set_ylabel("v10 (m/s)")
-
-                        # fig_m, ax_m = plot_mean_std(
-                        #         members = members,
-                        #         time_axis = time,
-                        #         fig = fig_m,
-                        #         axs=ax_m
-                        #         )
-
-                        name_spag += '.png'
-                        fig_m.savefig(name_spag)
-                        plt.close()
-
-                # ---------------------------
-                # Construct graph
-                # ---------------------------
-
-                g = PersistentGraph(
-                        time_axis = time,
-                        members = members,
-                        weights = weights_values,
-                        score_type = score,
-                        zero_type = ZERO_TYPE,
-                        model_type = PG_TYPE,
-                        k_max = 8,
-                )
-                g.construct_graph(
-                    verbose=True,
-                )
-
-                # ---------------------------------
-                # Plot entire graph (with k_plot)
-                # ---------------------------------
-
-                # ax0 = None
-                # fig0 = None
-                # if show_k_plot == 'inside' or show_k_plot == 'outside':
-                #     if show_k_plot == 'inside':
-                #         fig0 = plt.figure(figsize = (25,15), tight_layout=True)
-                #         gs = fig0.add_gridspec(nrows=2, ncols=3)
-                #         ax0 = fig0.add_subplot(gs[:, 0:2])
-                #         ax1 = fig0.add_subplot(gs[0, 2], sharex=ax0)
-                #     else:
-                #         ax1 = None
-                #     fig1, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
-                #     ax1_title = 'Number of clusters: relevance'
-                #     ax1.set_title(ax1_title)
-                #     ax1.set_xlabel("Time")
-                #     ax1.set_ylabel("Relevance")
-
-                #     if show_k_plot == 'outside':
-                #         fig1.savefig(name_fig + "_k_plots")
-
-                ax_kw = {
-                    'xlabel' : "Time (h)",
-                    'ylabel' :  [
-                        data_dict['short_names'][i]
-                        + ' (' + data_dict['units'][i] + ')'
-                        for i in len(data_dict['units'])
-                    ]
-                    }
-
-                fig_suptitle = filename
-
-                # If overview:
-                if show_k_plot == 'overview':
-                    fig0, ax0 = plot_overview(
-                        g, ax_kw=ax_kw, axs = None, fig= None,
+                            weights = weights_values,
+                            score_type = score,
+                            zero_type = ZERO_TYPE,
+                            model_type = PG_TYPE,
+                            k_max = 8,
                     )
-                    name_fig += '_overview'
+                    g.construct_graph(
+                        verbose=True,
+                    )
 
-                else:
-                    pass
-                    # fig0, ax0 = plot_as_graph(
-                    #     g, show_vertices=True, show_edges=True, show_std = True,
-                    #     ax_kw=ax_kw, ax = ax0, fig=fig0,
-                    # )
+                    # ---------------------------------
+                    # Plot entire graph (with k_plot)
+                    # ---------------------------------
 
-                    # ax0_title = 'Entire graph'
-                    # ax0.set_title(ax0_title)
+                    # ax0 = None
+                    # fig0 = None
+                    # if show_k_plot == 'inside' or show_k_plot == 'outside':
+                    #     if show_k_plot == 'inside':
+                    #         fig0 = plt.figure(figsize = (25,15), tight_layout=True)
+                    #         gs = fig0.add_gridspec(nrows=2, ncols=3)
+                    #         ax0 = fig0.add_subplot(gs[:, 0:2])
+                    #         ax1 = fig0.add_subplot(gs[0, 2], sharex=ax0)
+                    #     else:
+                    #         ax1 = None
+                    #     fig1, ax1, _ = k_plot(g, k_max = 5, ax=ax1)
+                    #     ax1_title = 'Number of clusters: relevance'
+                    #     ax1.set_title(ax1_title)
+                    #     ax1.set_xlabel("Time")
+                    #     ax1.set_ylabel("Relevance")
+
+                    #     if show_k_plot == 'outside':
+                    #         fig1.savefig(name_fig + "_k_plots")
+
+                    ax_kw = {
+                        'xlabel' : "Time (h)",
+                        'ylabel' :  [
+                            data_dict['short_names'][i]
+                            + ' (' + data_dict['units'][i] + ')'
+                            for i in range(len(data_dict['units']))
+                        ]
+                        }
+
+                    fig_suptitle = filename
+
+                    # If overview:
+                    if show_k_plot == 'overview':
+                        fig0, ax0 = plot_overview(
+                            g, ax_kw=ax_kw, axs = None, fig= None,
+                        )
+                        name_fig += '_overview'
+
+                    else:
+                        pass
+                        # fig0, ax0 = plot_as_graph(
+                        #     g, show_vertices=True, show_edges=True, show_std = True,
+                        #     ax_kw=ax_kw, ax = ax0, fig=fig0,
+                        # )
+
+                        # ax0_title = 'Entire graph'
+                        # ax0.set_title(ax0_title)
 
 
-                if weights:
-                    pass
-                    # fig_suptitle += ", with weights"
-                    # name_fig += '_weights'
-                fig0.suptitle(fig_suptitle)
+                    if weights:
+                        pass
+                        # fig_suptitle += ", with weights"
+                        # name_fig += '_weights'
+                    fig0.suptitle(fig_suptitle)
 
 
-                # ---------------------------
-                # Save plot and graph
-                # ---------------------------.
-                name_fig += '.png'
-                fig0.savefig(name_fig)
-                plt.close()
-                g.save(name_graph)
+                    # ---------------------------
+                    # Save plot and graph
+                    # ---------------------------.
+                    name_fig += '.png'
+                    fig0.savefig(name_fig)
+                    plt.close()
+                    g.save(name_graph)
 
 if __name__ == "__main__":
     main()

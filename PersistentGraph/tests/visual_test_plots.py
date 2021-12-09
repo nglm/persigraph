@@ -4,7 +4,7 @@ from netCDF4 import Dataset
 
 from .. import PersistentGraph
 from ..plots import *
-from ...Preprocessing.statistics import preprocess_meteogram
+from ...Preprocessing.extraction import preprocess_meteogram
 
 
 def warn(*args, **kwargs):

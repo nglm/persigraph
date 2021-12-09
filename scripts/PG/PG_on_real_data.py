@@ -3,7 +3,7 @@ from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ...Preprocessing.statistics import preprocess_meteogram
+from ...Preprocessing.extraction import preprocess_meteogram
 from ...PersistentGraph import PersistentGraph
 from ...PersistentGraph.plots import *
 

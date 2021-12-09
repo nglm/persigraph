@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 
-from ...Preprocessing.statistics import preprocess_meteogram
+from ...Preprocessing.extraction import preprocess_meteogram
 from ...utils.plt import from_list_to_subplots
 
 # ---------------------------------------------------------

@@ -4,7 +4,7 @@ from os import listdir, makedirs
 import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage
 
-from ...Preprocessing.statistics import preprocess_meteogram
+from ...Preprocessing.extraction import preprocess_meteogram
 from ...utils.plt import plot_mean_and_std
 
 

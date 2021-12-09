@@ -6,7 +6,7 @@ from os import listdir, makedirs
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ...Preprocessing.statistics import preprocess_meteogram, get_list_std, get_list_average_values
+from ...Preprocessing.extraction import preprocess_meteogram, get_list_std, get_list_average_values
 from ...utils.plt import from_list_to_subplots
 
 
