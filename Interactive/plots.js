@@ -1,29 +1,55 @@
-import { d3fy } from "./preprocess.js";
+import { d3fy_meteogram, d3fy_mjo } from "./preprocess.js";
 
-export function dimensions() {
+export function dimensions({
+    figWidth=800,
+    figHeight=600,
+    figMarginTop=5,
+    figMarginLeft=5,
+    figMarginRight=5,
+    figMarginBottom=5,
+    labelsX=130,
+    labelsY=110,
+    labelsAxes=50,
+    labelsFig=50,
+    axesMarginTop=5,
+    axesMarginLeft=5,
+    axesMarginRight=5,
+    axesMarginBottom=5,
+    plotMarginTop=5,
+    plotMarginLeft=5,
+    plotMarginRight=5,
+    plotMarginBottom=5,
+} = {}) {
 
     let fig, labels, axes, plot;
 
     fig = {
-        width: 800, height: 600,
-        margin: {top: 5, left: 5, right: 5, bottom: 5}
+        width: figWidth, height: figHeight,
+        margin: {
+            top: figMarginTop, left: figMarginLeft,
+            right: figMarginRight, bottom: figMarginBottom
+        }
     };
 
 
-    labels = {
-        x: 130, y: 110, axes: 50, fig: 50
-    };
+    labels = { x: labelsX, y: labelsY, axes: labelsAxes, fig: labelsFig };
 
     axes = {
         width: fig.width - (fig.margin.right + fig.margin.left),
         height: fig.height - (fig.margin.top + fig.margin.bottom + labels.fig),
-        margin: {top: 5, left: 5, right: 5, bottom: 5},
+        margin: {
+            top: axesMarginTop, left: axesMarginLeft,
+            right: axesMarginRight, bottom: axesMarginBottom
+        },
     };
 
     plot = {
         width: axes.width - (axes.margin.right + axes.margin.left + labels.y),
         height: axes.height - (axes.margin.top + axes.margin.bottom + labels.axes + labels.x),
-        margin: {top: 5, left: 5, right: 5, bottom: 5},
+        margin: {
+            top: plotMarginTop, left: plotMarginLeft,
+            right: plotMarginRight, bottom: plotMarginBottom
+        },
     };
 
     return {fig, labels, axes, plot}
@@ -199,7 +225,7 @@ export async function draw_meteogram(
 
     // Load the data and wait until it is ready
     const myData =  await d3.json(filename);
-    let data_xy = d3fy(myData);
+    let data_xy = d3fy_meteogram(myData);
 
     const ymin = d3.min(myData.members, (d => d3.min(d[0])) ),
         ymax = d3.max(myData.members, (d => d3.max(d[0])) );
@@ -271,6 +297,81 @@ export async function draw_meteogram(
     return {myFig, myAxes, myPlot}
 }
 
+export async function draw_mjo(
+    filename,
+    dims = dimensions(),
+    fig_id="fig",
+) {
+
+    let mjo = draw_fig(dims, fig_id);
+
+    let myFig = mjo.myFig;
+    let myAxes = mjo.myAxes;
+    let myPlot = mjo.myPlot;
+    let vmax = 5;
+
+    var x = d3.scaleLinear().range([0, dims.plot.width]),
+    y = d3.scaleLinear().range([dims.plot.height, 0]);
+
+    // Draw classes and weak section
+    
+
+    // Load the data and wait until it is ready
+    const myData =  await d3.json(filename);
+    let data_xy = d3fy_mjo(myData);
+
+    // Now we can specify the domain of our scales
+    x.domain([-vmax, vmax]);
+    y.domain([-vmax, vmax]);
+
+    // Add the title of the figure
+    myFig.select('#figtitle')
+        .text("Figure");
+
+    // Add the title of the axes
+    myAxes.select('#axtitle')
+        .text(myData.filename);
+
+    // This element will render the xAxis with the xLabel
+    myPlot.select('#xaxis')
+        .call(d3.axisBottom(x).tickSizeOuter(0));
+
+    myAxes.select('#main')
+        .select('#xlabel')
+        .text("RMM1");
+
+    myPlot.select('#yaxis')
+        .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d).ticks(10));
+
+    myPlot = style_ticks(myPlot);
+
+    myAxes.select('#main')
+        .select("#ylabel")
+        .text('RMM2');
+
+    const myLine = d3.line()
+        .x(d => x(d.rmm1))
+        .y(d => y(d.rmm2));
+
+    // This element will render the lines
+    myPlot.append('g')
+        .selectAll('.line')
+        .data(data_xy)
+        .enter()
+        .append("path")  // "path" is the svg element for lines
+        .classed("line", true)
+        // .on("mouseover", onMouseOver) //Add listener for the mouseover event
+        // .on("mouseout", onMouseOut)   //Add listener for the mouseout event
+        .attr("d", (d => myLine(d)));
+        // .attr("width", x.bandwidth())
+        // .transition()
+        // .ease(d3.easeLinear)
+        // .duration(400)
+        // .delay((d, i) => (i * 50))
+        // .attr("height", d => (myHeight - y(d.value)));
+
+    return {myFig, myAxes, myPlot}
+}
 
 //mouseover event handler function
 function onMouseOver(e, d) {

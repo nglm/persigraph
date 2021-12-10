@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 from os import listdir, makedirs
 import numpy as np
+import json
 import matplotlib.pyplot as plt
 
-from ...Preprocessing.extraction import preprocess_mjo, smoothing_mjo, to_polar
+from ...Preprocessing.extraction import preprocess_mjo, jsonify, to_polar
 from ...PersistentGraph import PersistentGraph
 from ...PersistentGraph.plots import *
 
@@ -43,10 +44,9 @@ SCORE_TYPES = ['max_inertia']
 
 ZERO_TYPE = 'bounds'
 
-#smooth = False
 save_spaghetti = True
-save_individual = True
-save_mean = True
+save_individual = False
+save_mean = False
 
 
 #FIXME: Outdated option
@@ -71,6 +71,10 @@ PATH_FIG_ROOT = (
 PATH_SPAGHETTI = (
     "/home/natacha/Documents/tmp/figs/spaghetti/mjo/"
 )
+PATH_SPAG_FIG = PATH_SPAGHETTI + 'plots/'
+PATH_SPAG_DICT = PATH_SPAGHETTI + 'dict/'
+makedirs(PATH_SPAG_FIG, exist_ok = True)
+makedirs(PATH_SPAG_DICT, exist_ok = True)
 
 # Choose which files should be used
 LIST_FILENAMES = listdir(PATH_DATA)
@@ -84,144 +88,170 @@ LIST_FILENAMES = [f for f in LIST_FILENAMES if f.endswith(".txt")]
 def main():
     weights = False
     weights_values = None
-    for smooth in [True, False]:
-        for score in SCORE_TYPES:
-            path_parent = PATH_FIG_ROOT + score + "/"
-            for filename in LIST_FILENAMES:
+    for filename in LIST_FILENAMES:
+        for smooth in [True, False]:
 
-                # --------------------------------------------
-                # ----- Prepare folders and paths ------------
-                # --------------------------------------------
+            # ---------------------------
+            # Load and preprocess data
+            # ---------------------------
+            data_dict = preprocess_mjo(
+                filename = filename,
+                path_data = PATH_DATA,
+                smooth = smooth,
+            )
+            members = data_dict['members']
+            time = data_dict['time']
 
+            # ---------------------------
+            # Spaghetti
+            # ---------------------------
+            if save_spaghetti:
 
-                makedirs(PATH_SPAGHETTI, exist_ok = True)
+                # ---- Typical MJO plot ----
+                fig_m, ax_m = plot_mjo_members(
+                    members = members,
+                    show_classes = True,
+                    )
 
-                path_fig = path_parent + "plots/"
-                name_fig = path_fig + filename[:-3]
-                makedirs(path_fig, exist_ok = True)
-
-                path_graph = path_parent + "graphs/"
-                makedirs(path_graph, exist_ok = True)
-                name_graph = path_graph + filename[:-3]
-
-                # ---------------------------
-                # Load and preprocess data
-                # ---------------------------
-                f = PATH_DATA + filename
-
-                data_dict = preprocess_mjo(filename = f, smooth = smooth)
-                members = data_dict['members']
-                time = data_dict['time']
-
-                # ---------------------------
-                # Spaghetti
-                # ---------------------------
-
-                if save_spaghetti:
-
-                    # ---- Typical MJO plot ----
-
-                    name_spag = PATH_SPAGHETTI + filename[:-4]
-
-                    fig_m, ax_m = plot_mjo_members(
+                # ------ add mean and std------
+                fig_m, ax_m = plot_mjo_mean_std(
                         members = members,
                         show_classes = True,
+                        polar = False,
+                        show_std = False,
+                        fig = fig_m,
+                        ax=ax_m
                         )
 
-                    fig_m, ax_m = plot_mjo_mean_std(
-                            members = members,
+                # ------ filenames ------
+                name_spag = PATH_SPAG_FIG + data_dict["filename"]
+                if smooth:
+                    name_spag += '_smooth'
+
+                # ------ save fig------
+                name_spag += '.png'
+                fig_m.savefig(name_spag)
+                plt.close()
+
+                # ------ save dict------
+                json_file = PATH_SPAG_DICT + data_dict["filename"]
+                if smooth:
+                    json_file += '_smooth'
+                json_file += ".json"
+                with open(json_file, 'w', encoding='utf-8') as f:
+                    res = jsonify(data_dict)
+                    json.dump(res, f, ensure_ascii=False, indent=4)
+
+                # ---- Plot mean (polar and not polar) ----
+                if save_mean:
+                    for polar_mean in [True, False]:
+
+                        if polar_mean:
+                            members_tmp = to_polar(members)
+                        else:
+                            members_tmp = np.copy(members)
+
+                        fig_m, ax_m = plot_mjo_mean_std(
+                            members = members_tmp,
                             show_classes = True,
-                            polar = False,
-                            show_std = False,
-                            fig = fig_m,
-                            ax=ax_m
+                            polar = polar_mean,
                             )
-                    if smooth:
-                        name_spag += '_smooth'
 
-                    name_spag += '.png'
-                    fig_m.savefig(name_spag)
-                    plt.close()
+                        # ------ filenames ------
+                        name_spag = (
+                            PATH_SPAG_FIG + data_dict["filename"]
+                            + "_mean_std"
+                        )
+                        if smooth:
+                            name_spag += '_smooth'
+                        if polar_mean:
+                            name_spag += '_polarmean'
 
-                    # ---- Plot mean (polar and not polar) ----
-                    if save_mean:
-                        for polar_mean in [True, False]:
-                            name_spag = (
-                                PATH_SPAGHETTI + filename[:-4]
-                                + "_mean_std"
+                        # ------ save fig------
+                        name_spag += '.png'
+                        fig_m.savefig(name_spag)
+                        plt.close()
+
+                # ---- Plot members one by one ----
+                if save_individual:
+                    for i in range(len(members)-1):
+                        m = members[i:i+1]
+
+                        fig_m, ax_m = plot_mjo_members(
+                            members = m,
+                            show_classes = True,
                             )
-                            if polar_mean:
-                                members_tmp = to_polar(members)
-                            else:
-                                members_tmp = np.copy(members)
 
-                            fig_m, ax_m = plot_mjo_mean_std(
-                                members = members_tmp,
-                                show_classes = True,
-                                polar = polar_mean,
-                                )
-                            name_spag
-                            if smooth:
-                                name_spag += '_smooth'
-                            if polar_mean:
-                                name_spag += '_polarmean'
-                            name_spag += '.png'
-                            fig_m.savefig(name_spag)
-                            plt.close()
+                        # ------ filenames ------
+                        name_spag = PATH_SPAG_FIG + data_dict["filename"]
+                        if smooth:
+                            name_spag += '_smooth'
+                        name_spag += '_' + str(i) + '.png'
 
-                    # ---- Plot members one by one ----
-                    if save_individual:
-                        for i in range(len(members)-1):
-                            m = members[i:i+1]
-                            name_spag = PATH_SPAGHETTI + filename[:-4]
+                        # ------ save fig------
+                        fig_m.savefig(name_spag)
+                        plt.close()
 
-                            fig_m, ax_m = plot_mjo_members(
-                                members = m,
-                                show_classes = True,
-                                )
-                            if smooth:
-                                name_spag += '_smooth'
-                            name_spag += '_' + str(i) + '.png'
-                            fig_m.savefig(name_spag)
-                            plt.close()
+                # ---- RMM1 RRM2 ----
+                fig, ax = plot_members(
+                    members = members,
+                    time_axis = time,
+                )
+                fig, ax = plot_mean_std(
+                    members = members,
+                    time_axis = time,
+                    fig = fig,
+                    axs = ax,
+                )
 
-                    # ---- RMM1 RRM2 ----
-                    name_spag = PATH_SPAGHETTI + filename[:-4] + "_rmm"
-                    fig, ax = plot_members(
-                        members = members,
-                        time_axis = time,
-                    )
-                    fig, ax = plot_mean_std(
-                        members = members,
-                        time_axis = time,
-                        fig = fig,
-                        axs = ax,
-                    )
-                    if smooth:
-                        name_spag += '_smooth'
-                    name_spag += '.png'
-                    fig.savefig(name_spag)
-                    plt.close()
+                # ------ filenames ------
+                name_spag = PATH_SPAG_FIG + data_dict["filename"] + "_rmm"
+                if smooth:
+                    name_spag += '_smooth'
+                name_spag += '.png'
 
-                    # ---- Polar coordinates ----
-                    name_spag = PATH_SPAGHETTI + filename[:-4] + "_polar"
-                    members_polar = to_polar(members)
-                    fig, ax = plot_members(
-                        members = members_polar,
-                        time_axis = time,
-                    )
-                    fig, ax = plot_mean_std(
-                        members = members_polar,
-                        time_axis = time,
-                        fig = fig,
-                        axs = ax,
-                    )
-                    if smooth:
-                        name_spag += '_smooth'
-                    name_spag += '.png'
-                    fig.savefig(name_spag)
-                    plt.close()
-                else:
+                # ------ save fig------
+                fig.savefig(name_spag)
+                plt.close()
+
+                # ---- Polar coordinates ----
+                members_polar = to_polar(members)
+                fig, ax = plot_members(
+                    members = members_polar,
+                    time_axis = time,
+                )
+                fig, ax = plot_mean_std(
+                    members = members_polar,
+                    time_axis = time,
+                    fig = fig,
+                    axs = ax,
+                )
+
+                # ------ filenames ------
+                name_spag = PATH_SPAG_FIG + data_dict["filename"] + "_polar"
+                if smooth:
+                    name_spag += '_smooth'
+                name_spag += '.png'
+
+                # ------ save fig------
+                fig.savefig(name_spag)
+                plt.close()
+
+            else:
+                for score in SCORE_TYPES:
+                    path_parent = PATH_FIG_ROOT + score + "/"
+
+                    # --------------------------------------------
+                    # ----- Prepare folders and paths ------------
+                    # --------------------------------------------
+
+                    path_fig = path_parent + "plots/"
+                    name_fig = path_fig + data_dict["filename"]
+                    makedirs(path_fig, exist_ok = True)
+
+                    path_graph = path_parent + "graphs/"
+                    makedirs(path_graph, exist_ok = True)
+                    name_graph = path_graph + data_dict["filename"]
 
                     # ---------------------------
                     # Construct graph

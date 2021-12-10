@@ -120,11 +120,13 @@ def main():
         # ---------------------------------------
         if save_spaghetti:
 
+            # ------ Plot members ------
             fig_m, ax_m = plot_members(
                 members = members,
                 time_axis = data_dict['time'],
                 )
 
+            # ------ ax titles------
             for i, ax in enumerate(ax_m.flat):
                 ax.set_xlabel("Time (h)")
                 ax.set_ylabel(
@@ -133,6 +135,7 @@ def main():
                 )
             fig_m.suptitle(data_dict["filename"])
 
+            # ------ add mean and std------
             # fig_m, ax_m = plot_mean_std(
             #         members = members,
             #         time_axis = time,
@@ -140,9 +143,11 @@ def main():
             #         axs=ax_m
             #         )
 
+            # ------ save fig------
             fig_m.savefig(PATH_SPAG_FIG + data_dict["filename"] + ".png")
             plt.close()
 
+            # ------ save dict------
             json_file = PATH_SPAG_DICT + data_dict["filename"]+".json"
             with open(json_file, 'w', encoding='utf-8') as f:
                 res = jsonify(data_dict)
@@ -180,12 +185,12 @@ def main():
                     path_parent = PATH_FIG_ROOT + score + "/"
 
                     path_fig = path_parent + "plots/"
-                    name_fig = path_fig + filename[:-3]
+                    name_fig = path_fig + data_dict["filename"]
                     makedirs(path_fig, exist_ok = True)
 
                     path_graph = path_parent + "graphs/"
                     makedirs(path_graph, exist_ok = True)
-                    name_graph = path_graph + filename[:-3]
+                    name_graph = path_graph + data_dict["filename"]
 
                     # ---------------------------
                     # Construct graph

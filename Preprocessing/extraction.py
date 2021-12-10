@@ -177,7 +177,7 @@ def preprocess_meteogram(
     )
 
     # Extract date from filename
-    i = re.search(r"\d", filename).start()
+    i = re.search(r"\d\d\d\d", filename).start()
     data_dict['date'] = (
         filename[i:i+4] + '-'       # Year
         + filename[i+4:i+6] + '-'   # Month
@@ -236,6 +236,7 @@ def clear_double_space(filename):
 
 def extract_from_mjo(
     filename: str,
+    path_data: str = '',
     smooth: bool = True,
 ) -> Dict:
     """
@@ -258,7 +259,7 @@ def extract_from_mjo(
     """
     # Find files
     names = [x for x in 'abcdefghi'[:7]]
-    df = pd.read_csv(filename, sep=' ', names=names, header=1)
+    df = pd.read_csv(path_data + filename, sep=' ', names=names, header=1)
     # Remove ensemble mean rows
     df = df[df['b'] != 'em']
     # Remove useless columns
@@ -290,20 +291,28 @@ def extract_from_mjo(
     d['long_names'] = 'Real-Time Multivariate Index'
 
     # Extract date from filename
-    i = re.search(r"\d", filename).start()
+    i = re.search(r"\d\d\d\d", filename).start()
     d['date'] = (
         filename[i:i+4] + '-'       # Year
         + filename[i+4:i+6] + '-'   # Month
         + filename[i+6:i+8] + '-'   # Day
         + filename[i+8:i+10]        # Hour
     )
-    d['filename'] = filename[:-5]
+    d['filename'] = filename[:-4]
 
     return d
 
-def preprocess_mjo(filename, smooth=False):
-    clear_double_space(filename)
-    return extract_from_mjo(filename, smooth=smooth)
+def preprocess_mjo(
+    filename: str,
+    path_data: str = '',
+    smooth: bool = False,
+    ):
+    clear_double_space(path_data + filename)
+    return extract_from_mjo(
+        filename=filename,
+        path_data=path_data,
+        smooth=smooth
+    )
 
 def jsonify(data_dict):
     res = dict(data_dict)
