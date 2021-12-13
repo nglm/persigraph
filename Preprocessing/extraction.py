@@ -96,10 +96,11 @@ def extract_from_meteogram(
 
     d = {}
     d['members'] = list_var
-    d['short_names'] = var_names
+    d['short_name'] = var_names
+    d['var_name'] = var_names
     d['time'] = nc.variables["time"][ind_time].data
     d['control'] = None
-    d['long_names'] = [nc.variables[name].long_name for name in var_names]
+    d['long_name'] = [nc.variables[name].long_name for name in var_names]
     d['units'] = [nc.variables[name].units for name in var_names]
 
     return d
@@ -188,7 +189,7 @@ def preprocess_meteogram(
 
     # Take the log for the tcwv variable
     idx = get_indices_element(
-        my_list=data_dict['short_names'],
+        my_list=data_dict['short_name'],
         my_element="tcwv"
     )
     if idx != -1:
@@ -200,7 +201,7 @@ def preprocess_meteogram(
     # Take Celsius instead of Kelvin
     if not to_standardize:
         idx = get_indices_element(
-            my_list=data_dict['short_names'],
+            my_list=data_dict['short_name'],
             my_element="t2m"
         )
         if idx != -1:
@@ -286,9 +287,10 @@ def extract_from_mjo(
     d['time'] = np.array(time)
     d['members'] = members
     d['control'] = None
-    d['units'] = "RMM"
-    d["short_names"] = "rmm"
-    d['long_names'] = 'Real-Time Multivariate Index'
+    d['units'] = ["RMM1", "RMM2"]
+    d["short_name"] = ["rmm"]*2
+    d['long_name'] = ['Real-Time Multivariate Index']*2
+    d['var_names'] = ["rmm1", "rmm2"]
 
     # Extract date from filename
     i = re.search(r"\d\d\d\d", filename).start()

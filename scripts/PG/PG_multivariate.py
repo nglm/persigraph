@@ -130,7 +130,7 @@ def main():
             for i, ax in enumerate(ax_m.flat):
                 ax.set_xlabel("Time (h)")
                 ax.set_ylabel(
-                    data_dict['long_names'][i]
+                    data_dict['long_name'][i]
                     + ' (' + data_dict['units'][i] + ')'
                 )
             fig_m.suptitle(data_dict["filename"])
@@ -235,7 +235,7 @@ def main():
                     ax_kw = {
                         'xlabel' : "Time (h)",
                         'ylabel' :  [
-                            data_dict['short_names'][i]
+                            data_dict['short_name'][i]
                             + ' (' + data_dict['units'][i] + ')'
                             for i in range(len(data_dict['units']))
                         ]

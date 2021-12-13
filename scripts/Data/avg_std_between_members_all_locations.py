@@ -82,11 +82,11 @@ for filename in LIST_FILENAMES:
         + filename[:-3]
         + "\n Standard deviation between all members - averaged over all locations"
     )
-    list_ax_titles = ["Variable: " + name for name in data_dict['short_names']]
+    list_ax_titles = ["Variable: " + name for name in data_dict['short_name']]
 
     xlabel = "Time (h)"
     ylabel = "Standard deviation (on standardized values (1))"
-    list_list_legend = [data_dict['short_names']]
+    list_list_legend = [data_dict['short_name']]
 
     dict_kwargs = {
             "fig_suptitle" : fig_suptitle,

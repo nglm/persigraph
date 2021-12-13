@@ -75,14 +75,14 @@ for filename in LIST_FILENAMES:
         )
 
     fig_suptitle = "Bergen Forecast: " + filename[:-3] + "\n First grid point, All members"
-    list_ax_titles = ["Variable: " + name for name in data_dict['short_names']]
+    list_ax_titles = ["Variable: " + name for name in data_dict['short_name']]
     xlabel = "Time (h)"
 
     if to_standardize:
         ylabel = "Standardized values (1)"
     else:
         ylabel = (
-            data_dict['long_names'][0]
+            data_dict['long_name'][0]
             + ' (' + data_dict['units'][0] + ')'
         )
 

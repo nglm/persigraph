@@ -92,7 +92,7 @@ for use_log_tcwv in [False]:
                 list_ylabels = type_plot
 
                 list_xlabels = ["Time (h)"]
-                list_list_legends = data_dict['short_names']
+                list_list_legends = data_dict['short_name']
 
                 dict_kwargs = {
                     "fig_suptitle" : fig_suptitle,

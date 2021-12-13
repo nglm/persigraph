@@ -92,7 +92,7 @@ for filename in list_filenames:
     ax = from_list_to_pairplots(
         list_values = data_dict['members'],
         fig_suptitle = fig_suptitle,
-        list_labels = data_dict['short_names'],
+        list_labels = data_dict['short_name'],
         show = False,
     )
     suffix = ""

@@ -84,11 +84,11 @@ for use_log_tcwv in [False, False]:
                 )
 
 
-            list_ax_titles = ["Variable: " + name for name in data_dict['short_names']]
+            list_ax_titles = ["Variable: " + name for name in data_dict['short_name']]
 
             if to_standardize:
                 list_xlabels = [
-                    "Standardized values (1)" for _ in data_dict['short_names']
+                    "Standardized values (1)" for _ in data_dict['short_name']
                 ]
             else:
                 list_xlabels = [""]

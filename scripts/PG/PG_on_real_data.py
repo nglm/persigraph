@@ -169,7 +169,7 @@ def main():
                 ax_kw = {
                     'xlabel' : "Time (h)",
                     'ylabel' :  [
-                        data_dict['short_names'][i]
+                        data_dict['short_name'][i]
                         + ' (' + data_dict['units'][i] + ')'
                         for i in len(data_dict['units'])
                     ]

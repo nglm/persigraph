@@ -81,7 +81,7 @@ for op in type_op:
             ind_lat=ind_lat,
         )
         list_var = data_dict['members']
-        list_names = data_dict['short_names']
+        list_names = data_dict['short_name']
 
         list_var = [np.swapaxes(var, 0,1) for var in list_var]
         list_var = [np.squeeze(var) for var in list_var]

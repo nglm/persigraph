@@ -81,7 +81,7 @@ for filename in LIST_FILENAMES:
 
         fig_suptitle = (
             "Bergen Forecast: " + filename[:-3]
-            + "\n Variable: " + data_dict["short_names"][i]
+            + "\n Variable: " + data_dict["short_name"][i]
             + " First grid point, All members"
             )
         list_ax_titles = [

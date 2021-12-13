@@ -119,19 +119,19 @@ for use_log_tcwv in [False]:
 
                 list_ax_titles = [
                     type_plot + ", variable: " + name
-                    for name in data_dict["short_names"]
+                    for name in data_dict["short_name"]
                 ]
 
                 if use_standardise:
                     list_xlabels = [
                         "Standardized values (1)"
-                        for _ in data_dict["short_names"]
+                        for _ in data_dict["short_name"]
                     ]
                 else:
                     list_xlabels = [
                         "Values ("
                         + nc.variables[name].__dict__["units"]
-                        +")" for name in data_dict['short_names']
+                        +")" for name in data_dict['short_name']
                     ]
 
                 if type_plot == "mean":
