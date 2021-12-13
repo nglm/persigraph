@@ -3606,9 +3606,22 @@
         ]
     ],
     "control": null,
-    "units": "RMM",
-    "short_names": "rmm",
-    "long_names": "Real-Time Multivariate Index",
+    "units": [
+        "RMM1",
+        "RMM2"
+    ],
+    "short_name": [
+        "rmm",
+        "rmm"
+    ],
+    "long_name": [
+        "Real-Time Multivariate Index",
+        "Real-Time Multivariate Index"
+    ],
+    "var_names": [
+        "rmm1",
+        "rmm2"
+    ],
     "date": "2015-03-05-00",
     "filename": "z_s2s_rmm_ecmf_prod_rt_2015030500"
 }

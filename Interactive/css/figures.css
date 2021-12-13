@@ -102,6 +102,13 @@
         background-color: #d50606;
         }
 
+
+.mjoClass {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    stroke-opacity: 1;
+}
 /* ------- Styles of existing types with specific id ------- */
 
 

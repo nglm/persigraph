@@ -2751,7 +2751,7 @@
             ]
         ]
     ],
-    "short_names": [
+    "short_name": [
         "tcwv"
     ],
     "time": [
@@ -2808,7 +2808,7 @@
         300
     ],
     "control": null,
-    "long_names": [
+    "long_name": [
         "Total column water vapour"
     ],
     "units": [

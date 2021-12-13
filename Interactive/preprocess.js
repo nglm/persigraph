@@ -1,33 +1,23 @@
-export function d3fy_meteogram(data) {
+export function d3fy(data) {
 
     var data_xy = []; // start empty, add each element one at a time
     var xy = [];
 
-    for (var j = 0; j < data.members.length; j++ ) {
+    // Iterate over members
+    for (var m = 0; m < data.members.length; m++ ) {
         xy = [];
+        // Iterate over time steps
         for(var i = 0; i < data.time.length; i++ ) {
-            xy.push({m: data.members[j][0][i], t: data.time[i]});
+            // Initialize object and add time
+            let obj = {t: data.time[i]};
+            // Iterate over variables
+            for(var k = 0; k < data.members[0].length; k++ ) {
+                // Add each variable one by one if mutlivariate
+                obj[data.var_names[k]] =  data.members[m][k][i];
+            }
+            xy.push(obj);
         }
-        data_xy.push(xy)
-    }
-    return data_xy
-}
-
-export function d3fy_mjo(data) {
-
-    var data_xy = []; // start empty, add each element one at a time
-    var xy = [];
-
-    for (var j = 0; j < data.members.length; j++ ) {
-        xy = [];
-        for(var i = 0; i < data.time.length; i++ ) {
-            xy.push({
-                rmm1: data.members[j][0][i],
-                rmm2: data.members[j][1][i],
-                t: data.time[i],
-            });
-        }
-        data_xy.push(xy)
+        data_xy.push(xy);
     }
     return data_xy
 }

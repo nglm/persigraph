@@ -1,4 +1,4 @@
-import { d3fy_meteogram, d3fy_mjo } from "./preprocess.js";
+import { d3fy } from "./preprocess.js";
 
 export function dimensions({
     figWidth=800,
@@ -15,6 +15,8 @@ export function dimensions({
     axesMarginLeft=5,
     axesMarginRight=5,
     axesMarginBottom=5,
+    plotWidth=undefined,
+    plotHeight=undefined,
     plotMarginTop=5,
     plotMarginLeft=5,
     plotMarginRight=5,
@@ -22,36 +24,64 @@ export function dimensions({
 } = {}) {
 
     let fig, labels, axes, plot;
-
-    fig = {
-        width: figWidth, height: figHeight,
-        margin: {
-            top: figMarginTop, left: figMarginLeft,
-            right: figMarginRight, bottom: figMarginBottom
-        }
-    };
-
-
     labels = { x: labelsX, y: labelsY, axes: labelsAxes, fig: labelsFig };
 
-    axes = {
-        width: fig.width - (fig.margin.right + fig.margin.left),
-        height: fig.height - (fig.margin.top + fig.margin.bottom + labels.fig),
-        margin: {
-            top: axesMarginTop, left: axesMarginLeft,
-            right: axesMarginRight, bottom: axesMarginBottom
-        },
-    };
+    if (plotWidth === undefined) {
+        fig = {
+            width: figWidth, height: figHeight,
+            margin: {
+                top: figMarginTop, left: figMarginLeft,
+                right: figMarginRight, bottom: figMarginBottom
+            }
+        };
 
-    plot = {
-        width: axes.width - (axes.margin.right + axes.margin.left + labels.y),
-        height: axes.height - (axes.margin.top + axes.margin.bottom + labels.axes + labels.x),
-        margin: {
-            top: plotMarginTop, left: plotMarginLeft,
-            right: plotMarginRight, bottom: plotMarginBottom
-        },
-    };
+        axes = {
+            width: fig.width - (fig.margin.right + fig.margin.left),
+            height: fig.height - (fig.margin.top + fig.margin.bottom + labels.fig),
+            margin: {
+                top: axesMarginTop, left: axesMarginLeft,
+                right: axesMarginRight, bottom: axesMarginBottom
+            },
+        };
 
+        plot = {
+            width: axes.width - (axes.margin.right + axes.margin.left + labels.y),
+            height: axes.height - (axes.margin.top + axes.margin.bottom + labels.axes + labels.x),
+            margin: {
+                top: plotMarginTop, left: plotMarginLeft,
+                right: plotMarginRight, bottom: plotMarginBottom
+            },
+        };
+    }
+    else {
+
+        plot = {
+            width: plotWidth,
+            height: plotHeight,
+            margin: {
+                top: plotMarginTop, left: plotMarginLeft,
+                right: plotMarginRight, bottom: plotMarginBottom
+            },
+        };
+
+        axes = {
+            width: plot.width + (plot.margin.right + plot.margin.left + labels.y),
+            height: plot.height + (plot.margin.top + plot.margin.bottom + labels.x + labels.axes),
+            margin: {
+                top: axesMarginTop, left: axesMarginLeft,
+                right: axesMarginRight, bottom: axesMarginBottom
+            },
+        };
+
+        fig = {
+            width: axes.width + (axes.margin.right + axes.margin.left),
+            height: axes.height + (axes.margin.top + axes.margin.bottom + labels.fig),
+            margin: {
+                top: figMarginTop, left: figMarginLeft,
+                right: figMarginRight, bottom: figMarginBottom
+            }
+        };
+    }
     return {fig, labels, axes, plot}
 }
 
@@ -207,94 +237,151 @@ export async function draw_meteogram(
 ) {
     // "async" so that we can call 'await' inside and therefore use the data
 
-    let meteogram = draw_fig(dims, fig_id);
-
-    let myFig = meteogram.myFig;
-    let myAxes = meteogram.myAxes;
-    let myPlot = meteogram.myPlot;
-
-    // Reminder:
-    // - domain: min/max values of input data
-    // - Range: output range that input values to map to.
-    // - scaleOrdinal from discrete and map to discrete numeric output range.
-    // - scaleBand like scaleOrdinal except the output range is continuous and
-    // numeric (so from discrete to continuous)
-    // - scaleLinear: Continuous domain mapped to continuous output range
-    var x = d3.scaleLinear().range([0, dims.plot.width]),
-    y = d3.scaleLinear().range([dims.plot.height, 0]);
-
     // Load the data and wait until it is ready
     const myData =  await d3.json(filename);
-    let data_xy = d3fy_meteogram(myData);
+    let data_xy = d3fy(myData);
 
-    const ymin = d3.min(myData.members, (d => d3.min(d[0])) ),
-        ymax = d3.max(myData.members, (d => d3.max(d[0])) );
+    let figs = [];
 
-    // Now we can specify the domain of our scales
-    x.domain([ d3.min(myData.time, (d => d)), d3.max(myData.time, (d => d)) ]);
-    y.domain([ymin, ymax]);
+    for(var iplot = 0; iplot < myData.var_names.length; iplot++ ) {
 
-    // Add the title of the figure
-    myFig.select('#figtitle')
-        .text("Figure");
+        const ymin = d3.min(myData.members, (d => d3.min(d[iplot])) ),
+            ymax = d3.max(myData.members, (d => d3.max(d[iplot])) );
 
-    // Add the title of the axes
-    myAxes.select('#axtitle')
-        .text(myData.filename);
+        let meteogram = draw_fig(dims, fig_id + "_" + iplot);
 
-    // This element will render the xAxis with the xLabel
-    myPlot.select('#xaxis')
-        // The next line will create many sub-groups for the xAxis
-        //
-        // D3’s "call(myF)" takes a selection as input and hands that
-        // selection off to any function myF.
-        // So selection.call(myF) is equiv to myF(selection)
-        //
-        // d3.axisBottom(scale) constructs a x-axis generator for the given
-        // scale, with empty tick arguments, a tick size of 6 and padding of 3.
-        // In this orientation, ticks are drawn below the line.
-        // Note that this generator has to be called (using .call) by a
-        // svg element in order to render the axis onto the HTML page
-        .call(d3.axisBottom(x).tickSizeOuter(0));
+        let myFig = meteogram.myFig;
+        let myAxes = meteogram.myAxes;
+        let myPlot = meteogram.myPlot;
 
-    myAxes.select('#main')
-        .select('#xlabel')
-        .text("Time (h)");
+        // Reminder:
+        // - domain: min/max values of input data
+        // - Range: output range that input values to map to.
+        // - scaleOrdinal from discrete and map to discrete numeric output range.
+        // - scaleBand like scaleOrdinal except the output range is continuous and
+        // numeric (so from discrete to continuous)
+        // - scaleLinear: Continuous domain mapped to continuous output range
+        let x = d3.scaleLinear().range([0, dims.plot.width]),
+        y = d3.scaleLinear().range([dims.plot.height, 0]);
 
-    myPlot.select('#yaxis')
-        // The next line will create many sub-groups for the yAxis
-        // We can specify the tickFormat with '.tickFormat()'. Otherwise
-        // raw range values are written (see xAxis above)
-        .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d).ticks(10));
 
-    myPlot = style_ticks(myPlot);
 
-    myAxes.select('#main')
-        .select("#ylabel")
-        .text(myData.long_names +" (" + myData.units + ")");
+        // Now we can specify the domain of our scales
+        x.domain([ d3.min(myData.time, (d => d)), d3.max(myData.time, (d => d)) ]);
+        y.domain([ymin, ymax]);
 
-    const myLine = d3.line()
-        .x(d => x(d.t))
-        .y(d => y(d.m));
+        // Add the title of the figure
+        myFig.select('#figtitle')
+            .text("Figure");
 
-    // This element will render the lines
+        // Add the title of the axes
+        myAxes.select('#axtitle')
+            .text(myData.filename);
+
+        // This element will render the xAxis with the xLabel
+        myPlot.select('#xaxis')
+            // The next line will create many sub-groups for the xAxis
+            //
+            // D3’s "call(myF)" takes a selection as input and hands that
+            // selection off to any function myF.
+            // So selection.call(myF) is equiv to myF(selection)
+            //
+            // d3.axisBottom(scale) constructs a x-axis generator for the given
+            // scale, with empty tick arguments, a tick size of 6 and padding of 3.
+            // In this orientation, ticks are drawn below the line.
+            // Note that this generator has to be called (using .call) by a
+            // svg element in order to render the axis onto the HTML page
+            .call(d3.axisBottom(x).tickSizeOuter(0));
+
+        myAxes.select('#main')
+            .select('#xlabel')
+            .text("Time (h)");
+
+        myPlot.select('#yaxis')
+            // The next line will create many sub-groups for the yAxis
+            // We can specify the tickFormat with '.tickFormat()'. Otherwise
+            // raw range values are written (see xAxis above)
+            .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
+
+        myPlot = style_ticks(myPlot);
+
+        myAxes.select('#main')
+            .select("#ylabel")
+            .text(myData.long_name[iplot] +" (" + myData.units[iplot] + ")");
+
+        const myLine = d3.line()
+            .x(d => x(d.t))
+            .y(d => y(d[myData.var_names[iplot]]));
+
+        // This element will render the lines
+        myPlot.append('g')
+            .attr('id', 'members')
+            .selectAll('.line')
+            .data(data_xy)
+            .enter()
+            .append("path")  // "path" is the svg element for lines
+            .classed("line", true)
+            // .on("mouseover", onMouseOver) //Add listener for the mouseover event
+            // .on("mouseout", onMouseOut)   //Add listener for the mouseout event
+            .attr("d", (d => myLine(d)))
+            .attr("id", ((d, i) => i));
+            // .attr("width", x.bandwidth())
+            // .transition()
+            // .ease(d3.easeLinear)
+            // .duration(400)
+            // .delay((d, i) => (i * 50))
+            // .attr("height", d => (myHeight - y(d.value)));
+
+        figs.push({myFig, myAxes, myPlot});
+    }
+
+
+    return figs
+}
+
+function draw_mjo_classes(myPlot, x, y, vmax=5) {
+    // Draw classes and weak section
+    const mjoClassLine = d3.line()
+        .x(d => x(d.x))
+        .y(d => y(d.y));
+
+    let limit = Math.cos(Math.PI/4);
+
+    const mjoClassCoord = [
+        // bottom left - top right
+        [ { x: -vmax, y: -vmax}, { x: -limit, y: -limit} ],
+        [ { x: limit, y: limit}, { x: vmax, y: vmax} ],
+        // vertical
+        [ { x: 0, y: -vmax}, { x: 0, y: -1} ],
+        [ { x: 0, y: 1}, { x: 0, y: vmax} ],
+        // horizontal
+        [ { x: -vmax, y: 0}, { x: -1, y: 0} ],
+        [ { x: 1, y: 0}, { x: vmax, y: 0} ],
+        // top left - bottom right
+        [ { x: -vmax, y: vmax}, { x: -limit, y: limit} ],
+        [ { x: limit, y: -limit}, { x: vmax, y: -vmax} ]
+    ];
+
+    // Put all lines in one group
     myPlot.append('g')
-        .selectAll('.line')
-        .data(data_xy)
+        .attr('id', 'mjoClasses');
+
+    myPlot.select('#mjoClasses')
+        .selectAll('.mjoClass')
+        .data(mjoClassCoord)
         .enter()
         .append("path")  // "path" is the svg element for lines
-        .classed("line", true)
-        // .on("mouseover", onMouseOver) //Add listener for the mouseover event
-        // .on("mouseout", onMouseOut)   //Add listener for the mouseout event
-        .attr("d", (d => myLine(d)));
-        // .attr("width", x.bandwidth())
-        // .transition()
-        // .ease(d3.easeLinear)
-        // .duration(400)
-        // .delay((d, i) => (i * 50))
-        // .attr("height", d => (myHeight - y(d.value)));
+        .classed("mjoClass", true)
+        .attr("d",  (d => mjoClassLine(d)));
 
-    return {myFig, myAxes, myPlot}
+    myPlot.select('#mjoClasses')
+        .append("circle")
+        .attr("cx", x(0))
+        .attr("cy", y(0))
+        .attr("r", (x(1)-x(0)))
+        .classed("mjoClass", true)
+
+    return myPlot
 }
 
 export async function draw_mjo(
@@ -313,12 +400,9 @@ export async function draw_mjo(
     var x = d3.scaleLinear().range([0, dims.plot.width]),
     y = d3.scaleLinear().range([dims.plot.height, 0]);
 
-    // Draw classes and weak section
-    
-
     // Load the data and wait until it is ready
     const myData =  await d3.json(filename);
-    let data_xy = d3fy_mjo(myData);
+    let data_xy = d3fy(myData);
 
     // Now we can specify the domain of our scales
     x.domain([-vmax, vmax]);
@@ -341,7 +425,7 @@ export async function draw_mjo(
         .text("RMM1");
 
     myPlot.select('#yaxis')
-        .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d).ticks(10));
+        .call(d3.axisLeft(y).tickSizeOuter(0));
 
     myPlot = style_ticks(myPlot);
 
@@ -355,6 +439,7 @@ export async function draw_mjo(
 
     // This element will render the lines
     myPlot.append('g')
+        .attr('id', 'members')
         .selectAll('.line')
         .data(data_xy)
         .enter()
@@ -362,13 +447,17 @@ export async function draw_mjo(
         .classed("line", true)
         // .on("mouseover", onMouseOver) //Add listener for the mouseover event
         // .on("mouseout", onMouseOut)   //Add listener for the mouseout event
-        .attr("d", (d => myLine(d)));
+        .attr("d", (d => myLine(d)))
+        .attr("id", ((d, i) => i));
         // .attr("width", x.bandwidth())
         // .transition()
         // .ease(d3.easeLinear)
         // .duration(400)
         // .delay((d, i) => (i * 50))
         // .attr("height", d => (myHeight - y(d.value)));
+
+    // Add mjo classes lines
+    myPlot = draw_mjo_classes(myPlot, x, y, vmax=vmax);
 
     return {myFig, myAxes, myPlot}
 }
