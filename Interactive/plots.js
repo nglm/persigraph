@@ -146,6 +146,8 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
         .attr('height', dims.fig.height)
         .classed("fig", true);
 
+    let figElem = document.getElementById(fig_id);
+
     // Create our fig group
     let myFig = d3.select("body")
         .select('#'+fig_id)
@@ -257,21 +259,20 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
     myPlot.append("g")
         .attr('id', 'yaxis');
 
-    return {myFig, myAxes, myPlot}
+    return figElem
 }
 
-export function style_ticks(myPlot) {
-    myPlot.select('#yaxis')
+export function style_ticks(figElem) {
+
+    d3.select(figElem.getElementById("yaxis"))
         .selectAll('.tick')       // Select all ticks
         .selectAll('text')        // Select the text associated with each tick
         .classed("ytext", true);  // Style the text
 
-    myPlot.select('#xaxis')
+    d3.select(figElem.getElementById("xaxis"))
         .selectAll(".tick")       // Select all ticks,
         .selectAll("text")        // Select the text associated with each tick
         .classed("xtext", true);  // Style the text
-
-    return myPlot
 }
 
 export async function draw_meteogram(
@@ -294,21 +295,16 @@ export async function draw_meteogram(
         const ymin = d3.min(myData.members, (d => d3.min(d[iplot])) ),
             ymax = d3.max(myData.members, (d => d3.max(d[iplot])) );
 
-        let meteogram = draw_fig(dims, fig_id + "_" + iplot);
-
-        let FigElem = document.getElementById(fig_id + "_" + iplot);
-        let myFig = meteogram.myFig;
-        let myAxes = meteogram.myAxes;
-        let myPlot = meteogram.myPlot;
+        let figElem = draw_fig(dims, fig_id + "_" + iplot);
+        let myPlot = d3.select(figElem.getElementById("plot-group"));
 
         // Reminder:
-        // - domain: min/max values of input data
         // - Range: output range that input values to map to
         // - scaleLinear: Continuous domain mapped to continuous output range
         let x = d3.scaleLinear().range([0, dims.plot.width]),
             y = d3.scaleLinear().range([dims.plot.height, 0]);
 
-        // Now we can specify the domain of our scales
+        // Reminder: domain = min/max values of input data
         x.domain([ d3.min(myData.time), d3.max(myData.time) ] );
         y.domain([ymin, ymax]);
 
@@ -321,15 +317,14 @@ export async function draw_meteogram(
             // Create many sub-groups for the yAxis
             .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
 
-        // Add titles and labels
-        setFigTitle(FigElem, "Figure");
-        setAxTitle(FigElem, myData.filename);
-        setXLabel(FigElem, "Time (h)");
+        // Add titles and labels  and style ticks
+        setFigTitle(figElem, "Figure");
+        setAxTitle(figElem, myData.filename);
+        setXLabel(figElem, "Time (h)");
         setYLabel(
-            FigElem, myData.long_name[iplot] +" (" + myData.units[iplot] + ")"
+            figElem, myData.long_name[iplot] +" (" + myData.units[iplot] + ")"
         );
-
-        myPlot = style_ticks(myPlot);
+        style_ticks(figElem);
 
         const myLine = d3.line()
             .x(d => x(d.t))
@@ -348,13 +343,14 @@ export async function draw_meteogram(
             .attr("d", (d => myLine(d)))  // How to compute x and y
             .attr("id", ((d, i) => i));   // Member's id (for selection)
 
-        figs.push({myFig, myAxes, myPlot});
-        interactiveGroup.push(document.getElementById(fig_id+"_"+iplot));
+        figs.push(figElem);
+        interactiveGroup.push(figElem);
     }
     return figs
 }
 
-function draw_mjo_classes(myPlot, x, y, vmax=5) {
+function draw_mjo_classes(figElem, x, y, vmax=5) {
+
     // Draw classes and weak section
     const mjoClassLine = d3.line()
         .x(d => x(d.x))
@@ -377,6 +373,8 @@ function draw_mjo_classes(myPlot, x, y, vmax=5) {
         [ { x: limit, y: -limit}, { x: vmax, y: -vmax} ]
     ];
 
+    let myPlot = d3.select(figElem.getElementById("plot-group"));
+
     // Put all lines in one group
     myPlot.append('g')
         .attr('id', 'mjoClasses');
@@ -395,8 +393,6 @@ function draw_mjo_classes(myPlot, x, y, vmax=5) {
         .attr("cy", y(0))
         .attr("r", (x(1)-x(0)))
         .classed("mjoClass", true)
-
-    return myPlot
 }
 
 export async function draw_mjo(
@@ -406,24 +402,20 @@ export async function draw_mjo(
     interactiveGroup=[],
 ) {
 
-    let mjo = draw_fig(dims, fig_id);
-
-    let FigElem = document.getElementById(fig_id);
-    let myFig = mjo.myFig;
-    let myAxes = mjo.myAxes;
-    let myPlot = mjo.myPlot;
+    let figElem = draw_fig(dims, fig_id);
+    let myPlot = d3.select(figElem.getElementById("plot-group"));
     let vmax = 5;
 
+    // x y scales and their range <-> domain
     var x = d3.scaleLinear().range([0, dims.plot.width]),
     y = d3.scaleLinear().range([dims.plot.height, 0]);
+
+    x.domain([-vmax, vmax]);
+    y.domain([-vmax, vmax]);
 
     // Load the data and wait until it is ready
     const myData =  await d3.json(filename);
     let data_xy = d3fy(myData);
-
-    // Now we can specify the domain of our scales
-    x.domain([-vmax, vmax]);
-    y.domain([-vmax, vmax]);
 
     // This element will render the xAxis with the xLabel
     myPlot.select('#xaxis')
@@ -432,13 +424,12 @@ export async function draw_mjo(
     myPlot.select('#yaxis')
         .call(d3.axisLeft(y).tickSizeOuter(0));
 
-    // Add titles and labels
-    setFigTitle(FigElem, "Figure");
-    setAxTitle(FigElem, myData.filename);
-    setXLabel(FigElem, "RMM1");
-    setYLabel(FigElem, "RMM2");
-
-    myPlot = style_ticks(myPlot);
+    // Add titles and labels and style ticks
+    setFigTitle(figElem, "Figure");
+    setAxTitle(figElem, myData.filename);
+    setXLabel(figElem, "RMM1");
+    setYLabel(figElem, "RMM2");
+    style_ticks(figElem);
 
     const myLine = d3.line()
         .x(d => x(d.rmm1))
@@ -458,10 +449,10 @@ export async function draw_mjo(
         .attr("id", ((d, i) => i));
 
     // Add mjo classes lines
-    myPlot = draw_mjo_classes(myPlot, x, y, vmax=vmax);
+    draw_mjo_classes(figElem, x, y, vmax=vmax);
 
-    interactiveGroup.push(document.getElementById(fig_id));
-    return {myFig, myAxes, myPlot}
+    interactiveGroup.push(figElem);
+    return figElem
 }
 
 //mouseover event handler function using closure
