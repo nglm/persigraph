@@ -26,6 +26,7 @@ export function dimensions({
     let fig, labels, axes, plot;
     labels = { x: labelsX, y: labelsY, axes: labelsAxes, fig: labelsFig };
 
+    // Compute dimensions based on fig size
     if (plotWidth === undefined) {
         fig = {
             width: figWidth, height: figHeight,
@@ -53,6 +54,7 @@ export function dimensions({
             },
         };
     }
+    // Compute dimensions based on plot size
     else {
 
         plot = {
@@ -87,8 +89,47 @@ export function dimensions({
 
 const DIMS = dimensions();
 
-export function draw_fig(dims = DIMS, fig_id = 'fig') {
+export function setFigTitle() {
 
+}
+
+export function setAxTitle() {
+
+}
+
+export function setXLabel() {
+
+}
+
+export function setYLabel() {
+
+}
+
+export function draw_fig(dims = DIMS, fig_id = 'fig') {
+    /* -------------- fig architecture --------------
+    fig01
+    -- background
+    -- fig-group
+    ---- figtitle
+    ---- main
+    ------ axes
+
+    axes
+    -- axes-group
+    ---- axtitle
+    ---- main
+    ------ xlabel
+    ------ ylabel
+    ------ plot
+
+    plot
+    -- background
+    -- plot-group
+    ---- xaxis
+    ---- yaxis
+    ---- members
+    ---- mjoClasses
+    ------------------------------------------------*/
 
     // Append 'svg' DOM element at the end of the document to contain our fig
     d3.select("body")
@@ -230,22 +271,46 @@ export function style_ticks(myPlot) {
     return myPlot
 }
 
+// function add_members(
+//     data,
+//     plot,
+//     lineFunction,
+//     onMouseOverHandler,
+//     onMouseOutHandler
+// ) {
+//     console.log("couocu")
+//     plot.append('g')
+//         .attr('id', 'members')
+//         .selectAll('.line')
+//         .data(data)
+//         .enter()
+//         .append("path")               // "path" is the svg element for lines
+//         .classed("line", true)        // Style
+//         .on("mouseover", onMouseOverHandler) // listener for mouseover event
+//         .on("mouseout",onMouseOutHandler)    // listener for mouseout event
+//         .attr("d", (d => lineFunction(d)))   // How to compute x and y
+//         .attr("id", ((d, i) => i));          // Member's id (for selection)
+
+//     return plot
+// }
+
 export async function draw_meteogram(
     filename,
     dims = dimensions(),
     fig_id="fig",
     interactiveGroup=[],
 ) {
-    // "async" so that we can call 'await' inside and therefore use the data
-
     // Load the data and wait until it is ready
     const myData =  await d3.json(filename);
+    // d3 expects a very specific data format
     let data_xy = d3fy(myData);
-
+    // where we will store all our figs
     let figs = [];
 
+    // We create a new fig for each variable
     for(var iplot = 0; iplot < myData.var_names.length; iplot++ ) {
 
+        // Find extremum to set axes limits
         const ymin = d3.min(myData.members, (d => d3.min(d[iplot])) ),
             ymax = d3.max(myData.members, (d => d3.max(d[iplot])) );
 
@@ -257,17 +322,13 @@ export async function draw_meteogram(
 
         // Reminder:
         // - domain: min/max values of input data
-        // - Range: output range that input values to map to.
-        // - scaleOrdinal from discrete to discrete numeric output range.
-        // - scaleBand from discrete to continuous
+        // - Range: output range that input values to map to
         // - scaleLinear: Continuous domain mapped to continuous output range
         let x = d3.scaleLinear().range([0, dims.plot.width]),
-        y = d3.scaleLinear().range([dims.plot.height, 0]);
+            y = d3.scaleLinear().range([dims.plot.height, 0]);
 
         // Now we can specify the domain of our scales
-        x.domain([
-            d3.min(myData.time, (d => d)), d3.max(myData.time, (d => d)) ]
-        );
+        x.domain([ d3.min(myData.time), d3.max(myData.time) ] );
         y.domain([ymin, ymax]);
 
         // Add the title of the figure
@@ -281,16 +342,6 @@ export async function draw_meteogram(
         // This element will render the xAxis with the xLabel
         myPlot.select('#xaxis')
             // Create many sub-groups for the xAxis
-            //
-            // D3’s "call(myF)" takes a selection as input and hands that
-            // selection off to any function myF.
-            // So selection.call(myF) is equiv to myF(selection)
-            //
-            // d3.axisBottom(scale) constructs a x-axis generator for the given
-            // scale, with empty tick arguments, a tick size of 6 and padding of 3.
-            // In this orientation, ticks are drawn below the line.
-            // Note that this generator has to be called (using .call) by a
-            // svg element in order to render the axis onto the HTML page
             .call(d3.axisBottom(x).tickSizeOuter(0));
 
         myAxes.select('#main')
@@ -327,7 +378,6 @@ export async function draw_meteogram(
         figs.push({myFig, myAxes, myPlot});
         interactiveGroup.push(document.getElementById(fig_id+"_"+iplot));
     }
-
     return figs
 }
 
@@ -450,7 +500,7 @@ export async function draw_mjo(
     return {myFig, myAxes, myPlot}
 }
 
-//mouseover event handler function
+//mouseover event handler function using closure
 function onMouseOver(interactiveGroup, e, d) {
     return function (e, d) {
         for (var elem of interactiveGroup) {
@@ -460,7 +510,7 @@ function onMouseOver(interactiveGroup, e, d) {
     }
 }
 
-//mouseout event handler function
+//mouseout event handler function using closure
 function onMouseOut(interactiveGroup, e, d) {
     return function (e, d) {
         for (var elem of interactiveGroup) {
