@@ -89,20 +89,23 @@ export function dimensions({
 
 const DIMS = dimensions();
 
-export function setFigTitle() {
-
+function setInnerHTMLById(elem, id, text) {
+    elem.getElementById(id).innerHTML = text;
 }
 
-export function setAxTitle() {
-
+export function setFigTitle(figElem, text) {
+    setInnerHTMLById(figElem, "figtitle", text);
 }
 
-export function setXLabel() {
-
+export function setAxTitle(figElem, text) {
+    setInnerHTMLById(figElem, "axtitle", text);
+}
+export function setXLabel(figElem, text) {
+    setInnerHTMLById(figElem, "xlabel", text);
 }
 
-export function setYLabel() {
-
+export function setYLabel(figElem, text) {
+    setInnerHTMLById(figElem, "ylabel", text);
 }
 
 export function draw_fig(dims = DIMS, fig_id = 'fig') {
@@ -293,6 +296,7 @@ export async function draw_meteogram(
 
         let meteogram = draw_fig(dims, fig_id + "_" + iplot);
 
+        let FigElem = document.getElementById(fig_id + "_" + iplot);
         let myFig = meteogram.myFig;
         let myAxes = meteogram.myAxes;
         let myPlot = meteogram.myPlot;
@@ -308,32 +312,24 @@ export async function draw_meteogram(
         x.domain([ d3.min(myData.time), d3.max(myData.time) ] );
         y.domain([ymin, ymax]);
 
-        // Add the title of the figure
-        myFig.select('#figtitle')
-            .text("Figure");
-
-        // Add the title of the axes
-        myAxes.select('#axtitle')
-            .text(myData.filename);
-
         // This element will render the xAxis with the xLabel
         myPlot.select('#xaxis')
             // Create many sub-groups for the xAxis
             .call(d3.axisBottom(x).tickSizeOuter(0));
 
-        myAxes.select('#main')
-            .select('#xlabel')
-            .text("Time (h)");
-
         myPlot.select('#yaxis')
             // Create many sub-groups for the yAxis
             .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
 
-        myPlot = style_ticks(myPlot);
+        // Add titles and labels
+        setFigTitle(FigElem, "Figure");
+        setAxTitle(FigElem, myData.filename);
+        setXLabel(FigElem, "Time (h)");
+        setYLabel(
+            FigElem, myData.long_name[iplot] +" (" + myData.units[iplot] + ")"
+        );
 
-        myAxes.select('#main')
-            .select("#ylabel")
-            .text(myData.long_name[iplot] +" (" + myData.units[iplot] + ")");
+        myPlot = style_ticks(myPlot);
 
         const myLine = d3.line()
             .x(d => x(d.t))
@@ -412,6 +408,7 @@ export async function draw_mjo(
 
     let mjo = draw_fig(dims, fig_id);
 
+    let FigElem = document.getElementById(fig_id);
     let myFig = mjo.myFig;
     let myAxes = mjo.myAxes;
     let myPlot = mjo.myPlot;
@@ -428,30 +425,20 @@ export async function draw_mjo(
     x.domain([-vmax, vmax]);
     y.domain([-vmax, vmax]);
 
-    // Add the title of the figure
-    myFig.select('#figtitle')
-        .text("Figure");
-
-    // Add the title of the axes
-    myAxes.select('#axtitle')
-        .text(myData.filename);
-
     // This element will render the xAxis with the xLabel
     myPlot.select('#xaxis')
         .call(d3.axisBottom(x).tickSizeOuter(0));
 
-    myAxes.select('#main')
-        .select('#xlabel')
-        .text("RMM1");
-
     myPlot.select('#yaxis')
         .call(d3.axisLeft(y).tickSizeOuter(0));
 
-    myPlot = style_ticks(myPlot);
+    // Add titles and labels
+    setFigTitle(FigElem, "Figure");
+    setAxTitle(FigElem, myData.filename);
+    setXLabel(FigElem, "RMM1");
+    setYLabel(FigElem, "RMM2");
 
-    myAxes.select('#main')
-        .select("#ylabel")
-        .text('RMM2');
+    myPlot = style_ticks(myPlot);
 
     const myLine = d3.line()
         .x(d => x(d.rmm1))
