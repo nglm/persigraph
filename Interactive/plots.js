@@ -271,29 +271,6 @@ export function style_ticks(myPlot) {
     return myPlot
 }
 
-// function add_members(
-//     data,
-//     plot,
-//     lineFunction,
-//     onMouseOverHandler,
-//     onMouseOutHandler
-// ) {
-//     console.log("couocu")
-//     plot.append('g')
-//         .attr('id', 'members')
-//         .selectAll('.line')
-//         .data(data)
-//         .enter()
-//         .append("path")               // "path" is the svg element for lines
-//         .classed("line", true)        // Style
-//         .on("mouseover", onMouseOverHandler) // listener for mouseover event
-//         .on("mouseout",onMouseOutHandler)    // listener for mouseout event
-//         .attr("d", (d => lineFunction(d)))   // How to compute x and y
-//         .attr("id", ((d, i) => i));          // Member's id (for selection)
-
-//     return plot
-// }
-
 export async function draw_meteogram(
     filename,
     dims = dimensions(),
