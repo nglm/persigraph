@@ -223,8 +223,8 @@ export function style_ticks(myPlot) {
         .classed("ytext", true);  // Style the text
 
     myPlot.select('#xaxis')
-        .selectAll(".tick")      // Select all ticks,
-        .selectAll("text")       // Select the text associated with each tick
+        .selectAll(".tick")       // Select all ticks,
+        .selectAll("text")        // Select the text associated with each tick
         .classed("xtext", true);  // Style the text
 
     return myPlot
@@ -234,6 +234,7 @@ export async function draw_meteogram(
     filename,
     dims = dimensions(),
     fig_id="fig",
+    interactiveGroup=[],
 ) {
     // "async" so that we can call 'await' inside and therefore use the data
 
@@ -257,17 +258,16 @@ export async function draw_meteogram(
         // Reminder:
         // - domain: min/max values of input data
         // - Range: output range that input values to map to.
-        // - scaleOrdinal from discrete and map to discrete numeric output range.
-        // - scaleBand like scaleOrdinal except the output range is continuous and
-        // numeric (so from discrete to continuous)
+        // - scaleOrdinal from discrete to discrete numeric output range.
+        // - scaleBand from discrete to continuous
         // - scaleLinear: Continuous domain mapped to continuous output range
         let x = d3.scaleLinear().range([0, dims.plot.width]),
         y = d3.scaleLinear().range([dims.plot.height, 0]);
 
-
-
         // Now we can specify the domain of our scales
-        x.domain([ d3.min(myData.time, (d => d)), d3.max(myData.time, (d => d)) ]);
+        x.domain([
+            d3.min(myData.time, (d => d)), d3.max(myData.time, (d => d)) ]
+        );
         y.domain([ymin, ymax]);
 
         // Add the title of the figure
@@ -280,7 +280,7 @@ export async function draw_meteogram(
 
         // This element will render the xAxis with the xLabel
         myPlot.select('#xaxis')
-            // The next line will create many sub-groups for the xAxis
+            // Create many sub-groups for the xAxis
             //
             // D3’s "call(myF)" takes a selection as input and hands that
             // selection off to any function myF.
@@ -298,9 +298,7 @@ export async function draw_meteogram(
             .text("Time (h)");
 
         myPlot.select('#yaxis')
-            // The next line will create many sub-groups for the yAxis
-            // We can specify the tickFormat with '.tickFormat()'. Otherwise
-            // raw range values are written (see xAxis above)
+            // Create many sub-groups for the yAxis
             .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
 
         myPlot = style_ticks(myPlot);
@@ -320,21 +318,15 @@ export async function draw_meteogram(
             .data(data_xy)
             .enter()
             .append("path")  // "path" is the svg element for lines
-            .classed("line", true)
-            // .on("mouseover", onMouseOver) //Add listener for the mouseover event
-            // .on("mouseout", onMouseOut)   //Add listener for the mouseout event
-            .attr("d", (d => myLine(d)))
-            .attr("id", ((d, i) => i));
-            // .attr("width", x.bandwidth())
-            // .transition()
-            // .ease(d3.easeLinear)
-            // .duration(400)
-            // .delay((d, i) => (i * 50))
-            // .attr("height", d => (myHeight - y(d.value)));
+            .classed("line", true)        // Style
+            .on("mouseover", onMouseOver(interactiveGroup)) // Add listener for mouseover event
+            .on("mouseout", onMouseOut(interactiveGroup))   // Add listener for mouseout event
+            .attr("d", (d => myLine(d)))  // How to compute x and y
+            .attr("id", ((d, i) => i));   // Member's id (for selection)
 
         figs.push({myFig, myAxes, myPlot});
+        interactiveGroup.push(document.getElementById(fig_id+"_"+iplot));
     }
-
 
     return figs
 }
@@ -388,6 +380,7 @@ export async function draw_mjo(
     filename,
     dims = dimensions(),
     fig_id="fig",
+    interactiveGroup=[],
 ) {
 
     let mjo = draw_fig(dims, fig_id);
@@ -445,70 +438,35 @@ export async function draw_mjo(
         .enter()
         .append("path")  // "path" is the svg element for lines
         .classed("line", true)
-        // .on("mouseover", onMouseOver) //Add listener for the mouseover event
-        // .on("mouseout", onMouseOut)   //Add listener for the mouseout event
+        .on("mouseover", onMouseOver(interactiveGroup)) //Add listener for the mouseover event
+        .on("mouseout", onMouseOut(interactiveGroup))   //Add listener for the mouseout event
         .attr("d", (d => myLine(d)))
         .attr("id", ((d, i) => i));
-        // .attr("width", x.bandwidth())
-        // .transition()
-        // .ease(d3.easeLinear)
-        // .duration(400)
-        // .delay((d, i) => (i * 50))
-        // .attr("height", d => (myHeight - y(d.value)));
 
     // Add mjo classes lines
     myPlot = draw_mjo_classes(myPlot, x, y, vmax=vmax);
 
+    interactiveGroup.push(document.getElementById(fig_id));
     return {myFig, myAxes, myPlot}
 }
 
 //mouseover event handler function
-function onMouseOver(e, d) {
-
-    // The selection.transition method now takes an optional transition
-    // instance which can be used to synchronize a new transition with an
-    // existing transition
-    //
-    // In this callback function we will use this optional parameter
-    // and in the next callback we will chain all the functions.
-    //
-    // .ease() control apparent motion in animation
-    // .ease(d3.easeLinear) is actually the default configuration so
-    // we could have omitted it (we will in the next callback function)
-    const tr = d3.transition().duration(400).ease(d3.easeLinear);
-
-    // Change the attributes of the DOM element ('this') associated with
-    // the event fired
-    // Note that the style itself has already been configured in
-    // the css subclass '.bar:hover'
-    // We could have changed to a completely different class also
-    d3.select(this).transition(tr)
-        .attr("width", (x.bandwidth() + 5))
-        .attr("height", d => (myHeight - y(d.value) + 10))
-        .attr("y", d => (y(d.value) - 10) );
-
-    // Show the value corresponding to this bar
-    myAxes.append("text")
-        .attr('class', 'val')
-        .attr('x', () => x(d.year))
-        .attr('y', () => (y(d.value) - 15))
-        .text(() => ('$' +d.value) );
+function onMouseOver(interactiveGroup, e, d) {
+    return function (e, d) {
+        for (var elem of interactiveGroup) {
+            elem.getElementById(this.id)
+                .setAttribute("class", "lineSelected");
+        }
+    }
 }
 
 //mouseout event handler function
-function onMouseOut(e, d) {
-
-    // Note that the style itself has already been configured in
-    // the css subclass '.bar:hover'
-    d3.select(this)
-        .transition()   // initiate a transition
-        .duration(400)  // specifies the duration of the transition
-        .attr('width', x.bandwidth())
-        .attr("y", d => y(d.value))
-        .attr("height", d => (axes.height - y(d.value)));
-
-    // removes the text value we had added during the bar selection
-    d3.selectAll('.val')
-        .remove()
+function onMouseOut(interactiveGroup, e, d) {
+    return function (e, d) {
+        for (var elem of interactiveGroup) {
+            elem.getElementById(this.id)
+                .setAttribute("class", "line");
+        }
+    }
 }
 

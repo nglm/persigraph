@@ -11,12 +11,14 @@ const f5 = "z_s2s_rmm_ecmf_prod_rt_2020120300";
 let dims_meteogram = dimensions();
 let dims_mjo = dimensions({plotWidth : 400, plotHeight : 400});
 
-// let meteogram01 = draw_meteogram(data_path + f1, undefined, "fig01");
-// let meteogram02 = draw_meteogram(data_path + f2, undefined, "fig02");
-// let meteogram03 = draw_meteogram(data_path + f3, undefined, "fig03");
+let interactiveGroup = [];
 
-let meteograms = await draw_meteogram(data_path + f4, undefined, "fig01");
-let mjo01 = await draw_mjo(data_path + f4, dims_mjo, "fig04");
+// await draw_meteogram(data_path + f1, undefined, "fig01", interactiveGroup);
+// await draw_meteogram(data_path + f2, undefined, "fig02", interactiveGroup);
+// await draw_meteogram(data_path + f3, undefined, "fig03", interactiveGroup);
+
+await draw_meteogram(data_path + f4, undefined, "fig01", interactiveGroup);
+await draw_mjo(data_path + f4, dims_mjo, "fig04", interactiveGroup);
 
 // await draw_meteogram(data_path + f4, undefined, "fig01");
 // await draw_mjo(data_path + f4, dims_mjo, "fig04");

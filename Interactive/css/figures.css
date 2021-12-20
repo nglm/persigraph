@@ -75,7 +75,14 @@
 .line:hover {
     fill: none;
     stroke: red;
-    stroke-width: 2;
+    stroke-width: 8;
+    stroke-opacity: 1;
+}
+
+.lineSelected {
+    fill: none;
+    stroke: red;
+    stroke-width: 4;
     stroke-opacity: 1;
 }
 
