@@ -276,10 +276,9 @@ def extract_from_mjo(
     members = np.zeros((N, 2, T))
     # Find the right values
     for i in range(N):
-        for t in range(T):
-            values = df[(df.a == t) & (df.c == i)]
-            members[i, 0, t] = float(values.d)
-            members[i, 1, t] = float(values.e)
+        tmp = df[(df.c == i)]
+        members[i, 0, :] = tmp['d'].to_numpy()
+        members[i, 1, :] = tmp['e'].to_numpy()
     if smooth:
         members = smoothing_mjo(members)
 
