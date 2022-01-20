@@ -1127,9 +1127,11 @@ class PersistentGraph():
         return self._sorted_steps
 
     @property
-    def n_clusters_range(self):
+    def n_clusters_range(self) -> Sequence[int]:
         """
-        [summary]
+        Range of number of clusters studied
+
+        :rtype: Sequence[int]
         """
         return self._n_clusters_range
 
