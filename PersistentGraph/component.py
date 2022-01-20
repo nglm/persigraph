@@ -153,7 +153,7 @@ class Component():
     def time_step(self, t: int):
         if (t < 0):
             raise ValueError("t should be >= 0")
-        self.__time_step = t
+        self.__time_step = int(t)
 
     @property
     def members(self) -> List[int]:
@@ -191,6 +191,11 @@ class Component():
         :rtype: int
         """
         return self.__nb_members
+
+    @nb_members.setter
+    def nb_members(self, nb_members):
+        self.__nb_members = int(nb_members)
+
 
     @property
     def scores(self) -> Sequence[float]:

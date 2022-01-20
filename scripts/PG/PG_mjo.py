@@ -44,7 +44,7 @@ SCORE_TYPES = ['max_inertia']
 
 ZERO_TYPE = 'bounds'
 
-save_spaghetti = True
+save_spaghetti = False
 save_individual = False
 save_mean = False
 
@@ -311,6 +311,7 @@ def main():
                     fig0.savefig(name_fig)
                     plt.close()
                     g.save(name_graph)
+                    g.save(name_graph, type='json')
 
 
 

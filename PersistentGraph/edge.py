@@ -53,16 +53,16 @@ class Edge(Component):
         return res
 
     @property
-    def v_start(self) -> int:
+    def v_start(self) -> Vertex:
         """
         Vertex from which Edge comes
 
-        :rtype: int
+        :rtype: Vertex
         """
         return self.__v_start
 
     @v_start.setter
-    def v_start(self, v_start: int):
+    def v_start(self, v_start: Vertex):
         if v_start is not None:
             # if (v_start < 0):
             #     raise ValueError("v should be > O")
@@ -74,7 +74,7 @@ class Edge(Component):
         """
         Vertex to which Edge goes
 
-        :rtype: int
+        :rtype: Vertex
         """
         return self.__v_end
 

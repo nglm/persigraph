@@ -13,6 +13,7 @@ from ._scores import (
 )
 
 from ..utils.sorted_lists import insert_no_duplicate, concat_no_duplicate
+from ..utils.d3 import jsonify
 
 
 class PersistentGraph():
@@ -755,8 +756,8 @@ class PersistentGraph():
                 )
 
             # ==================== Update sorted_steps =======================
-            self._sorted_steps['time_steps'].append(t)
-            self._sorted_steps['local_step_nums'].append(step_t[t])
+            self._sorted_steps['time_steps'].append(int(t))
+            self._sorted_steps['local_step_nums'].append(int(step_t[t]))
             self._sorted_steps['ratio_scores'].append(
                 candidate_ratios[idx_candidate]
             )
@@ -803,10 +804,10 @@ class PersistentGraph():
         local_step_nums = -1 * np.ones(self.T, dtype = int)
         for s in range(self.nb_steps):
             # Find the next time step
-            t = self._sorted_steps['time_steps'][s]
+            t = int(self._sorted_steps['time_steps'][s])
             ratio =  self._sorted_steps['ratio_scores'][s]
             # Find the next local step at this time step
-            local_step_nums[t] = self._sorted_steps['local_step_nums'][s]
+            local_step_nums[t] = int(self._sorted_steps['local_step_nums'][s])
             local_s = local_step_nums[t]
 
             # Find the new vertices (so vertices created at this step)
@@ -957,29 +958,12 @@ class PersistentGraph():
         if self._verbose:
             print('Edges constructed in %.2f s' %(t_end - t_start))
 
-    def jsonify(self):
-        # Find all class property names
-        property_names = [
-            p for p in dir(PersistentGraph)
-            if isinstance(getattr(PersistentGraph, p), property)
-        ]
-        class_dict = {}
-        for p_name in property_names:
-            # property value
-            p_value = getattr(self, p_name)
-            # Serialize value if necessary
-            if isinstance(p_value, np.ndarray):
-                class_dict[p_name] = p_value.tolist()
-            else:
-                class_dict[p_name] = p_value
-        return class_dict
-
     def save(self, filename = None, path='', type='pg'):
         if filename is None:
             filename = self.name
         if type == 'json':
             with open(path + filename + '.json', 'w', encoding='utf-8') as f:
-                class_dict = self.jsonify()
+                class_dict = jsonify(self)
                 json.dump(class_dict, f, ensure_ascii=False, indent=4)
         else:
             with open(path + filename + '.pg', 'wb') as f:
