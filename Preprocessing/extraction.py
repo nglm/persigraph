@@ -239,19 +239,20 @@ def extract_from_mjo(
     filename: str,
     path_data: str = '',
     smooth: bool = True,
+    polar: bool = False,
 ) -> Dict:
     """
     Extract "members, time" from MJO datafiles
 
     The files are organized as follows:
 
-    1. hours
-    2. type of member (mean, control or perturbed)
-    3. member's id
-    4. RMM1
-    5. RMM2
-    6. radius
-    7. MJO phase class
+    1 / a hours
+    2 / b type of member (mean, control or perturbed)
+    3 / c member's id
+    4 / d RMM1
+    5 / e RMM2
+    6 / f radius
+    7 / g MJO phase class
 
     :param filename: filename (including path)
     :type filename: str,
@@ -259,12 +260,12 @@ def extract_from_mjo(
     :rtype: Dict
     """
     # Find files
-    names = [x for x in 'abcdefghi'[:7]]
+    names = [x for x in 'abcdefg']
     df = pd.read_csv(path_data + filename, sep=' ', names=names, header=1)
     # Remove ensemble mean rows
     df = df[df['b'] != 'em']
-    # Remove useless columns
-    df = df[['a', 'c', 'd', 'e']]
+    # # Remove useless columns
+    # df = df[['a', 'c', 'd', 'e']]
     # Time steps
     time = list(set([h for h in df['a']]))
     time.sort()
@@ -274,22 +275,43 @@ def extract_from_mjo(
     N = int(df[['c']].max())+1
     T = int(df[['a']].max())+1
     members = np.zeros((N, 2, T))
-    # Find the right values
-    for i in range(N):
-        tmp = df[(df.c == i)]
-        members[i, 0, :] = tmp['d'].to_numpy()
-        members[i, 1, :] = tmp['e'].to_numpy()
-    if smooth:
-        members = smoothing_mjo(members)
+    if polar:
+        # Find the right values
+        for i in range(N):
+            tmp = df[(df.c == i)]
+            # Radius
+            members[i, 0, :] = tmp['f'].to_numpy()
+            # Phase
+            members[i, 1, :] = np.arctan2(
+                tmp['e'].to_numpy(), tmp['d'].to_numpy()
+            )
+            k = _get_2pi_k(members[i, 1, :])
+            members[i, 1, :] += 2*np.pi*k
+        if smooth:
+            raise NotImplementedError('Extract polar coordinate from MJO not compatible with smoothing')
+    else:
+        # Find the right values
+        for i in range(N):
+            tmp = df[(df.c == i)]
+            members[i, 0, :] = tmp['d'].to_numpy()
+            members[i, 1, :] = tmp['e'].to_numpy()
+        if smooth:
+            members = smoothing_mjo(members)
 
     d = {}
     d['time'] = np.array(time)
     d['members'] = members
     d['control'] = None
-    d['units'] = ["RMM1", "RMM2"]
-    d["short_name"] = ["rmm"]*2
+    if polar:
+        d['units'] = ["Radius", "Phase"]
+        d["short_name"] = ["radius", "phase"]
+        d['var_names'] = ["radius", "phase"]
+    else:
+        d['units'] = ["RMM1", "RMM2"]
+        d["short_name"] = ["rmm"]*2
+        d['var_names'] = ["rmm1", "rmm2"]
     d['long_name'] = ['Real-Time Multivariate Index']*2
-    d['var_names'] = ["rmm1", "rmm2"]
+
 
     # Extract date from filename
     i = re.search(r"\d\d\d\d", filename).start()
@@ -307,12 +329,14 @@ def preprocess_mjo(
     filename: str,
     path_data: str = '',
     smooth: bool = False,
+    polar: bool = False,
     ):
     clear_double_space(path_data + filename)
     return extract_from_mjo(
         filename=filename,
         path_data=path_data,
-        smooth=smooth
+        smooth=smooth,
+        polar=polar,
     )
 
 def jsonify(data_dict):
@@ -416,7 +440,25 @@ def smoothing_mjo(members, cartesian=True, r=0.70):
 
 
 def _get_2pi_k(angles):
-    #sign = np.sign(angles)
+    # #sign = np.sign(angles)
+    # T = len(angles)
+    # #next_neg = sign[0] > 0
+    # k = [0]*T
+    # for t in range(1, T):
+    #     k[t] = k[t-1]
+    #     # was positive and gets negative 'by the left' (+1: 4pi/3 rule)
+    #     if (
+    #         (angles[t-1] >= 0 and angles[t] < 0)
+    #         and (abs(angles[t]+2*np.pi - angles[t-1]) <= 4*np.pi/3)
+    #     ):
+    #         k[t] += 1
+    #     # was negative and gets positive 'by the left' (-1: 2pi/3 rule)
+    #     elif (
+    #         (angles[t] > 0 and angles[t-1] < 0)
+    #         and (abs(angles[t-1]+2*np.pi - angles[t]) < 2*np.pi/3)
+    #     ):
+    #         k[t] -= 1
+    sign = np.sign(angles)
     T = len(angles)
     #next_neg = sign[0] > 0
     k = [0]*T
