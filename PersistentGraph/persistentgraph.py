@@ -2,6 +2,7 @@ import numpy as np
 from bisect import bisect, bisect_left, bisect_right, insort
 import time
 import pickle
+import json
 from typing import List, Sequence, Union, Any, Dict
 
 from . import Vertex
@@ -956,11 +957,31 @@ class PersistentGraph():
         if self._verbose:
             print('Edges constructed in %.2f s' %(t_end - t_start))
 
-    def save(self, filename = None, path=''):
+    def jsonify(self):
+        # Find all class property names
+        property_names = [
+            p for p in dir(self) if isinstance(getattr(self, p),property)
+        ]
+        class_dict = {}
+        for p_name in property_names:
+            # property value
+            p_value = getattr(self, p_name)
+            # Serialize value if necessary
+            if isinstance(p_value, np.ndarray):
+                class_dict[p_name] = p_value.tolist()
+            else:
+                class_dict[p_name] = p_value
+
+    def save(self, filename = None, path='', type='pg'):
         if filename is None:
             filename = self.name
-        with open(path + filename, 'wb') as f:
-            pickle.dump(self, f)
+        if type == 'json':
+            with open(path + filename + '.json', 'w', encoding='utf-8') as f:
+                class_dict = self.jsonify()
+                json.dump(class_dict, f, ensure_ascii=False, indent=4)
+        else:
+            with open(path + filename + '.pg', 'wb') as f:
+                pickle.dump(self, f)
 
     def load(self, filename, path=''):
         with open(path + filename, 'rb') as f:

@@ -453,7 +453,7 @@ def select_best_examples():
             path_fig + name +'_'
             + filename[:-3] + "_" + d['var_name'] +"_"+score
         )
-        name_graph = path_graph + filename[:-3] + '.pg'
+        name_graph = path_graph + filename[:-3]
 
         fig = plt.figure(figsize = FIG_SIZE, tight_layout=False)
         fig.subplots_adjust(left=0.03, bottom=0.08, right=0.998, top=0.995)
@@ -586,7 +586,7 @@ def select_best_examples():
             path_fig + name +'_'
             + filename[:-3] + "_" + d['var_name'] +"_"+score
         )
-        name_graph = path_graph + filename[:-3] + '.pg'
+        name_graph = path_graph + filename[:-3]
 
         fig = plt.figure(figsize = FIG_SIZE, tight_layout=False)
         n, m = 12, 24
@@ -710,7 +710,7 @@ def select_best_examples():
             path_fig + name +'_'
             + filename[:-3] + "_" + d['var_name'] +"_"+score
         )
-        name_graph = path_graph + filename[:-3] + '.pg'
+        name_graph = path_graph + filename[:-3]
 
 
         fig = plt.figure(figsize = FIG_SIZE, tight_layout=False)
