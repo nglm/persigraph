@@ -960,7 +960,8 @@ class PersistentGraph():
     def jsonify(self):
         # Find all class property names
         property_names = [
-            p for p in dir(self) if isinstance(getattr(self, p),property)
+            p for p in dir(PersistentGraph)
+            if isinstance(getattr(PersistentGraph, p), property)
         ]
         class_dict = {}
         for p_name in property_names:
@@ -971,6 +972,7 @@ class PersistentGraph():
                 class_dict[p_name] = p_value.tolist()
             else:
                 class_dict[p_name] = p_value
+        return class_dict
 
     def save(self, filename = None, path='', type='pg'):
         if filename is None:
