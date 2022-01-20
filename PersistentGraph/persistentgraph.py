@@ -1030,11 +1030,33 @@ class PersistentGraph():
         return self._nb_local_steps
 
     @property
-    def v_at_step(self):
+    def v_at_step(self) -> List[dict]:
+        """
+        List of vertex num and global step for each t and each local step
+
+        v_at_step[t] is a dict such that:
+
+        - v_at_step[t]['v'][local_step][i] is the vertex num of the
+        ith alive vertex at t at the given local step
+
+        - v_at_step[t]['global_step_nums'][local_step] is the global step
+        num associated with 'local_step' at 't'
+
+        :rtype: List[dict]
+        """
         return self._v_at_step
 
     @property
-    def e_at_step(self):
+    def e_at_step(self) -> List[dict]:
+        """
+        List of edge num and global step for each t and each pseudo local step
+
+        Local steps don't really refer to the algo's local steps since they
+        will be new edges at t whenever there is a new local step at t
+        OR at t+1
+
+        :rtype: List[dict]
+        """
         return self._e_at_step
 
 
