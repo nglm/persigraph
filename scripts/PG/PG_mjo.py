@@ -134,13 +134,25 @@ def main():
                 plt.close()
 
                 # ------ save dict------
-                json_file = PATH_SPAG_DICT + data_dict["filename"]
-                if smooth:
-                    json_file += '_smooth'
-                json_file += ".json"
-                with open(json_file, 'w', encoding='utf-8') as f:
-                    res = jsonify(data_dict)
-                    json.dump(res, f, ensure_ascii=False, indent=4)
+                for polar in [True, False]:
+                    json_file = PATH_SPAG_DICT + data_dict["filename"]
+                    if polar:
+                        json_file += '_polar'
+                        # Re-load data with polar coordinates
+                        data_dict_tmp = preprocess_mjo(
+                            filename = filename,
+                            path_data = PATH_DATA,
+                            smooth = False,
+                            polar = polar,
+                        )
+                    else:
+                        data_dict_tmp = data_dict.copy()
+                    if smooth and not polar:
+                        json_file += '_smooth'
+                    json_file += ".json"
+                    with open(json_file, 'w', encoding='utf-8') as f:
+                        res = jsonify(data_dict_tmp)
+                        json.dump(res, f, ensure_ascii=False, indent=4)
 
                 # ---- Plot mean (polar and not polar) ----
                 if save_mean:
