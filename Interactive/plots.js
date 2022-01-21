@@ -7,10 +7,10 @@ export function dimensions({
     figMarginLeft=5,
     figMarginRight=5,
     figMarginBottom=5,
-    labelsX=130,
-    labelsY=110,
+    labelsX=70,
+    labelsY=80,
     labelsAxes=50,
-    labelsFig=50,
+    labelsFig=0,
     axesMarginTop=5,
     axesMarginLeft=5,
     axesMarginRight=5,
@@ -149,6 +149,8 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
     let figElem = document.getElementById(fig_id);
 
     // Create our fig group
+    let fig_group_width = dims.fig.width - dims.fig.margin.left - dims.fig.margin.right;
+    let fig_group_height = dims.fig.height - dims.fig.margin.top - dims.fig.margin.bottom;
     let myFig = d3.select("body")
         .select('#'+fig_id)
         .append('g')
@@ -156,7 +158,10 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
         .attr(
             "transform",
             "translate(" + dims.fig.margin.left +","+ dims.fig.margin.top + ")"
-        );
+        )
+        .attr('width', fig_group_width)
+        .attr('height', fig_group_height);
+
 
     // Fig title
     myFig.append('text')
@@ -173,23 +178,27 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
             "transform",
             "translate(" + 0 + "," + dims.labels.fig + ")"
         )
-        .attr('width', dims.fig.width)
-        .attr('height', dims.fig.height - dims.labels.fig);
+        .attr('width', fig_group_width)
+        .attr('height', fig_group_height - dims.labels.fig);
 
     // create a new SVG and a group inside our fig to contain axes
     // Note that SVG groups 'g' can not be styled
+    let axes_group_width = dims.axes.width - dims.axes.margin.left - dims.axes.margin.right;
+    let axes_group_height = dims.axes.height - dims.axes.margin.top -  dims.axes.margin.bottom;
     let myAxes = myFig.select('#main')
         .append("svg")
         .attr("id", 'axes')
         .attr('width', dims.axes.width)
-        .attr('height', dims.axes.height - dims.labels.axes)
+        .attr('height', dims.axes.height)
         .classed('axes', true)
         .append('g')
         .attr("id", 'axes-group')
         .attr(
             "transform",
             "translate(" + dims.axes.margin.left+","+dims.axes.margin.top + ")"
-        );
+        )
+        .attr('width', axes_group_width)
+        .attr('height', axes_group_height);
 
     // Axes title
     myAxes.append('text')
@@ -206,15 +215,15 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
             "transform",
             "translate(" + 0 + "," + dims.labels.axes + ")"
         )
-        .attr('width', dims.axes.width)
-        .attr('height', dims.axes.height - dims.labels.axes);
+        .attr('width', axes_group_width)
+        .attr('height', axes_group_height - dims.labels.axes);
 
     // xlabel
     myAxes.select('#main')
         .append('text')
         .attr('id', 'xlabel')
         .attr("x", dims.labels.y + dims.plot.width/2)
-        .attr("y", dims.plot.height + dims.labels.x/2)
+        .attr("y", dims.plot.height + 0.80*dims.labels.x )
         .classed("xlabel", true);
 
     // ylabel
@@ -222,7 +231,7 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
         .append('text')
         .attr('id', 'ylabel')
         .attr("x", -dims.plot.height/2)
-        .attr("y", dims.labels.y/2)
+        .attr("y", 0.3*dims.labels.y)
         .classed("ylabel", true);
 
     // Add an svg element for our plot
@@ -230,6 +239,8 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
     myAxes.select('#main')
         .append('svg')
         .attr("id", 'plot')
+        .attr('width', axes_group_width)
+        .attr('height', axes_group_height - dims.labels.axes)
         .append('rect')                // And style it
         .attr("id", "background")
         .attr('width', dims.plot.width)
@@ -318,8 +329,8 @@ export async function draw_meteogram(
             .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
 
         // Add titles and labels  and style ticks
-        setFigTitle(figElem, "Figure");
-        setAxTitle(figElem, myData.filename);
+        setFigTitle(figElem, "");
+        setAxTitle(figElem, "");
         setXLabel(figElem, "Time (h)");
         setYLabel(
             figElem, myData.long_name[iplot] +" (" + myData.units[iplot] + ")"
@@ -425,8 +436,8 @@ export async function draw_mjo(
         .call(d3.axisLeft(y).tickSizeOuter(0));
 
     // Add titles and labels and style ticks
-    setFigTitle(figElem, "Figure");
-    setAxTitle(figElem, myData.filename);
+    setFigTitle(figElem, "");
+    setAxTitle(figElem, "");
     setXLabel(figElem, "RMM1");
     setYLabel(figElem, "RMM2");
     style_ticks(figElem);
@@ -447,7 +458,6 @@ export async function draw_mjo(
         .on("mouseout", onMouseOut(interactiveGroup))   //Add listener for the mouseout event
         .attr("d", (d => myLine(d)))
         .attr("id", ((d, i) => i));
-
     // Add mjo classes lines
     draw_mjo_classes(figElem, x, y, vmax=vmax);
 
