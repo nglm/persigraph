@@ -86,6 +86,10 @@
     stroke-opacity: 1;
 }
 
+.vertex {
+    fill: orange;
+}
+
 .bar {
     width: 25px;
     margin-right: 5px;

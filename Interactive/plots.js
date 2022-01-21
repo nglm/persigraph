@@ -465,6 +465,96 @@ export async function draw_mjo(
     return figElem
 }
 
+
+export async function draw_entire_graph(
+    filename_data,
+    filename_graph,
+    dims = dimensions(),
+    fig_id="fig",
+    interactiveGroup=[],
+) {
+    // Load the graph and wait until it is ready
+    const g =  await d3.json(filename_graph);
+    const vertices = g.vertices.flat();
+    const edges = g.edges;
+    const time = g.time_axis;
+    const members = g.members;
+
+    const data =  await d3.json(filename_data);
+
+    // where we will store all our figs
+    let figs = [];
+
+    // We create a new fig for each variable
+    for(var iplot = 0; iplot < g.d; iplot++ ) {
+
+        // Find extremum to set axes limits
+        const ymin = d3.min(g.members, (d => d3.min(d[iplot])) ),
+            ymax = d3.max(g.members, (d => d3.max(d[iplot])) );
+
+        let figElem = draw_fig(dims, fig_id + "_" + iplot);
+        let myPlot = d3.select(figElem.getElementById("plot-group"));
+
+        // Reminder:
+        // - Range: output range that input values to map to
+        // - scaleLinear: Continuous domain mapped to continuous output range
+        let x = d3.scaleLinear().range([0, dims.plot.width]),
+            y = d3.scaleLinear().range([dims.plot.height, 0]);
+
+        // Reminder: domain = min/max values of input data
+        x.domain([ d3.min(g.time_axis), d3.max(g.time_axis) ] );
+        y.domain([ymin, ymax]);
+
+        // This element will render the xAxis with the xLabel
+        myPlot.select('#xaxis')
+            // Create many sub-groups for the xAxis
+            .call(d3.axisBottom(x).tickSizeOuter(0));
+
+        myPlot.select('#yaxis')
+            // Create many sub-groups for the yAxis
+            .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
+
+        // Add titles and labels  and style ticks
+        setFigTitle(figElem, " ");
+        setAxTitle(figElem, "");
+        setXLabel(figElem, "Time (h)");
+        setYLabel(
+            figElem, data.long_name[iplot] +" (" + data.units[iplot] + ")"
+        );
+        style_ticks(figElem);
+
+        const vertex_fn = d3.line()
+            .x(d => x( g.time_axis(d.time_step) ))
+            .y(d => y( d.info.mean[iplot] ));
+
+        const edge_fn = d3.line()
+            .x(d => x( g.time_axis(d.time_step) ))
+            .y(d => y( d.info.mean[iplot] ));
+
+        // This element will render the lines
+        myPlot.append('g')
+            .attr('id', 'vertices')
+            .selectAll('.vertex')
+            .data(vertices)
+            .enter()
+            .append("circle")  // "path" is the svg element for lines
+            .classed("vertex", true)        // Style
+            // .on("mouseover", onMouseOver(interactiveGroup)) // Add listener for mouseover event
+            // .on("mouseout", onMouseOut(interactiveGroup))   // Add listener for mouseout event
+            .attr("cx", (d => x( g.time_axis[d.time_step] )))
+            .attr("cy", (d => y( d.info.mean[iplot] )))
+            .attr("r", (d => 5*d.ratio_members) )
+            .attr("opacity", (d => d.life_span) )
+            .attr("id", (d => d.key) );   // Member's id (for selection)
+
+        figs.push(figElem);
+        interactiveGroup.push(figElem);
+    }
+    return figs
+}
+
+
+
 //mouseover event handler function using closure
 function onMouseOver(interactiveGroup, e, d) {
     return function (e, d) {
