@@ -1,5 +1,29 @@
 import { d3fy } from "./preprocess.js";
 
+export const COLOR_BREWER = [
+    "#636363", // Grey
+    "#377eb8", // Blue
+    "#a65628", // Brown
+    "#984ea3", // Purple
+    "#e41a1c", // Red
+    "#4daf4a", // Green
+    "#ff7f00", // Orange
+    "#f781bf", // Pink
+    "#ffff33", // Yellow
+];
+
+export function get_list_colors(N){
+    let i = 0;
+    let colors = [];
+    while (i < N) {
+        for (var j = 0; j < COLOR_BREWER.length; j++ ){
+            colors.push(COLOR_BREWER[j]);
+            i++;
+        }
+    }
+    return colors
+}
+
 export function dimensions({
     figWidth=800,
     figHeight=600,
@@ -349,10 +373,10 @@ export async function draw_meteogram(
             .enter()
             .append("path")  // "path" is the svg element for lines
             .classed("line", true)        // Style
-            .on("mouseover", onMouseOver(interactiveGroup)) // Add listener for mouseover event
-            .on("mouseout", onMouseOut(interactiveGroup))   // Add listener for mouseout event
+            .on("mouseover", onMouseOverMember(interactiveGroup)) // Add listener for mouseover event
+            .on("mouseout", onMouseOutMember(interactiveGroup))   // Add listener for mouseout event
             .attr("d", (d => myLine(d)))  // How to compute x and y
-            .attr("id", ((d, i) => i));   // Member's id (for selection)
+            .attr("id", ((d, i) => "m" + i));   // Member's id (for selection)
 
         figs.push(figElem);
         interactiveGroup.push(figElem);
@@ -454,10 +478,10 @@ export async function draw_mjo(
         .enter()
         .append("path")  // "path" is the svg element for lines
         .classed("line", true)
-        .on("mouseover", onMouseOver(interactiveGroup)) //Add listener for the mouseover event
-        .on("mouseout", onMouseOut(interactiveGroup))   //Add listener for the mouseout event
+        .on("mouseover", onMouseOverMember(interactiveGroup)) //Add listener for the mouseover event
+        .on("mouseout", onMouseOutMember(interactiveGroup))   //Add listener for the mouseout event
         .attr("d", (d => myLine(d)))
-        .attr("id", ((d, i) => i));
+        .attr("id", ((d, i) => "m" + i));
     // Add mjo classes lines
     draw_mjo_classes(figElem, x, y, vmax=vmax);
 
@@ -479,6 +503,7 @@ export async function draw_entire_graph(
     const edges = g.edges;
     const time = g.time_axis;
     const members = g.members;
+    const colors = get_list_colors(g.n_clusters_range.length);
 
     const data =  await d3.json(filename_data);
 
@@ -539,13 +564,14 @@ export async function draw_entire_graph(
             .enter()
             .append("circle")  // "path" is the svg element for lines
             .classed("vertex", true)        // Style
-            // .on("mouseover", onMouseOver(interactiveGroup)) // Add listener for mouseover event
-            // .on("mouseout", onMouseOut(interactiveGroup))   // Add listener for mouseout event
+            .on("mouseover", onMouseOverCluster(interactiveGroup)) // Add listener for mouseover event
+            .on("mouseout", onMouseOutCluster(interactiveGroup))   // Add listener for mouseout event
             .attr("cx", (d => x( g.time_axis[d.time_step] )))
             .attr("cy", (d => y( d.info.mean[iplot] )))
-            .attr("r", (d => 5*d.ratio_members) )
+            .attr("r", (d => 10*d.ratio_members) )
             .attr("opacity", (d => d.life_span) )
-            .attr("id", (d => d.key) );   // Member's id (for selection)
+            .attr("fill", (d => colors[d.info.brotherhood_size[0]]))
+            .attr("id", (d => "v" + d.key) );
 
         figs.push(figElem);
         interactiveGroup.push(figElem);
@@ -556,22 +582,67 @@ export async function draw_entire_graph(
 
 
 //mouseover event handler function using closure
-function onMouseOver(interactiveGroup, e, d) {
+function onMouseOverMember(interactiveGroup, e, d) {
     return function (e, d) {
         for (var elem of interactiveGroup) {
-            elem.getElementById(this.id)
-                .setAttribute("class", "lineSelected");
+            try {
+                elem.getElementById(this.id)
+                    .setAttribute("class", "lineSelected");
+            }
+            catch(err) {}
         }
     }
 }
 
 //mouseout event handler function using closure
-function onMouseOut(interactiveGroup, e, d) {
+function onMouseOutMember(interactiveGroup, e, d) {
     return function (e, d) {
         for (var elem of interactiveGroup) {
-            elem.getElementById(this.id)
-                .setAttribute("class", "line");
+            try {
+                elem.getElementById(this.id)
+                    .setAttribute("class", "line");
+            }
+            catch(err) {}
         }
     }
 }
 
+//mouseover event handler function using closure
+function onMouseOverCluster(interactiveGroup, e, d) {
+    return function (e, d) {
+        for (var elem of interactiveGroup) {
+            try {
+                elem.getElementById(this.id)
+                    .setAttribute("class", "vertexSelected");
+            }
+            catch(err) {}
+            for (var m of d.members) {
+                try {
+                    elem.getElementById("m" + m)
+                        .setAttribute("class", "lineSelectedbyCluster");
+                }
+                catch(err) {}
+            }
+        }
+    }
+}
+
+//mouseout event handler function using closure
+function onMouseOutCluster(interactiveGroup, e, d) {
+    return function (e, d) {
+        for (var elem of interactiveGroup) {
+            try {
+                elem.getElementById(this.id)
+                    .setAttribute("class", "vertex");
+            }
+            catch(err) {}
+            for (var m of d.members) {
+                try {
+                    elem.getElementById("m" + m)
+                        .setAttribute("class", "line");
+                }
+                catch(err) {}
+            }
+        }
+    }
+}

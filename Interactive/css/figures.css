@@ -86,8 +86,22 @@
     stroke-opacity: 1;
 }
 
+.lineSelectedbyCluster {
+    fill: none;
+    stroke: red;
+    stroke-width: 0.8;
+    stroke-opacity: 1;
+}
+
 .vertex {
-    fill: orange;
+    stroke-width: 0;
+    stroke-opacity: 1;
+}
+
+.vertexSelected {
+    stroke-width: 4;
+    stroke: red;
+    stroke-opacity: 1;
 }
 
 .bar {

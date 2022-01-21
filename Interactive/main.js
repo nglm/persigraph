@@ -24,7 +24,7 @@ let mjo = await draw_mjo(data_path + f4, dims_mjo, "mjo", interactiveGroup);
 setAxTitle(mjo, f4);
 d3.select("body").append('text').html('<br>');
 let mjo_rmm = await draw_meteogram(data_path + f4, undefined, "mjo_rmm", interactiveGroup);
-let mjo_rmm_graph = await draw_entire_graph(data_path + f4, data_graph + f4, undefined, "mjo_rmm_graph", []);
+let mjo_rmm_graph = await draw_entire_graph(data_path + f4, data_graph + f4, undefined, "mjo_rmm_graph", interactiveGroup);
 let mjo_polar = await draw_meteogram(data_path + f4_polar, undefined, "mjo_polar", interactiveGroup);
 
 
