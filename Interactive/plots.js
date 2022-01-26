@@ -114,7 +114,8 @@ export function dimensions({
 const DIMS = dimensions();
 
 function setInnerHTMLById(elem, id, text) {
-    elem.getElementById(id).innerHTML = text;
+    let e = document.getElementById(elem.id+"_svg")
+    e.getElementById(id).innerHTML = text;
 }
 
 export function setFigTitle(figElem, text) {
@@ -134,12 +135,14 @@ export function setYLabel(figElem, text) {
 
 export function draw_fig(dims = DIMS, fig_id = 'fig') {
     /* -------------- fig architecture --------------
-    fig01
-    -- background
-    -- fig-group
-    ---- figtitle
-    ---- main
-    ------ axes
+    fig01 (div)
+    -- buttons
+    -- svg
+    ---- background
+    ---- fig-group
+    ------ figtitle
+    ------ main
+    -------- axes
 
     axes
     -- axes-group
@@ -156,12 +159,23 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
     ---- yaxis
     ---- members
     ---- mjoClasses
+    ------------------------------------------------
+    Other comments:
+    -- only 'document' and 'svg' elements have a '.getElementById() method
+    -- Therefore ids must be unique in the entire document or within a svg element
     ------------------------------------------------*/
 
-    // Append 'svg' DOM element at the end of the document to contain our fig
+
+    // Append 'div'>'svg'>'rect' elements at the end of 'body' to contain our fig
+    //
     d3.select("body")
-        .append('svg')
+        .append('div')
         .attr('id', fig_id)
+        .attr('width', dims.fig.width)
+        .attr('height', dims.fig.height)
+        .classed('container-fig', true)
+        .append('svg')
+        .attr('id', fig_id + "_svg")
         .attr('width', dims.fig.width)
         .attr('height', dims.fig.height)
         .append('rect')                // And style it
@@ -172,11 +186,12 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
 
     let figElem = document.getElementById(fig_id);
 
+
     // Create our fig group
     let fig_group_width = dims.fig.width - dims.fig.margin.left - dims.fig.margin.right;
     let fig_group_height = dims.fig.height - dims.fig.margin.top - dims.fig.margin.bottom;
-    let myFig = d3.select("body")
-        .select('#'+fig_id)
+    let myFig = d3.select(figElem)
+        .select('svg')
         .append('g')
         .attr("id", 'fig-group')
         .attr(
@@ -194,6 +209,16 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
         .attr("x", "50%")  // percentage based on the parent container
         .attr("y", dims.labels.fig/2)
         .classed("figtitle", true);
+
+
+    d3.select(figElem)
+        .append('input')
+        .attr('type', 'number')
+        .attr('value', 13)
+        .attr("name", "usrname")
+        .attr('x', 100)
+        .attr('y', 50);
+       //<input type="number" name="usrname" value=13>
 
     // Prepare the remaining part of the fig
     myFig.append('g')
@@ -299,12 +324,15 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
 
 export function style_ticks(figElem) {
 
-    d3.select(figElem.getElementById("yaxis"))
+    //d3.select(figElem.getElementById("yaxis"))
+    d3.select(figElem)
+        .select("#yaxis")
         .selectAll('.tick')       // Select all ticks
         .selectAll('text')        // Select the text associated with each tick
         .classed("ytext", true);  // Style the text
 
-    d3.select(figElem.getElementById("xaxis"))
+    d3.select(figElem)
+        .select("xyaxis")
         .selectAll(".tick")       // Select all ticks,
         .selectAll("text")        // Select the text associated with each tick
         .classed("xtext", true);  // Style the text
@@ -331,7 +359,7 @@ export async function draw_meteogram(
             ymax = d3.max(myData.members, (d => d3.max(d[iplot])) );
 
         let figElem = draw_fig(dims, fig_id + "_" + iplot);
-        let myPlot = d3.select(figElem.getElementById("plot-group"));
+        let myPlot = d3.select(figElem).select("#plot-group");
 
         // Reminder:
         // - Range: output range that input values to map to
@@ -408,7 +436,8 @@ function draw_mjo_classes(figElem, x, y, vmax=5) {
         [ { x: limit, y: -limit}, { x: vmax, y: -vmax} ]
     ];
 
-    let myPlot = d3.select(figElem.getElementById("plot-group"));
+    let svgElem = document.getElementById(figElem.id + "_svg");
+    let myPlot = d3.select(svgElem).select("#plot-group");
 
     // Put all lines in one group
     myPlot.append('g')
@@ -438,7 +467,8 @@ export async function draw_mjo(
 ) {
 
     let figElem = draw_fig(dims, fig_id);
-    let myPlot = d3.select(figElem.getElementById("plot-group"));
+    let svgElem = document.getElementById(figElem.id + "_svg");
+    let myPlot = d3.select(svgElem).select("#plot-group");
     let vmax = 5;
 
     // x y scales and their range <-> domain
@@ -518,7 +548,8 @@ export async function draw_entire_graph(
             ymax = d3.max(g.members, (d => d3.max(d[iplot])) );
 
         let figElem = draw_fig(dims, fig_id + "_" + iplot);
-        let myPlot = d3.select(figElem.getElementById("plot-group"));
+        let svgElem = document.getElementById(figElem.id + "_svg");
+        let myPlot = d3.select(svgElem).select("#plot-group");
 
         // Reminder:
         // - Range: output range that input values to map to
@@ -585,8 +616,9 @@ export async function draw_entire_graph(
 function onMouseOverMember(interactiveGroup, e, d) {
     return function (e, d) {
         for (var elem of interactiveGroup) {
+            let svgElem = document.getElementById(elem.id + "_svg");
             try {
-                elem.getElementById(this.id)
+                svgElem.getElementById(this.id)
                     .setAttribute("class", "lineSelected");
             }
             catch(err) {}
@@ -598,8 +630,9 @@ function onMouseOverMember(interactiveGroup, e, d) {
 function onMouseOutMember(interactiveGroup, e, d) {
     return function (e, d) {
         for (var elem of interactiveGroup) {
+            let svgElem = document.getElementById(elem.id + "_svg");
             try {
-                elem.getElementById(this.id)
+                svgElem.getElementById(this.id)
                     .setAttribute("class", "line");
             }
             catch(err) {}
@@ -611,14 +644,16 @@ function onMouseOutMember(interactiveGroup, e, d) {
 function onMouseOverCluster(interactiveGroup, e, d) {
     return function (e, d) {
         for (var elem of interactiveGroup) {
+            let svgElem = document.getElementById(elem.id + "_svg");
             try {
-                elem.getElementById(this.id)
+                svgElem.getElementById(this.id)
                     .setAttribute("class", "vertexSelected");
             }
             catch(err) {}
             for (var m of d.members) {
+                let svgElem = document.getElementById(elem.id + "_svg");
                 try {
-                    elem.getElementById("m" + m)
+                    svgElem.getElementById("m" + m)
                         .setAttribute("class", "lineSelectedbyCluster");
                 }
                 catch(err) {}
@@ -631,14 +666,16 @@ function onMouseOverCluster(interactiveGroup, e, d) {
 function onMouseOutCluster(interactiveGroup, e, d) {
     return function (e, d) {
         for (var elem of interactiveGroup) {
+            let svgElem = document.getElementById(elem.id + "_svg");
             try {
-                elem.getElementById(this.id)
+                svgElem.getElementById(this.id)
                     .setAttribute("class", "vertex");
             }
             catch(err) {}
             for (var m of d.members) {
+                let svgElem = document.getElementById(elem.id + "_svg");
                 try {
-                    elem.getElementById("m" + m)
+                    svgElem.getElementById("m" + m)
                         .setAttribute("class", "line");
                 }
                 catch(err) {}

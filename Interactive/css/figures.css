@@ -5,6 +5,9 @@
 
 /* ------- Styles of custom classes ------- */
 
+.container-fig {
+    display: inline-block;
+}
 
 .fig {
     stroke-width: 0px;
