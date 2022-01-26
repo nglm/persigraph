@@ -136,7 +136,7 @@ export function setYLabel(figElem, text) {
 export function draw_fig(dims = DIMS, fig_id = 'fig') {
     /* -------------- fig architecture --------------
     fig01 (div)
-    -- buttons
+    -- buttons/input
     -- svg
     ---- background
     ---- fig-group
@@ -190,12 +190,12 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
     // Button
     d3.select(figElem)
         .append('input')
+        .attr('id', fig_id + "_input")
         .attr('type', 'number')
         .attr('value', 1)
         .attr("min", 1)
         .attr("max", 9)
-        .classed("button-interactive-group", true)
-       //<input type="number" name="usrname" value=13>
+        .classed("input-interactive-group", true)
 
     // Create our fig group
     let fig_group_width = dims.fig.width - dims.fig.margin.left - dims.fig.margin.right;
@@ -343,7 +343,6 @@ export async function draw_meteogram(
     filename,
     dims = dimensions(),
     fig_id="fig",
-    interactiveGroup=[],
 ) {
     // Load the data and wait until it is ready
     const myData =  await d3.json(filename);
@@ -361,6 +360,7 @@ export async function draw_meteogram(
 
         let figElem = draw_fig(dims, fig_id + "_" + iplot);
         let myPlot = d3.select(figElem).select("#plot-group");
+        let interactiveGroupElem = document.getElementById(figElem.id + "_input");
 
         // Reminder:
         // - Range: output range that input values to map to
@@ -402,13 +402,12 @@ export async function draw_meteogram(
             .enter()
             .append("path")  // "path" is the svg element for lines
             .classed("line", true)        // Style
-            .on("mouseover", onMouseOverMember(interactiveGroup)) // Add listener for mouseover event
-            .on("mouseout", onMouseOutMember(interactiveGroup))   // Add listener for mouseout event
+            .on("mouseover", onMouseOverMember(interactiveGroupElem)) // Add listener for mouseover event
+            .on("mouseout", onMouseOutMember(interactiveGroupElem))   // Add listener for mouseout event
             .attr("d", (d => myLine(d)))  // How to compute x and y
             .attr("id", ((d, i) => "m" + i));   // Member's id (for selection)
 
         figs.push(figElem);
-        interactiveGroup.push(figElem);
     }
     return figs
 }
@@ -464,12 +463,12 @@ export async function draw_mjo(
     filename,
     dims = dimensions(),
     fig_id="fig",
-    interactiveGroup=[],
 ) {
 
     let figElem = draw_fig(dims, fig_id);
     let svgElem = document.getElementById(figElem.id + "_svg");
     let myPlot = d3.select(svgElem).select("#plot-group");
+    let interactiveGroupElem = document.getElementById(figElem.id + "_input");
     let vmax = 5;
 
     // x y scales and their range <-> domain
@@ -509,14 +508,12 @@ export async function draw_mjo(
         .enter()
         .append("path")  // "path" is the svg element for lines
         .classed("line", true)
-        .on("mouseover", onMouseOverMember(interactiveGroup)) //Add listener for the mouseover event
-        .on("mouseout", onMouseOutMember(interactiveGroup))   //Add listener for the mouseout event
+        .on("mouseover", onMouseOverMember(interactiveGroupElem)) //Add listener for the mouseover event
+        .on("mouseout", onMouseOutMember(interactiveGroupElem))   //Add listener for the mouseout event
         .attr("d", (d => myLine(d)))
         .attr("id", ((d, i) => "m" + i));
     // Add mjo classes lines
     draw_mjo_classes(figElem, x, y, vmax=vmax);
-
-    interactiveGroup.push(figElem);
     return figElem
 }
 
@@ -526,7 +523,6 @@ export async function draw_entire_graph(
     filename_graph,
     dims = dimensions(),
     fig_id="fig",
-    interactiveGroup=[],
 ) {
     // Load the graph and wait until it is ready
     const g =  await d3.json(filename_graph);
@@ -550,6 +546,7 @@ export async function draw_entire_graph(
 
         let figElem = draw_fig(dims, fig_id + "_" + iplot);
         let svgElem = document.getElementById(figElem.id + "_svg");
+        let interactiveGroupElem = document.getElementById(figElem.id + "_input");
         let myPlot = d3.select(svgElem).select("#plot-group");
 
         // Reminder:
@@ -596,8 +593,8 @@ export async function draw_entire_graph(
             .enter()
             .append("circle")  // "path" is the svg element for lines
             .classed("vertex", true)        // Style
-            .on("mouseover", onMouseOverCluster(interactiveGroup)) // Add listener for mouseover event
-            .on("mouseout", onMouseOutCluster(interactiveGroup))   // Add listener for mouseout event
+            .on("mouseover", onMouseOverCluster(interactiveGroupElem)) // Add listener for mouseover event
+            .on("mouseout", onMouseOutCluster(interactiveGroupElem))   // Add listener for mouseout event
             .attr("cx", (d => x( g.time_axis[d.time_step] )))
             .attr("cy", (d => y( d.info.mean[iplot] )))
             .attr("r", (d => 10*d.ratio_members) )
@@ -606,35 +603,19 @@ export async function draw_entire_graph(
             .attr("id", (d => "v" + d.key) );
 
         figs.push(figElem);
-        interactiveGroup.push(figElem);
     }
     return figs
 }
 
-
-
-//mouseover event handler function using closure
-function onMouseOverMember(interactiveGroup, e, d) {
-    return function (e, d) {
-        for (var elem of interactiveGroup) {
-            let svgElem = document.getElementById(elem.id + "_svg");
+function onMouseMemberAux(e, d, memberElem, interactiveGroupElem, classname) {
+    let figs = document.getElementsByClassName("container-fig");
+    for (let i = 0; i < figs.length; i++) {
+        let groupId = document.getElementById(figs[i].id + "_input").value
+        if (groupId == interactiveGroupElem.value) {
+            let svgElem = document.getElementById(figs[i].id + "_svg");
             try {
-                svgElem.getElementById(this.id)
-                    .setAttribute("class", "lineSelected");
-            }
-            catch(err) {}
-        }
-    }
-}
-
-//mouseout event handler function using closure
-function onMouseOutMember(interactiveGroup, e, d) {
-    return function (e, d) {
-        for (var elem of interactiveGroup) {
-            let svgElem = document.getElementById(elem.id + "_svg");
-            try {
-                svgElem.getElementById(this.id)
-                    .setAttribute("class", "line");
+                svgElem.getElementById(memberElem.id)
+                    .setAttribute("class", classname);
             }
             catch(err) {}
         }
@@ -642,20 +623,35 @@ function onMouseOutMember(interactiveGroup, e, d) {
 }
 
 //mouseover event handler function using closure
-function onMouseOverCluster(interactiveGroup, e, d) {
+function onMouseOverMember(interactiveGroupElem, e, d) {
     return function (e, d) {
-        for (var elem of interactiveGroup) {
-            let svgElem = document.getElementById(elem.id + "_svg");
+        onMouseMemberAux(e, d, this, interactiveGroupElem, 'lineSelected')
+    }
+}
+
+//mouseout event handler function using closure
+function onMouseOutMember(interactiveGroupElem, e, d) {
+    return function (e, d) {
+        onMouseMemberAux(e, d, this, interactiveGroupElem, 'line')
+    }
+}
+
+function onMouseClusterAux(e, d, memberElem, interactiveGroupElem, classname1, classname2) {
+    let figs = document.getElementsByClassName("container-fig");
+    for (let i = 0; i < figs.length; i++) {
+        let groupId = document.getElementById(figs[i].id + "_input").value
+        if (groupId == interactiveGroupElem.value) {
+            let svgElem = document.getElementById(figs[i].id + "_svg");
             try {
-                svgElem.getElementById(this.id)
-                    .setAttribute("class", "vertexSelected");
+                svgElem.getElementById(memberElem.id)
+                    .setAttribute("class", classname1);
             }
             catch(err) {}
             for (var m of d.members) {
-                let svgElem = document.getElementById(elem.id + "_svg");
+                let svgElem = document.getElementById(figs[i].id + "_svg");
                 try {
                     svgElem.getElementById("m" + m)
-                        .setAttribute("class", "lineSelectedbyCluster");
+                        .setAttribute("class", classname2);
                 }
                 catch(err) {}
             }
@@ -663,24 +659,20 @@ function onMouseOverCluster(interactiveGroup, e, d) {
     }
 }
 
-//mouseout event handler function using closure
-function onMouseOutCluster(interactiveGroup, e, d) {
+//mouseover event handler function using closure
+function onMouseOverCluster(interactiveGroupElem, e, d) {
     return function (e, d) {
-        for (var elem of interactiveGroup) {
-            let svgElem = document.getElementById(elem.id + "_svg");
-            try {
-                svgElem.getElementById(this.id)
-                    .setAttribute("class", "vertex");
-            }
-            catch(err) {}
-            for (var m of d.members) {
-                let svgElem = document.getElementById(elem.id + "_svg");
-                try {
-                    svgElem.getElementById("m" + m)
-                        .setAttribute("class", "line");
-                }
-                catch(err) {}
-            }
-        }
+        onMouseClusterAux(
+            e, d, this, interactiveGroupElem,
+            "vertexSelected", "lineSelectedbyCluster")
+    }
+}
+
+//mouseout event handler function using closure
+function onMouseOutCluster(interactiveGroupElem, e, d) {
+    return function (e, d) {
+        onMouseClusterAux(
+            e, d, this, interactiveGroupElem,
+            "vertex", "line")
     }
 }
