@@ -187,6 +187,16 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
     let figElem = document.getElementById(fig_id);
 
 
+    // Button
+    d3.select(figElem)
+        .append('input')
+        .attr('type', 'number')
+        .attr('value', 1)
+        .attr("min", 1)
+        .attr("max", 9)
+        .classed("button-interactive-group", true)
+       //<input type="number" name="usrname" value=13>
+
     // Create our fig group
     let fig_group_width = dims.fig.width - dims.fig.margin.left - dims.fig.margin.right;
     let fig_group_height = dims.fig.height - dims.fig.margin.top - dims.fig.margin.bottom;
@@ -210,15 +220,6 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
         .attr("y", dims.labels.fig/2)
         .classed("figtitle", true);
 
-
-    d3.select(figElem)
-        .append('input')
-        .attr('type', 'number')
-        .attr('value', 13)
-        .attr("name", "usrname")
-        .attr('x', 100)
-        .attr('y', 50);
-       //<input type="number" name="usrname" value=13>
 
     // Prepare the remaining part of the fig
     myFig.append('g')
@@ -332,7 +333,7 @@ export function style_ticks(figElem) {
         .classed("ytext", true);  // Style the text
 
     d3.select(figElem)
-        .select("xyaxis")
+        .select("#xaxis")
         .selectAll(".tick")       // Select all ticks,
         .selectAll("text")        // Select the text associated with each tick
         .classed("xtext", true);  // Style the text
