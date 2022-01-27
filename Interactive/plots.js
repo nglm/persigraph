@@ -436,8 +436,7 @@ function draw_mjo_classes(figElem, x, y, vmax=5) {
         [ { x: limit, y: -limit}, { x: vmax, y: -vmax} ]
     ];
 
-    let svgElem = document.getElementById(figElem.id + "_svg");
-    let myPlot = d3.select(svgElem).select("#plot-group");
+    let myPlot = d3.select(figElem).select("#plot-group");
 
     // Put all lines in one group
     myPlot.append('g')
@@ -466,8 +465,7 @@ export async function draw_mjo(
 ) {
 
     let figElem = draw_fig(dims, fig_id);
-    let svgElem = document.getElementById(figElem.id + "_svg");
-    let myPlot = d3.select(svgElem).select("#plot-group");
+    let myPlot = d3.select(figElem).select("#plot-group");
     let interactiveGroupElem = document.getElementById(figElem.id + "_input");
     let vmax = 5;
 
@@ -508,8 +506,8 @@ export async function draw_mjo(
         .enter()
         .append("path")  // "path" is the svg element for lines
         .classed("line", true)
-        .on("mouseover", onMouseOverMember(interactiveGroupElem)) //Add listener for the mouseover event
-        .on("mouseout", onMouseOutMember(interactiveGroupElem))   //Add listener for the mouseout event
+        .on("mouseover", onMouseOverMember(interactiveGroupElem))
+        .on("mouseout", onMouseOutMember(interactiveGroupElem))   
         .attr("d", (d => myLine(d)))
         .attr("id", ((d, i) => "m" + i));
     // Add mjo classes lines
@@ -545,9 +543,8 @@ export async function draw_entire_graph(
             ymax = d3.max(g.members, (d => d3.max(d[iplot])) );
 
         let figElem = draw_fig(dims, fig_id + "_" + iplot);
-        let svgElem = document.getElementById(figElem.id + "_svg");
         let interactiveGroupElem = document.getElementById(figElem.id + "_input");
-        let myPlot = d3.select(svgElem).select("#plot-group");
+        let myPlot = d3.select(figElem).select("#plot-group");
 
         // Reminder:
         // - Range: output range that input values to map to
@@ -577,24 +574,20 @@ export async function draw_entire_graph(
         );
         style_ticks(figElem);
 
-        const vertex_fn = d3.line()
-            .x(d => x( g.time_axis(d.time_step) ))
-            .y(d => y( d.info.mean[iplot] ));
-
         const edge_fn = d3.line()
             .x(d => x( g.time_axis(d.time_step) ))
             .y(d => y( d.info.mean[iplot] ));
 
-        // This element will render the lines
+        // This element will render the vertices
         myPlot.append('g')
             .attr('id', 'vertices')
             .selectAll('.vertex')
             .data(vertices)
             .enter()
-            .append("circle")  // "path" is the svg element for lines
-            .classed("vertex", true)        // Style
-            .on("mouseover", onMouseOverCluster(interactiveGroupElem)) // Add listener for mouseover event
-            .on("mouseout", onMouseOutCluster(interactiveGroupElem))   // Add listener for mouseout event
+            .append("circle")
+            .classed("vertex", true)
+            .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+            .on("mouseout", onMouseOutCluster(interactiveGroupElem))
             .attr("cx", (d => x( g.time_axis[d.time_step] )))
             .attr("cy", (d => y( d.info.mean[iplot] )))
             .attr("r", (d => 10*d.ratio_members) )

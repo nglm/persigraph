@@ -13,19 +13,17 @@ const f5 = "z_s2s_rmm_ecmf_prod_rt_2020120300";
 let dims_meteogram = dimensions();
 let dims_mjo = dimensions({plotWidth : 400, plotHeight : 400});
 
-let interactiveGroup = [];
-
-// await draw_meteogram(data_path + f1, undefined, "fig01", interactiveGroup);
-// await draw_meteogram(data_path + f2, undefined, "fig02", interactiveGroup);
-// await draw_meteogram(data_path + f3, undefined, "fig03", interactiveGroup);
+// await draw_meteogram(data_path + f1, undefined, "fig01");
+// await draw_meteogram(data_path + f2, undefined, "fig02");
+// await draw_meteogram(data_path + f3, undefined, "fig03");
 
 
-let mjo = await draw_mjo(data_path + f4, dims_mjo, "mjo", interactiveGroup);
+let mjo = await draw_mjo(data_path + f4, dims_mjo, "mjo");
 setAxTitle(mjo, f4);
 d3.select("body").append('text').html('<br>');
-let mjo_rmm = await draw_meteogram(data_path + f4, undefined, "mjo_rmm", interactiveGroup);
-let mjo_rmm_graph = await draw_entire_graph(data_path + f4, data_graph + f4, undefined, "mjo_rmm_graph", interactiveGroup);
-let mjo_polar = await draw_meteogram(data_path + f4_polar, undefined, "mjo_polar", interactiveGroup);
+let mjo_rmm = await draw_meteogram(data_path + f4, undefined, "mjo_rmm");
+let mjo_rmm_graph = await draw_entire_graph(data_path + f4, data_graph + f4, undefined, "mjo_rmm_graph");
+let mjo_polar = await draw_meteogram(data_path + f4_polar, undefined, "mjo_polar");
 
 
 // await draw_meteogram(data_path + f4, undefined, "fig01");
