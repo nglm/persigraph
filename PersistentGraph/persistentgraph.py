@@ -896,6 +896,17 @@ class PersistentGraph():
                 print("nb new edges going FROM t: ", nb_new_edges_from)
                 print("nb new edges going TO t: ", nb_new_edges_to)
 
+    def _compute_statistics(self):
+        # Max/min (N, d, t)
+        self._max = np.amax(self._members, axis=(1,2))
+        self._min = np.amin(self._members, axis=(1,2))
+        # max/min life span
+        life_spans = []
+        for v_t in self._vertices:
+            life_spans += [v.life_span for v in v_t]
+        self._life_span_max = np.amax(life_spans)
+        self._life_span_min = np.amin(life_spans)
+        return None
 
     def construct_graph(
         self,
@@ -958,6 +969,8 @@ class PersistentGraph():
         if self._verbose:
             print('Edges constructed in %.2f s' %(t_end - t_start))
 
+        self._compute_statistics()
+
     def save(self, filename = None, path='', type='pg'):
         if filename is None:
             filename = self.name
@@ -1007,7 +1020,7 @@ class PersistentGraph():
     def members(self) -> np.ndarray:
         """Original data, ensemble of time series
 
-        :rtype: np.ndarray[float], shape: (N,d, T)
+        :rtype: np.ndarray[float], shape: (N, d, T)
         """
         return np.copy(self._members)
 
@@ -1019,6 +1032,22 @@ class PersistentGraph():
         :rtype: np.ndarray[float], shape: T
         """
         return self._time_axis
+
+    @property
+    def max(self):
+        return self._max
+
+    @property
+    def min(self):
+        return self._min
+
+    @property
+    def life_span_max(self):
+        return self._life_span_max
+
+    @property
+    def life_span_min(self):
+        return self._life_span_min
 
     @property
     def nb_steps(self) -> int :

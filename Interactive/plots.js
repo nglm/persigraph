@@ -1,4 +1,6 @@
+
 import { d3fy } from "./preprocess.js";
+import { range_rescale, sigmoid, linear } from "./utils.js";
 
 export const COLOR_BREWER = [
     "#636363", // Grey
@@ -131,6 +133,21 @@ export function setXLabel(figElem, text) {
 
 export function setYLabel(figElem, text) {
     setInnerHTMLById(figElem, "ylabel", text);
+}
+
+function f_life_span(life_span, vmax, {vmin=0} = {}) {
+    let rescaled = range_rescale(life_span, {x0:vmin, x1:vmax});
+    return sigmoid(rescaled, {range0_1:true});
+}
+
+function f_polygon(d, time_axis, xscale, yscale, iplot) {
+    let mean_start = d.v_start.info.mean[iplot];
+    let mean_end = d.v_end.info.mean[iplot];
+    let points = xscale(time_axis[d.time_step])+","+yscale(mean_start - d.v_start.info.std_inf[iplot])+" ";
+    points += xscale(time_axis[d.time_step])+","+yscale(mean_start + d.v_start.info.std_sup[iplot])+" ";
+    points += xscale(time_axis[d.time_step+1])+","+yscale(mean_end + d.v_end.info.std_sup[iplot])+" ";
+    points += xscale(time_axis[d.time_step+1])+","+yscale(mean_end - d.v_end.info.std_inf[iplot])+" ";
+    return points;
 }
 
 export function draw_fig(dims = DIMS, fig_id = 'fig') {
@@ -325,7 +342,6 @@ export function draw_fig(dims = DIMS, fig_id = 'fig') {
 
 export function style_ticks(figElem) {
 
-    //d3.select(figElem.getElementById("yaxis"))
     d3.select(figElem)
         .select("#yaxis")
         .selectAll('.tick')       // Select all ticks
@@ -507,7 +523,7 @@ export async function draw_mjo(
         .append("path")  // "path" is the svg element for lines
         .classed("line", true)
         .on("mouseover", onMouseOverMember(interactiveGroupElem))
-        .on("mouseout", onMouseOutMember(interactiveGroupElem))   
+        .on("mouseout", onMouseOutMember(interactiveGroupElem))
         .attr("d", (d => myLine(d)))
         .attr("id", ((d, i) => "m" + i));
     // Add mjo classes lines
@@ -525,7 +541,7 @@ export async function draw_entire_graph(
     // Load the graph and wait until it is ready
     const g =  await d3.json(filename_graph);
     const vertices = g.vertices.flat();
-    const edges = g.edges;
+    const edges = g.edges.flat();
     const time = g.time_axis;
     const members = g.members;
     const colors = get_list_colors(g.n_clusters_range.length);
@@ -591,8 +607,38 @@ export async function draw_entire_graph(
             .attr("cx", (d => x( g.time_axis[d.time_step] )))
             .attr("cy", (d => y( d.info.mean[iplot] )))
             .attr("r", (d => 10*d.ratio_members) )
-            .attr("opacity", (d => d.life_span) )
+            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)))
             .attr("fill", (d => colors[d.info.brotherhood_size[0]]))
+            .attr("id", (d => "v" + d.key) );
+
+        // This element will render the standard deviation
+        myPlot.append('g')
+            .attr('id', 'edges')
+            .selectAll('.edges')
+            .data(edges)
+            .enter()
+            .append("polygon")
+            .classed("edge", true)
+            // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+            // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+            .attr("points", (d => f_polygon(d, g.time_axis, x, y, iplot)))
+            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/2 ))
+            .attr("fill", (d => colors[d.v_start.info.brotherhood_size[0]]))
+            .attr("id", (d => "v" + d.key) );
+
+        // This element will render the edges
+        myPlot.append('g')
+            .attr('id', 'edges')
+            .selectAll('.edges')
+            .data(edges)
+            .enter()
+            .append("polygon")
+            .classed("edge", true)
+            // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+            // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+            .attr("points", (d => f_polygon(d, g.time_axis, x, y, iplot)))
+            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/2 ))
+            .attr("fill", (d => colors[d.v_start.info.brotherhood_size[0]]))
             .attr("id", (d => "v" + d.key) );
 
         figs.push(figElem);

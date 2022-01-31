@@ -19,6 +19,15 @@
     padding: 0px 0px;
 }
 
+.delete-button {
+    position: absolute;
+    bottom: 20px;
+    right: 10px;
+    width: 40px;
+    font-size: 24px;
+    padding: 0px 0px;
+}
+
 .fig {
     stroke-width: 0px;
     stroke: rgb(99, 91, 42);
@@ -116,6 +125,16 @@
     stroke: red;
     stroke-opacity: 1;
 }
+
+.edge {
+    stroke-width: 0;
+}
+
+
+.edgeSelected {
+    stroke-width: 0;
+}
+
 
 .bar {
     width: 25px;

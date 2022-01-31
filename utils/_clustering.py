@@ -107,17 +107,21 @@ def compute_cluster_params(
 
     # Get the members below/above the average
     for i in range(d):
-        X_inf = np.array([m for m in cluster[:, i] if m < mean[i]])
+        X_inf = np.array([m for m in cluster[:, i] if m <= mean[i]])
         X_sup = np.array([m for m in cluster[:, i] if m >= mean[i]])
         # How many members above/below the average
         n_inf = len(X_inf)
         n_sup = len(X_sup)
-        # if statement because of '<': No member below the average => std=0
-        if n_inf == 0:
-            std_inf.append(0)
-        else:
-            std_inf.append(np.sqrt(np.sum((X_inf - mean[i])**2 / n_inf)))
-        std_sup.append(np.sqrt(np.sum((X_sup - mean[i])**2) / n_sup))
+        # Because otherwise the std goes up to the member if there is just
+        # one member
+        if n_inf == 1:
+            X_inf.append(mean[i])
+            n_inf +=1
+        if n_sup == 1:
+            X_sup.append(mean[i])
+            n_sup +=1
+        std_inf.append(np.sqrt( np.sum((X_inf - mean[i])**2) / n_inf ))
+        std_sup.append(np.sqrt( np.sum((X_sup - mean[i])**2) / n_sup ))
 
 
     cluster_params = {}
