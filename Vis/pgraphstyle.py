@@ -76,12 +76,14 @@ class PGraphStyle():
 
     def sort_components(
         self,
+        g,
         components,
     ):
         components = [
             c for c in components
             if (c.nb_members > self.m_min and c.life_span > self.l_min )
         ]
+        types = ['gaussian','KMeans','Naive']
         # If there are still components matching the thresholds
         if components:
 
@@ -93,35 +95,36 @@ class PGraphStyle():
             # --------------------- VERTICES ---------------------------
             if isinstance(components[0], Vertex):
                 gaussians = [
-                    c for c in components
-                    if c.info['type'] in ['gaussian','KMeans','Naive']
+                    c for c in components if c.info['type'] in types
                 ]
                 uniforms = [
                     c for c in components if c.info['type'] == 'uniform'
                 ]
             # ----------------------- EDGES ----------------------------
-            elif isinstance(components[0],Edge):
+            elif isinstance(components[0], Edge):
                 gaussians = [
                     c for c in components
                     if (
-                        c.v_start.info['type'] in ['gaussian','KMeans','Naive']
+                        g._vertices[c.time_step][c.v_start].info['type']
+                        in types
                     and
-                        c.v_end.info['type'] in ['gaussian','KMeans', 'Naive']
+                        g._vertices[c.time_step + 1][c.v_end].info['type']
+                        in types
                     )]
                 from_to_uniforms = [
                     c for c in components
-                    if (c.v_start.info['type'] == 'uniform')
-                    and (c.v_end.info['type'] == 'uniform')
+                    if (g._vertices[c.time_step][c.v_start].info['type'] == 'uniform')
+                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] == 'uniform')
                     ]
                 to_uniforms = [
                     c for c in components
-                    if (c.v_start.info['type'] != 'uniform')
-                    and (c.v_end.info['type'] == 'uniform')
+                    if (g._vertices[c.time_step][c.v_start].info['type'] != 'uniform')
+                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] == 'uniform')
                     ]
                 from_uniforms = [
                     c for c in components
-                    if (c.v_start.info['type'] == 'uniform')
-                    and (c.v_end.info['type'] != 'uniform')
+                    if (g._vertices[c.time_step][c.v_start].info['type'] == 'uniform')
+                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] != 'uniform')
                     ]
                 uniforms = [to_uniforms, from_to_uniforms, from_uniforms]
         else:
@@ -154,7 +157,7 @@ class PGraphStyle():
 
                 # Keep only vertices respecting the thresholds,
                 # and distinguish between gaussian and uniform vertices
-                gaussians, uniforms = self.sort_components(vertices[t])
+                gaussians, uniforms = self.sort_components(g, vertices[t])
 
                 # Collections for gaussian vertices
                 axs_collect = self.vertices.cdraw(
@@ -174,7 +177,7 @@ class PGraphStyle():
 
                 # Keep only edges respecting the thresholds,
                 # and distinguish between gaussian and uniform edges
-                gaussians, uniforms = self.sort_components(edges[t])
+                gaussians, uniforms = self.sort_components(g, edges[t])
 
                 # Collections for gaussian edges
                 if self.show_edges:

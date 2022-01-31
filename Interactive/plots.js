@@ -140,14 +140,21 @@ function f_life_span(life_span, vmax, {vmin=0} = {}) {
     return sigmoid(rescaled, {range0_1:true});
 }
 
-function f_polygon(d, time_axis, xscale, yscale, iplot) {
-    let mean_start = d.v_start.info.mean[iplot];
-    let mean_end = d.v_end.info.mean[iplot];
-    let points = xscale(time_axis[d.time_step])+","+yscale(mean_start - d.v_start.info.std_inf[iplot])+" ";
-    points += xscale(time_axis[d.time_step])+","+yscale(mean_start + d.v_start.info.std_sup[iplot])+" ";
-    points += xscale(time_axis[d.time_step+1])+","+yscale(mean_end + d.v_end.info.std_sup[iplot])+" ";
-    points += xscale(time_axis[d.time_step+1])+","+yscale(mean_end - d.v_end.info.std_inf[iplot])+" ";
+function f_polygon(d, g, xscale, yscale, iplot) {
+    let t = d.time_step
+    let v_start = g.vertices[t][d.v_start];
+    let v_end = g.vertices[t + 1][d.v_end];
+    let mean_start = v_start.info.mean[iplot];
+    let mean_end = v_end.info.mean[iplot];
+    let points = xscale(g.time_axis[t])+","+yscale(mean_start - v_start.info.std_inf[iplot])+" ";
+    points += xscale(g.time_axis[t])+","+yscale(mean_start + v_start.info.std_sup[iplot])+" ";
+    points += xscale(g.time_axis[t+1])+","+yscale(mean_end + v_end.info.std_sup[iplot])+" ";
+    points += xscale(g.time_axis[t+1])+","+yscale(mean_end - v_end.info.std_inf[iplot])+" ";
     return points;
+}
+
+function f_color(d, g, colors) {
+    return colors[g.vertices[d.time_step][d.v_start].info.brotherhood_size[0]];
 }
 
 export function draw_fig(dims = DIMS, fig_id = 'fig') {
@@ -621,9 +628,9 @@ export async function draw_entire_graph(
             .classed("edge", true)
             // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
             // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-            .attr("points", (d => f_polygon(d, g.time_axis, x, y, iplot)))
+            .attr("points", (d => f_polygon(d, g, x, y, iplot)))
             .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/2 ))
-            .attr("fill", (d => colors[d.v_start.info.brotherhood_size[0]]))
+            .attr("fill", (d => f_color(d, g, colors)))
             .attr("id", (d => "v" + d.key) );
 
         // This element will render the edges
@@ -636,9 +643,9 @@ export async function draw_entire_graph(
             .classed("edge", true)
             // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
             // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-            .attr("points", (d => f_polygon(d, g.time_axis, x, y, iplot)))
+            .attr("points", (d => f_polygon(d, g, x, y, iplot)))
             .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/2 ))
-            .attr("fill", (d => colors[d.v_start.info.brotherhood_size[0]]))
+            .attr("fill", (d => f_color(d, g, colors)))
             .attr("id", (d => "v" + d.key) );
 
         figs.push(figElem);

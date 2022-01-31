@@ -96,7 +96,7 @@ def main():
         print("v.life_span: ",  [ (v.life_span) for v in g.vertices[t] ])
         if t < g.T-1:
             print(' ----- edges ----- ')
-            print("v_end/start:", [ (e.v_start.num, e.v_end.num) for e in g.edges[t] ])
+            print("v_end/start:", [ (e.v_start, e.v_end) for e in g.edges[t] ])
             print("scores:", [ (e.scores) for e in g.edges[t] ])
             print("life span:",[ (e.life_span) for e in g.edges[t] ])
             print("members:",[ (e.members) for e in g.edges[t] ])

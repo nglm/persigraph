@@ -215,9 +215,13 @@ def get_relevant_components(
         [
             e for e in g._edges[t]
             if (
-                has_element(e.v_start.info['brotherhood_size'], relevant_k[t][0])
-                and has_element(e.v_end.info['brotherhood_size'], relevant_k[t+1][0])
-                )
+                has_element(
+                    g._vertices[e.time_step][e.v_start].info['brotherhood_size'],
+                    relevant_k[t][0]
+                ) and has_element(
+                    g._vertices[e.time_step + 1][e.v_end].info['brotherhood_size'],
+                    relevant_k[t+1][0]
+                ))
         ] for t in range(g.T-1)
     ]
 
@@ -237,8 +241,8 @@ def get_relevant_components(
                     ]
                     for (v_end, members) in v_end_members:
                         edges.append(Edge(
-                            v_start = v_start,
-                            v_end = v_end,
+                            v_start = v_start.num,
+                            v_end = v_end.num,
                             t = t,
                             members = members,
                             total_nb_members = g.N,

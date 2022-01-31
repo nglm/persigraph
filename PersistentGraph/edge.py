@@ -1,5 +1,4 @@
 from . import Component
-from . import Vertex
 from typing import Sequence, List
 
 class Edge(Component):
@@ -9,8 +8,8 @@ class Edge(Component):
 
     def __init__(
         self,
-        v_start: Vertex,
-        v_end: Vertex,
+        v_start: int,
+        v_end: int,
         t: int = None,
         num: int = None,
         members : List[int] = None,
@@ -53,38 +52,36 @@ class Edge(Component):
         return res
 
     @property
-    def v_start(self) -> Vertex:
+    def v_start(self) -> int:
         """
-        Vertex from which Edge comes
+        Vertex num from which Edge comes
 
-        :rtype: Vertex
+        :rtype: int
         """
         return self.__v_start
 
     @v_start.setter
-    def v_start(self, v_start: Vertex):
+    def v_start(self, v_start: int):
         if v_start is not None:
-            # if (v_start < 0):
-            #     raise ValueError("v should be > O")
-            # self.__v_start = int(abs(v_start))
-            self.__v_start = v_start
+            if (v_start < 0):
+                raise ValueError("v should be > O")
+            self.__v_start = int(abs(v_start))
 
     @property
-    def v_end(self) -> Vertex:
+    def v_end(self) -> int:
         """
-        Vertex to which Edge goes
+        Vertex num to which Edge goes
 
-        :rtype: Vertex
+        :rtype: int
         """
         return self.__v_end
 
 
     @v_end.setter
-    def v_end(self, v_end: Vertex):
+    def v_end(self, v_end: int):
         if v_end is not None:
-            # if (v_end < 0):
-            #     raise ValueError("v should be > O")
-            # self.__v_end = int(abs(v_end))
-            self.__v_end = v_end
+            if (v_end < 0):
+                raise ValueError("v should be > O")
+            self.__v_end = int(abs(v_end))
 
 

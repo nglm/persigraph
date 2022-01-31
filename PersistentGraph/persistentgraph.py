@@ -287,27 +287,22 @@ class PersistentGraph():
         self,
         v_start: Vertex,
         v_end: Vertex,
-        t: int,
         members: List[int],
     ):
         """
         Add an adge to the current graph
 
-        :param v_start: Number (unique at ``t``) of the vertex from which the
-        Edge comes
+        :param v_start: Vertex from which the edge comes
         :type v_start: Vertex
-        :param v_end: Number (unique at ``t+1``) of the vertex to which Edge
-        goes
+        :param v_end: Vertex to which the edge goes
         :type v_end: Vertex
-        :param t: time step at which the edge should be added
-        :type t: int
         :param members: Ordered list of members indices represented by the
         edge
         :type members: List[int]
         :return: The newly added edge
         :rtype: Edge
         """
-
+        t = v_start.time_step
         # If v_start is dead before v_end is even born
         # Or if v_end is dead before v_start is even born
         if (
@@ -338,8 +333,8 @@ class PersistentGraph():
                 )
 
         e = Edge(
-            v_start = v_start,
-            v_end = v_end,
+            v_start = v_start.num,
+            v_end = v_end.num,
             t = t,
             num = self._nb_edges[t],
             members = members,
@@ -868,7 +863,6 @@ class PersistentGraph():
                         e = self._add_edge(
                             v_start = v_start,
                             v_end = v_new,
-                            t = t-1,
                             members = members,
                         )
                         if e is not None:
@@ -887,7 +881,6 @@ class PersistentGraph():
                         e = self._add_edge(
                             v_start = v_new,
                             v_end = v_end,
-                            t = t,
                             members = members,
                         )
                         if e is not None:
