@@ -1,12 +1,11 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 from gudhi import bottleneck_distance
 from typing import List, Dict, Tuple
 
 from ..utils.lists import flatten
 from ..utils.sorted_lists import has_element
-from .vertex import Vertex
+from ..utils._clustering import compute_cluster_params
 from .edge import Edge
 from .component import Component
 
@@ -240,7 +239,16 @@ def get_relevant_components(
                         if v.get_common_members(v_start) != []
                     ]
                     for (v_end, members) in v_end_members:
+
+                        # Compute info (mean, std inf/sup at start and end)
+                        X_start = g._members[members, :, t]
+                        info_start = compute_cluster_params(X_start)
+                        X_end = g._members[members, :, t+1]
+                        info_end = compute_cluster_params(X_end)
+
                         edges.append(Edge(
+                            info_start=info_start,
+                            info_end=info_end,
                             v_start = v_start.num,
                             v_end = v_end.num,
                             t = t,

@@ -5,7 +5,7 @@ the _clustering module.
 
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict, Tuple
-from ..utils._clustering import get_centroids, compute_cluster_params
+from ..utils._clustering import get_centroids
 
 
 
@@ -117,12 +117,7 @@ def clustering_model(
         clusters.append(members)
 
         # Info related to this specific vertex
-        info = {
-            'type' : 'Naive',
-            'brotherhood_size' : [n_clusters],
-            'rep' : rep[i_cluster],
-            }
-        info.update(compute_cluster_params(X[members]))
+        info = {'rep' : rep[i_cluster]}
         clusters_info.append(info)
 
     # ====================== step_info =========================

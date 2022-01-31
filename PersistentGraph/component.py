@@ -2,7 +2,7 @@ from scipy.spatial.distance import euclidean
 import numpy as np
 from typing import List, Sequence
 
-from ..utils.check_variable import check_O1_range, check_positive, check_all_positive
+from ..utils.check_variable import check_O1_range, check_int_positive, check_all_int_positive
 from ..utils.sorted_lists import has_element, get_common_elements, bisect_search
 
 
@@ -135,8 +135,8 @@ class Component():
         :raises ValueError: If ``num`` is not > 0
         """
         if num is not None:
-            check_positive(num, 'num')
-            self.__num = int(abs(num))
+            check_int_positive(num, 'num')
+            self.__num = int(num)
         else:
             num = None
 
@@ -151,8 +151,7 @@ class Component():
 
     @time_step.setter
     def time_step(self, t: int):
-        if (t < 0):
-            raise ValueError("t should be >= 0")
+        check_int_positive(t, 'time_step')
         self.__time_step = int(t)
 
     @property
@@ -167,7 +166,7 @@ class Component():
     @members.setter
     def members(self, members: List[int]):
         if members is not None:
-            check_all_positive(members, 'members')
+            check_all_int_positive(members, 'members')
             self.__members = [int(m) for m in members]
             self.__nb_members = len(members)
         else:

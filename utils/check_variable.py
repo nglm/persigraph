@@ -38,3 +38,20 @@ def check_all_positive(iterable, var_name: str = 'Variable'):
     msg_cond =  " should be >= 0"
     check_all(condition, iterable, var_name, msg_cond)
 
+def check_int(variable, var_name: str = 'Variable'):
+    condition = lambda x : (x == int(x))
+    msg_cond =  " should be an integer"
+    check_condition(condition, variable, var_name, msg_cond)
+
+def check_all_int(iterable, var_name: str = 'Variable'):
+    condition = lambda x : (x == int(x))
+    msg_cond =  " should be an integer"
+    check_all(condition, iterable, var_name, msg_cond)
+
+def check_int_positive(variable, var_name: str = 'Variable'):
+    check_int(variable, var_name)
+    check_positive(variable, var_name)
+
+def check_all_int_positive(iterable, var_name: str = 'Variable'):
+    check_all_int(iterable, var_name)
+    check_all_positive(iterable, var_name)

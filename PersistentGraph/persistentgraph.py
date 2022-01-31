@@ -1,5 +1,5 @@
 import numpy as np
-from bisect import bisect, bisect_left, bisect_right, insort
+from bisect import bisect, bisect_right, insort
 import time
 import pickle
 import json
@@ -14,6 +14,7 @@ from ._scores import (
 
 from ..utils.sorted_lists import insert_no_duplicate, concat_no_duplicate
 from ..utils.d3 import jsonify
+from ..utils._clustering import compute_cluster_params
 
 
 class PersistentGraph():
@@ -263,6 +264,17 @@ class PersistentGraph():
         :return: The newly added vertex
         :rtype: Vertex
         """
+
+        # Info specific to this vertex
+        # (brotherhood_size computed in construct_vertices)
+        if info['brotherhood_size'][-1]:
+            info["type"] = self._model_type
+        else:
+            info["type"] = "uniform"
+        X = self._members[members, :, t]
+        info_cluster = compute_cluster_params(X)
+        info.update(info_cluster)
+
         # Create the vertex
         num = self._nb_vertices[t]
         v = Vertex(
@@ -292,6 +304,8 @@ class PersistentGraph():
         """
         Add an adge to the current graph
 
+        Return None if the edge is malformed
+
         :param v_start: Vertex from which the edge comes
         :type v_start: Vertex
         :param v_end: Vertex to which the edge goes
@@ -305,15 +319,19 @@ class PersistentGraph():
         t = v_start.time_step
         # If v_start is dead before v_end is even born
         # Or if v_end is dead before v_start is even born
-        if (
-            v_start.score_ratios[1] < v_end.score_ratios[0]
-            or v_end.score_ratios[1] < v_start.score_ratios[0]
-        ):
-            if not self._quiet:
+        if not self._quiet:
+            if (
+                v_start.score_ratios[1] < v_end.score_ratios[0]
+                or v_end.score_ratios[1] < v_start.score_ratios[0]
+            ):
                 print("v_start scores: ", v_start.score_ratios)
                 print("v_end scores: ", v_end.score_ratios)
                 print("WARNING: Vertices are not contemporaries")
-            return None
+                return None
+            if not members:
+                print("WARNING: No members in edge")
+                return None
+
         # Create the edge
         argbirth = np.argmax([v_start.score_ratios[0], v_end.score_ratios[0]])
         argdeath = np.argmin([v_start.score_ratios[1], v_end.score_ratios[1]])
@@ -325,14 +343,23 @@ class PersistentGraph():
 
         ratio_birth = [v_start.score_ratios[0], v_end.score_ratios[0]][argbirth]
         ratio_death = [v_start.score_ratios[1], v_end.score_ratios[1]][argdeath]
-        if (ratio_death < ratio_birth):
-            if not self._quiet:
+        if not self._quiet:
+            if (ratio_death < ratio_birth):
                 print(
                     "WARNING: ratio death smaller than ratio birth!",
                     ratio_death, ratio_birth
                 )
+                return None
+
+        # Compute info (mean, std inf/sup at start and end)
+        X_start = self._members[members, :, t]
+        info_start = compute_cluster_params(X_start)
+        X_end = self._members[members, :, t+1]
+        info_end = compute_cluster_params(X_end)
 
         e = Edge(
+            info_start = info_start,
+            info_end = info_end,
             v_start = v_start.num,
             v_end = v_end.num,
             t = t,
@@ -342,6 +369,10 @@ class PersistentGraph():
             score_ratios = [ratio_birth, ratio_death],
             total_nb_members = self.N,
         )
+
+        # Add edge number to v_start and v_end
+        v_start.add_edge_from(e.num)
+        v_end.add_edge_to(e.num)
 
         # Update the graph with the new edge
         self._nb_edges[t] += 1
@@ -688,8 +719,10 @@ class PersistentGraph():
                         # -------------- Create new vertex -------------
                         # NOTE: score_death is not set yet
                         # it will be set at the step at which v dies
+                        info = clusters_info[i_cluster]
+                        info['brotherhood_size'] = [n_clusters]
                         v = self._add_vertex(
-                            info = clusters_info[i_cluster],
+                            info = info,
                             t = t,
                             members = members,
                             scores = [score, None],
@@ -827,7 +860,6 @@ class PersistentGraph():
                 )
             # Prepare next edges' creation
             nb_new_edges_from = 0
-
             if ( (t < self.T - 1) and (local_step_nums[t + 1] != -1)):
                 self._e_at_step[t]['e'].append(
                     self._keep_alive_edges(
@@ -837,8 +869,8 @@ class PersistentGraph():
                         )
                     )
                 self._e_at_step[t]['global_step_nums'].append(s)
-            nb_new_edges_to = 0
 
+            nb_new_edges_to = 0
             if ( (t > 0) and (local_step_nums[t - 1] != -1) ):
                 self._e_at_step[t - 1]['e'].append(
                     self._keep_alive_edges(
@@ -885,6 +917,7 @@ class PersistentGraph():
                         )
                         if e is not None:
                             nb_new_edges_from += 1
+
             if self._verbose == 2:
                 print("nb new edges going FROM t: ", nb_new_edges_from)
                 print("nb new edges going TO t: ", nb_new_edges_to)

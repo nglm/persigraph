@@ -7,7 +7,7 @@ import numpy as np
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
 from ..utils.kmeans import kmeans_custom, row_norms
-from ..utils._clustering import get_centroids, compute_cluster_params
+from ..utils._clustering import get_centroids
 
 
 
@@ -111,11 +111,7 @@ def clustering_model(
             raise ValueError('No members in cluster')
 
         # Info related to this specific vertex
-        info = {
-            'type' : 'KMeans',
-            'brotherhood_size' : [n_clusters]
-        }
-        info.update(compute_cluster_params(X[members]))
+        info = {}
         clusters_info.append(info)
 
         if pg._model_kw['precompute_centroids']:

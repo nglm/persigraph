@@ -1,5 +1,6 @@
+from TopEns.utils.check_variable import check_int_positive
 from . import Component
-from typing import Sequence, List
+from typing import Sequence, List, Dict, Any
 
 class Edge(Component):
     """
@@ -8,6 +9,8 @@ class Edge(Component):
 
     def __init__(
         self,
+        info_start: Dict[str, Any],
+        info_end: Dict[str, Any],
         v_start: int,
         v_end: int,
         t: int = None,
@@ -30,6 +33,8 @@ class Edge(Component):
 
         self.v_start = v_start
         self.v_end = v_end
+        self.info_start = info_start
+        self.info_end = info_end
 
     def is_equal_to(
         self,
@@ -63,8 +68,7 @@ class Edge(Component):
     @v_start.setter
     def v_start(self, v_start: int):
         if v_start is not None:
-            if (v_start < 0):
-                raise ValueError("v should be > O")
+            check_int_positive(v_start, 'Vertex start')
             self.__v_start = int(abs(v_start))
 
     @property
@@ -80,8 +84,33 @@ class Edge(Component):
     @v_end.setter
     def v_end(self, v_end: int):
         if v_end is not None:
-            if (v_end < 0):
-                raise ValueError("v should be > O")
+            check_int_positive(v_end, 'Vertex end')
             self.__v_end = int(abs(v_end))
 
 
+    @property
+    def info_start(self) ->  Dict[str, Any]:
+        """
+        Info related to the start of the edge
+
+        :rtype: Dict[str, Any]
+        """
+        return self.__info_start
+
+    @info_start.setter
+    def info_start(self, info_start: Dict[str, Any]):
+        self.__info_start = info_start
+
+
+    @property
+    def info_end(self) ->  Dict[str, Any]:
+        """
+        Info related to the end of the edge
+
+        :rtype: Dict[str, Any]
+        """
+        return self.__info_end
+
+    @info_end.setter
+    def info_end(self, info_end: Dict[str, Any]):
+        self.__info_end = info_end

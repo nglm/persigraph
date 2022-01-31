@@ -1,4 +1,5 @@
 from . import Component
+from ..utils.check_variable import check_int_positive
 from typing import Sequence, List, Dict, Any
 
 class Vertex(Component):
@@ -24,6 +25,8 @@ class Vertex(Component):
             total_nb_members = total_nb_members,
         )
         self.info = info
+        self.__e_to = []
+        self.__e_from = []
 
 
     def is_equal_to(
@@ -65,6 +68,21 @@ class Vertex(Component):
             res = False
         return res
 
+
+    def add_edge_to(
+        self,
+        e: int
+    ):
+        check_int_positive(e, 'edge to')
+        self.__e_to.append(int(e))
+
+    def add_edge_from(
+        self,
+        e: int
+    ):
+        check_int_positive(e, 'edge from')
+        self.__e_from.append(int(e))
+
     @property
     def info(self) ->  Dict[str, Any]:
         """
@@ -82,4 +100,12 @@ class Vertex(Component):
         if "type" not in info.keys():
             raise ValueError("Vertex.info must have a 'type' key")
         self.__info = info
+
+    @property
+    def e_from(self):
+        return self.__e_from
+
+    @property
+    def e_to(self):
+        return self.__e_to
 
