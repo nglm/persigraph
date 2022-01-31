@@ -47,6 +47,7 @@ ZERO_TYPE = 'bounds'
 save_spaghetti = False
 save_individual = False
 save_mean = False
+k_max = 5
 
 
 #FIXME: Outdated option
@@ -276,7 +277,7 @@ def main():
                             score_type = score,
                             zero_type = ZERO_TYPE,
                             model_type = PG_TYPE,
-                            k_max = 8,
+                            k_max = k_max,
                     )
                     g.construct_graph(verbose=True)
 

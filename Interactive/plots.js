@@ -27,7 +27,7 @@ export function get_list_colors(N){
 }
 
 export function dimensions({
-    figWidth=800,
+    figWidth=1200,
     figHeight=600,
     figMarginTop=5,
     figMarginLeft=5,
@@ -141,15 +141,16 @@ function f_life_span(life_span, vmax, {vmin=0} = {}) {
 }
 
 function f_polygon(d, g, xscale, yscale, iplot) {
-    let t = d.time_step
+    let offset = 0.1*xscale(g.time_axis[1]);
+    let t = d.time_step;
     let v_start = g.vertices[t][d.v_start];
     let v_end = g.vertices[t + 1][d.v_end];
     let mean_start = v_start.info.mean[iplot];
     let mean_end = v_end.info.mean[iplot];
-    let points = xscale(g.time_axis[t])+","+yscale(mean_start - v_start.info.std_inf[iplot])+" ";
-    points += xscale(g.time_axis[t])+","+yscale(mean_start + v_start.info.std_sup[iplot])+" ";
-    points += xscale(g.time_axis[t+1])+","+yscale(mean_end + v_end.info.std_sup[iplot])+" ";
-    points += xscale(g.time_axis[t+1])+","+yscale(mean_end - v_end.info.std_inf[iplot])+" ";
+    let points = offset + xscale(g.time_axis[t])+","+yscale(mean_start - v_start.info.std_inf[iplot])+" ";
+    points += offset + xscale(g.time_axis[t])+","+yscale(mean_start + v_start.info.std_sup[iplot])+" ";
+    points += -offset + xscale(g.time_axis[t+1])+","+yscale(mean_end + v_end.info.std_sup[iplot])+" ";
+    points += -offset + xscale(g.time_axis[t+1])+","+yscale(mean_end - v_end.info.std_inf[iplot])+" ";
     return points;
 }
 
@@ -629,7 +630,7 @@ export async function draw_entire_graph(
             // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
             // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
             .attr("points", (d => f_polygon(d, g, x, y, iplot)))
-            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/2 ))
+            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
             .attr("fill", (d => f_color(d, g, colors)))
             .attr("id", (d => "v" + d.key) );
 
@@ -644,7 +645,7 @@ export async function draw_entire_graph(
             // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
             // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
             .attr("points", (d => f_polygon(d, g, x, y, iplot)))
-            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/2 ))
+            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/5 ))
             .attr("fill", (d => f_color(d, g, colors)))
             .attr("id", (d => "v" + d.key) );
 
