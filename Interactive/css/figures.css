@@ -126,6 +126,16 @@
     stroke-opacity: 1;
 }
 
+.vertex-std {
+    stroke-width: 0;
+}
+
+
+.vertexSelected-std {
+    stroke-width: 0;
+}
+
+
 .edge {
     stroke-width: 0;
 }
@@ -134,6 +144,17 @@
 .edgeSelected {
     stroke-width: 0;
 }
+
+
+.edge-std {
+    stroke-width: 0;
+}
+
+
+.edgeSelected-std {
+    stroke-width: 0;
+}
+
 
 
 .bar {
