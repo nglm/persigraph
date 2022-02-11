@@ -11,6 +11,7 @@ from ._clustering_model import generate_all_clusters
 from ._scores import (
     _set_score_type, _compute_ratio_scores, _compute_score_bounds
 )
+from .analysis import get_k_life_span
 
 from ..utils.sorted_lists import insert_no_duplicate, concat_no_duplicate
 from ..utils.d3 import jsonify
@@ -177,6 +178,11 @@ class PersistentGraph():
             'scores' : [],
             'params' : [],
         }
+        self._life_span = None
+        self._life_span_max = None
+        self._life_span_min = None
+        self._max = None
+        self._min = None
 
         # Score precision
         if precision <= 0:
@@ -996,6 +1002,7 @@ class PersistentGraph():
             print('Edges constructed in %.2f s' %(t_end - t_start))
 
         self._compute_statistics()
+        self.life_span = get_k_life_span(self)
 
     def save(self, filename = None, path='', type='pg'):
         if filename is None:

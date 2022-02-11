@@ -111,7 +111,7 @@ def sort_components_by(components, criteron="life_span", descending=True):
 
 def get_k_life_span(
     g,
-    k_max=8,
+    k_max=5,
 ):
     """
     Get the life span of k clusters for each k and each t
@@ -125,7 +125,7 @@ def get_k_life_span(
     """
     k_max = min(k_max, g.k_max)
 
-    life_span = {k : [0 for _ in range(g.T)] for k in range(0,g.k_max+1)}
+    life_span = {k : [0 for _ in range(g.T)] for k in g._n_clusters_range}
 
     # Extract ratio scores for each k and each t
     for t in range(g.T):

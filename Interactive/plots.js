@@ -167,6 +167,37 @@ function f_polygon_edge(d, g, xscale, yscale, iplot) {
     return points;
 }
 
+function f_line_edge_detailed(d, g, xscale, yscale, iplot) {
+    let t = d.time_step;
+    let start_edge = d.info_start.mean[iplot];
+    let end_edge = d.info_end.mean[iplot];
+    let start_vertex = g.vertices[t][d.v_start].info.mean[iplot];
+    let end_vertex = g.vertices[t+1][d.v_end].info.mean[iplot];
+    let points = xscale(g.time_axis[t])+","+yscale(start_vertex)+" ";
+    points += xscale(g.time_axis[t])+","+yscale(start_edge)+" ";
+    points += xscale(g.time_axis[t+1])+","+yscale(end_edge)+" ";
+    points += xscale(g.time_axis[t+1])+","+yscale(end_vertex);
+    return points;
+}
+
+function f_line_edge(d, g, xscale, yscale, iplot) {
+    let t = d.time_step;
+    let start_vertex = g.vertices[t][d.v_start].info.mean[iplot];
+    let end_vertex = g.vertices[t+1][d.v_end].info.mean[iplot];
+    let points = xscale(g.time_axis[t])+","+yscale(start_vertex)+" ";
+    points += xscale(g.time_axis[t+1])+","+yscale(end_vertex);
+    return points;
+}
+
+function f_line_edge_mjo(d, g, xscale, yscale) {
+    let t = d.time_step;
+    let mean_start = g.vertices[t][d.v_start].info.mean;
+    let mean_end = g.vertices[t+1][d.v_end].info.mean;
+    let points = xscale(mean_start[0])+","+yscale(mean_start[1])+" ";
+    points += xscale(mean_end[0])+","+yscale(mean_end[1]);
+    return points;
+}
+
 function f_polygon_vertex(d, g, xscale, yscale, iplot) {
     let offset = 0.2*xscale(g.time_axis[1]);
     let t = d.time_step;
@@ -198,6 +229,14 @@ function f_color_vertex(d, g, colors) {
 
 function f_color_edge(d, g, colors) {
     return colors[g.vertices[d.time_step][d.v_start].info.brotherhood_size[0]];
+}
+
+function f_radius(d) {
+    return (4*d.ratio_members)
+}
+
+function f_stroke_width(d) {
+    return (4*d.ratio_members)
 }
 
 export function draw_fig(dims = DIMS, fig_id = 'fig') {
@@ -582,7 +621,7 @@ export async function draw_mjo(
 }
 
 
-export async function draw_entire_graph(
+export async function draw_entire_graph_meteogram(
     filename_data,
     filename_graph,
     dims = dimensions(),
@@ -644,37 +683,37 @@ export async function draw_entire_graph(
             .x(d => x( g.time_axis(d.time_step) ))
             .y(d => y( d.info.mean[iplot] ));
 
-        // // This element will render the vertices
-        // myPlot.append('g')
-        //     .attr('id', 'vertices')
-        //     .selectAll('.vertex')
-        //     .data(vertices)
-        //     .enter()
-        //     .append("circle")
-        //     .classed("vertex", true)
-        //     .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-        //     .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-        //     .attr("cx", (d => x( g.time_axis[d.time_step] )))
-        //     .attr("cy", (d => y( d.info.mean[iplot] )))
-        //     .attr("r", (d => 10*d.ratio_members) )
-        //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)))
-        //     .attr("fill", (d => colors[d.info.brotherhood_size[0]]))
-        //     .attr("id", (d => "v" + d.key) );
+        // This element will render the vertices
+        myPlot.append('g')
+            .attr('id', 'vertices')
+            .selectAll('.vertex')
+            .data(vertices)
+            .enter()
+            .append("circle")
+            .classed("vertex", true)
+            .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+            .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+            .attr("cx", (d => x( g.time_axis[d.time_step] )))
+            .attr("cy", (d => y( d.info.mean[iplot] )))
+            .attr("r", (d => f_radius(d)) )
+            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)))
+            .attr("fill", (d => colors[d.info.brotherhood_size[0]]))
+            .attr("id", (d => "v" + d.key) );
 
         // This element will render the standard deviation of edges
-        myPlot.append('g')
-            .attr('id', 'edges-std')
-            .selectAll('.edge-std')
-            .data(edges)
-            .enter()
-            .append("polygon")
-            .classed("edge-std", true)
-            // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-            // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-            .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
-            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
-            .attr("fill", (d => f_color_edge(d, g, colors)))
-            .attr("id", (d => "e-std" + d.key) );
+        // myPlot.append('g')
+        //     .attr('id', 'edges-std')
+        //     .selectAll('.edge-std')
+        //     .data(edges)
+        //     .enter()
+        //     .append("polygon")
+        //     .classed("edge-std", true)
+        //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+        //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+        //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
+        //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
+        //     .attr("fill", (d => f_color_edge(d, g, colors)))
+        //     .attr("id", (d => "e-std" + d.key) );
 
         // // This element will render the standard deviation of vertices
         // myPlot.append('g')
@@ -692,24 +731,145 @@ export async function draw_entire_graph(
         //     .attr("id", (d => "v-std" + d.key) );
 
         // This element will render the edges
-        // myPlot.append('g')
-        //     .attr('id', 'edges')
-        //     .selectAll('.edges')
-        //     .data(edges)
-        //     .enter()
-        //     .append("polygon")
-        //     .classed("edge", true)
-        //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-        //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-        //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
-        //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/5 ))
-        //     .attr("fill", (d => f_color(d, g, colors)))
-        //     .attr("id", (d => "v" + d.key) );
+        myPlot.append('g')
+            .attr('id', 'edges')
+            .selectAll('.edges')
+            .data(edges)
+            .enter()
+            .append("polyline")
+            .classed("edge", true)
+            // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+            // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+            .attr("points", (d => f_line_edge(d, g, x, y, iplot)))
+            .attr("marker-start",(d => "url(graph.svg#dot) markerWidth="+f_radius(d)) )
+            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max) ))
+            .attr("stroke", (d => f_color_edge(d, g, colors)))
+            .attr("stroke-width", (d => f_stroke_width(d)))
+            .attr("id", (d => "e" + d.key) );
 
         figs.push(figElem);
     }
     return figs
 }
+
+
+export async function draw_entire_graph_mjo(
+    filename_data,
+    filename_graph,
+    dims = dimensions(),
+    fig_id="fig",
+) {
+    // Load the graph and wait until it is ready
+    const g =  await d3.json(filename_graph);
+    const vertices = g.vertices.flat();
+    const edges = g.edges.flat();
+    const time = g.time_axis;
+    const members = g.members;
+    const colors = get_list_colors(g.n_clusters_range.length);
+
+    const data =  await d3.json(filename_data);
+
+    const vmax = 5;
+
+    let figElem = draw_fig(dims, fig_id + "_mjo");
+    let interactiveGroupElem = document.getElementById(figElem.id + "_input");
+    let myPlot = d3.select(figElem).select("#plot-group");
+
+    // Reminder:
+    // - Range: output range that input values to map to
+    // - scaleLinear: Continuous domain mapped to continuous output range
+    let x = d3.scaleLinear().range([0, dims.plot.width]),
+        y = d3.scaleLinear().range([dims.plot.height, 0]);
+
+    // Reminder: domain = min/max values of input data
+    x.domain([ -vmax, vmax ]);
+    y.domain([ -vmax, vmax ]);
+
+    // This element will render the xAxis with the xLabel
+    myPlot.select('#xaxis')
+        // Create many sub-groups for the xAxis
+        .call(d3.axisBottom(x).tickSizeOuter(0));
+
+    myPlot.select('#yaxis')
+        // Create many sub-groups for the yAxis
+        .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
+
+    // Add titles and labels  and style ticks
+    setFigTitle(figElem, " ");
+    setAxTitle(figElem, "");
+    setXLabel(figElem, "RMM1");
+    setYLabel(figElem, "RMM2");
+    style_ticks(figElem);
+
+    // This element will render the vertices
+    myPlot.append('g')
+        .attr('id', 'vertices')
+        .selectAll('.vertex')
+        .data(vertices)
+        .enter()
+        .append("circle")
+        .classed("vertex", true)
+        .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+        .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+        .attr("cx", (d => x( d.info.mean[0] )))
+        .attr("cy", (d => y( d.info.mean[1] )))
+        .attr("r", (d =>  f_radius(d)) )
+        .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)))
+        .attr("fill", (d => colors[d.info.brotherhood_size[0]]))
+        .attr("id", (d => "v" + d.key) );
+
+    // This element will render the standard deviation of edges
+    // myPlot.append('g')
+    //     .attr('id', 'edges-std')
+    //     .selectAll('.edge-std')
+    //     .data(edges)
+    //     .enter()
+    //     .append("polygon")
+    //     .classed("edge-std", true)
+    //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+    //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+    //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
+    //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
+    //     .attr("fill", (d => f_color_edge(d, g, colors)))
+    //     .attr("id", (d => "e-std" + d.key) );
+
+    // // This element will render the standard deviation of vertices
+    // myPlot.append('g')
+    //     .attr('id', 'vertices-std')
+    //     .selectAll('.vertex-std')
+    //     .data(vertices)
+    //     .enter()
+    //     .append("polygon")
+    //     .classed("vertex-std", true)
+    //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+    //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+    //     .attr("points", (d => f_polygon_vertex(d, g, x, y, iplot)))
+    //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
+    //     .attr("fill", (d => f_color_vertex(d, g, colors)))
+    //     .attr("id", (d => "v-std" + d.key) );
+
+    // This element will render the edges
+    myPlot.append('g')
+        .attr('id', 'edges')
+        .selectAll('.edges')
+        .data(edges)
+        .enter()
+        .append("polyline")
+        .classed("edge", true)
+        // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+        // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+        .attr("points", (d => f_line_edge_mjo(d, g, x, y)))
+        .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max) ))
+        .attr("stroke", (d => f_color_edge(d, g, colors)))
+        .attr("stroke-width", (d => f_stroke_width(d)))
+        .attr("id", (d => "e" + d.key) );
+
+    // Add mjo classes lines
+    draw_mjo_classes(figElem, x, y, vmax);
+
+    return figElem
+}
+
 
 function onMouseMemberAux(e, d, memberElem, interactiveGroupElem, classname) {
     let figs = document.getElementsByClassName("container-fig");
