@@ -1002,7 +1002,7 @@ class PersistentGraph():
             print('Edges constructed in %.2f s' %(t_end - t_start))
 
         self._compute_statistics()
-        self.life_span = get_k_life_span(self)
+        self._life_span = get_k_life_span(self)
 
     def save(self, filename = None, path='', type='pg'):
         if filename is None:
@@ -1073,6 +1073,10 @@ class PersistentGraph():
     @property
     def min(self):
         return self._min
+
+    @property
+    def life_span(self):
+        return self._life_span
 
     @property
     def life_span_max(self):

@@ -1,5 +1,5 @@
 
-import { d3fy } from "./preprocess.js";
+import { d3fy, d3fy_life_span } from "./preprocess.js";
 import { range_rescale, sigmoid, linear } from "./utils.js";
 
 export const COLOR_BREWER = [
@@ -196,6 +196,10 @@ function f_line_edge_mjo(d, g, xscale, yscale) {
     let points = xscale(mean_start[0])+","+yscale(mean_start[1])+" ";
     points += xscale(mean_end[0])+","+yscale(mean_end[1]);
     return points;
+}
+
+function f_line_life_span(d, g, xscale, yscale) {
+    let t = d.time_step;
 }
 
 function f_polygon_vertex(d, g, xscale, yscale, iplot) {
@@ -473,6 +477,7 @@ export async function draw_meteogram(
         let x = d3.scaleLinear().range([0, dims.plot.width]),
             y = d3.scaleLinear().range([dims.plot.height, 0]);
 
+        console.log("d3.min(myData.time), d3.max(myData.time)", d3.min(myData.time), d3.max(myData.time));
         // Reminder: domain = min/max values of input data
         x.domain([ d3.min(myData.time), d3.max(myData.time) ] );
         y.domain([ymin, ymax]);
@@ -498,6 +503,8 @@ export async function draw_meteogram(
         const myLine = d3.line()
             .x(d => x(d.t))
             .y(d => y(d[myData.var_names[iplot]]));
+
+        console.log("members", data_xy);
 
         // This element will render the lines
         myPlot.append('g')
@@ -870,6 +877,62 @@ export async function draw_entire_graph_mjo(
     return figElem
 }
 
+
+
+export async function life_span_plot(
+    filename_graph,
+    dims = dimensions(),
+    fig_id="fig",
+) {
+    // Load the graph and wait until it is ready
+    const g =  await d3.json(filename_graph);
+    const life_spans = d3fy_life_span(g.life_span);
+    const colors = get_list_colors(g.n_clusters_range.length);
+
+    let figElem = draw_fig(dims, fig_id);
+    let myPlot = d3.select(figElem).select("#plot-group");
+
+    let x = d3.scaleLinear().range([0, dims.plot.width]),
+        y = d3.scaleLinear().range([dims.plot.height, 0]);
+
+    console.log("g.time_axis",g.time_axis, d3.min(g.time_axis), d3.max(g.time_axis));
+
+    x.domain([ d3.min(g.time_axis), d3.max(g.time_axis) ] );
+    y.domain([0, 1]);
+
+    myPlot.select('#xaxis')
+        .call(d3.axisBottom(x).tickSizeOuter(0));
+
+    myPlot.select('#yaxis')
+        .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
+
+    // Add titles and labels  and style ticks
+    setFigTitle(figElem, " ");
+    setAxTitle(figElem, "");
+    setXLabel(figElem, "Time (h)");
+    setYLabel(figElem, "Life span");
+    style_ticks(figElem);
+
+    const myLine = d3.line()
+        .x(d => x(g.time_axis[d.t]))
+        .y(d => y(d.life_span));
+
+    console.log("life_spans", life_spans);
+
+    // This element will render the life span
+    myPlot.append('g')
+        .attr('id', 'life-spans')
+        .selectAll('.life-span')
+        .data(life_spans)
+        .enter()
+        .append("path")
+        .classed("life-span", true)
+        .attr("d", (d => myLine(d)))
+        .attr("stroke", (d => colors[d[0].k]))
+        .attr("id", (d => "k" + d[0].k) );
+
+    return figElem
+}
 
 function onMouseMemberAux(e, d, memberElem, interactiveGroupElem, classname) {
     let figs = document.getElementsByClassName("container-fig");

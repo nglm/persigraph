@@ -21,3 +21,23 @@ export function d3fy(data) {
     }
     return data_xy
 }
+
+export function d3fy_life_span(data) {
+    // WARNING: Does not give real time step, just the index of the time
+    // step
+
+    var data_xy = []; // start empty, add each element one at a time
+    var xy = [];
+    console.log(data)
+
+    // Iterate over keys (k values)
+    for (const [key, value] of Object.entries(data)) {
+        xy = [];
+        // Iterate over time steps
+        for(var i = 0; i < value.length; i++ ) {
+            xy.push({t: i, k: key, life_span: value[i]});
+        }
+        data_xy.push(xy);
+    }
+    return data_xy
+}

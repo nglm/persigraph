@@ -1,4 +1,4 @@
-import { dimensions, draw_meteogram, draw_mjo, setFigTitle, setAxTitle, draw_entire_graph_mjo, draw_entire_graph_meteogram } from "./plots.js";
+import { dimensions, draw_meteogram, draw_mjo, setFigTitle, setAxTitle, draw_entire_graph_mjo, draw_entire_graph_meteogram, life_span_plot } from "./plots.js";
 
 const data_path = "./data/";
 const data_graph = "./graphs/";
@@ -20,6 +20,7 @@ const dims_mjo = dimensions({plotWidth : 600, plotHeight : 600});
 let mjo = await draw_mjo(data_path + f4, dims_mjo, "mjo");
 setAxTitle(mjo, f4);
 let mjo_graph = await draw_entire_graph_mjo(data_path + f4, data_graph + f4, dims_mjo, "mjo_graph");
+let life_span = await life_span_plot(data_graph + f4, dims_mjo, "life_span");
 d3.select("body").append('text').html('<br>');
 let mjo_rmm = await draw_meteogram(data_path + f4, dims_meteogram, "mjo_rmm");
 let mjo_rmm_graph = await draw_entire_graph_meteogram(data_path + f4, data_graph + f4, dims_meteogram, "mjo_rmm_graph");

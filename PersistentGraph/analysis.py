@@ -147,6 +147,7 @@ def get_k_life_span(
 
         # Last step
         life_span[k_prev][t] = 1 - r_scores[-1]
+    life_span.pop(0)
     return life_span
 
 def get_relevant_k(
