@@ -1,5 +1,9 @@
-import { dimensions, draw_meteogram, draw_mjo, setFigTitle, setAxTitle, draw_entire_graph_mjo, draw_entire_graph_meteogram, life_span_plot } from "./plots.js";
+import { dimensions, setAxTitle } from "./figures.js";
 
+import {
+    draw_meteogram, draw_mjo, draw_entire_graph_mjo,
+    draw_entire_graph_meteogram, life_span_plot
+} from "./plots.js";
 const data_path = "./data/";
 const data_graph = "./graphs/";
 const f1 = "ec.ens.2020011400.sfc.meteogram.json";
