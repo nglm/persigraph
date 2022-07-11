@@ -383,3 +383,89 @@ export function draw_mjo_classes(figElem, x, y, vmax=5) {
         .attr("r", (x(1)-x(0)))
         .classed("mjoClass", true)
 }
+
+
+export function add_axes(
+    figElem, xvalues, yvalues, include_k=true, kmax=4, iplot=0
+) {
+    let myPlot = d3.select(figElem).select("#plot-group");
+
+    const plotWidth = d3.select(figElem)
+        .select("#plot")
+        .select("#background")
+        .attr("width");
+
+    const plotHeight = d3.select(figElem)
+        .select("#plot")
+        .select("#background")
+        .attr("height");
+
+    // Find extremum to set axes limits
+    const ymin = d3.min(yvalues, (d => d3.min(d[iplot])) ),
+        ymax = d3.max(yvalues, (d => d3.max(d[iplot])) );
+
+    // Default value if not include_k
+    let yMinDomain = ymin;
+    const plotHeightK = plotHeight / 5;
+
+    const date_min = d3.min(xvalues),
+        date_max = d3.max(xvalues);
+
+    // Reminder:
+    // - Range: output range that input values to map to
+    // - scaleLinear: Continuous domain mapped to continuous output range
+    let x = d3.scaleLinear().range([0, plotWidth]),
+        y = d3.scaleLinear().range([plotHeight, 0]);
+
+    let xk, yk;
+
+    if (include_k === true) {
+        // Additional scales for relevant k
+        yk = d3.scaleLinear().range([plotHeightK, 0]);
+        xk = d3.scaleBand().range([0, plotWidth])
+            .padding(0.2);
+
+        // Extra space for relevant k
+        yMinDomain = ymin-Math.abs(ymax-ymin)/8;
+
+        // Reminder: domain = min/max values of input data
+        xk.domain([ date_min, date_max ] );
+        yk.domain([0.5, kmax]);
+    }
+
+
+    // Reminder: domain = min/max values of input data
+    x.domain([ date_min, date_max ] );
+    y.domain([yMinDomain, ymax]);
+
+    myPlot.select('#xaxis')
+        // Create many sub-groups for the xAxis
+        .call(d3.axisBottom(x).tickSizeOuter(0));
+
+    myPlot.select('#yaxis')
+        // Create many sub-groups for the yAxis
+        .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
+
+    if (include_k === true) {
+        myPlot.append("g")
+            .attr('id', 'xaxis-k')
+            .attr("transform", "translate(0, " + plotHeight + ")");
+
+        myPlot.select('#xaxis-k')
+            .call(d3.axisBottom(xk).tickValues([]));
+
+        myPlot.append("g")
+            .attr('id', 'yaxis-k')
+            .attr(
+                "transform",
+                "translate("+(plotWidth - 12)+ ", "+ (plotHeight-plotHeightK) +")");
+
+        myPlot.select('#yaxis-k')
+            .call(d3.axisLeft(yk)
+                //.ticks(kmax)
+                .tickValues(d3.range(kmax, 0, -1))
+                .tickFormat(d3.format("d")));
+    }
+
+    return {x, y, xk, yk}
+}

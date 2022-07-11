@@ -3,7 +3,7 @@ import { d3fy, d3fy_life_span } from "./preprocess.js";
 
 import {
     dimensions, setAxTitle, setFigTitle, setXLabel, setYLabel,
-    draw_mjo_classes, draw_fig, style_ticks, get_list_colors,
+    draw_mjo_classes, draw_fig, style_ticks, get_list_colors, add_axes,
 } from "./figures.js"
 
 import {range_rescale, sigmoid, linear} from "./utils.js"
@@ -124,54 +124,36 @@ export async function draw_meteogram(
     fig_id="fig",
 ) {
     // Load the data and wait until it is ready
-    const myData =  await d3.json(filename);
+    const data =  await d3.json(filename);
     // d3 expects a very specific data format
-    let data_xy = d3fy(myData);
+    let data_xy = d3fy(data);
     // where we will store all our figs
     let figs = [];
 
     // We create a new fig for each variable
-    for(var iplot = 0; iplot < myData.var_names.length; iplot++ ) {
-
-        // Find extremum to set axes limits
-        const ymin = d3.min(myData.members, (d => d3.min(d[iplot])) ),
-            ymax = d3.max(myData.members, (d => d3.max(d[iplot])) );
+    for(var iplot = 0; iplot < data.var_names.length; iplot++ ) {
 
         let figElem = draw_fig(dims, fig_id + "_" + iplot);
         let myPlot = d3.select(figElem).select("#plot-group");
         let interactiveGroupElem = document.getElementById(figElem.id + "_input");
 
-        // Reminder:
-        // - Range: output range that input values to map to
-        // - scaleLinear: Continuous domain mapped to continuous output range
-        let x = d3.scaleLinear().range([0, dims.plot.width]),
-            y = d3.scaleLinear().range([dims.plot.height, 0]);
-
-        // Reminder: domain = min/max values of input data
-        x.domain([ d3.min(myData.time), d3.max(myData.time) ] );
-        y.domain([ymin, ymax]);
-
-        // This element will render the xAxis with the xLabel
-        myPlot.select('#xaxis')
-            // Create many sub-groups for the xAxis
-            .call(d3.axisBottom(x).tickSizeOuter(0));
-
-        myPlot.select('#yaxis')
-            // Create many sub-groups for the yAxis
-            .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
+        // Add x and y axis element
+        let {x, y, xk, yk} = add_axes(
+            figElem, data.time, data.members, false, undefined, iplot
+        );
 
         // Add titles and labels  and style ticks
         setFigTitle(figElem, "");
         setAxTitle(figElem, "");
         setXLabel(figElem, "Time (h)");
         setYLabel(
-            figElem, myData.long_name[iplot] +" (" + myData.units[iplot] + ")"
+            figElem, data.long_name[iplot] +" (" + data.units[iplot] + ")"
         );
         style_ticks(figElem);
 
         const myLine = d3.line()
             .x(d => x(d.t))
-            .y(d => y(d[myData.var_names[iplot]]));
+            .y(d => y(d[data.var_names[iplot]]));
 
         // This element will render the lines
         myPlot.append('g')
@@ -212,8 +194,8 @@ export async function draw_mjo(
     y.domain([-vmax, vmax]);
 
     // Load the data and wait until it is ready
-    const myData =  await d3.json(filename);
-    let data_xy = d3fy(myData);
+    const data =  await d3.json(filename);
+    let data_xy = d3fy(data);
 
     // This element will render the xAxis with the xLabel
     myPlot.select('#xaxis')
@@ -254,6 +236,8 @@ export async function draw_mjo(
 export async function draw_entire_graph_meteogram(
     filename_data,
     filename_graph,
+    include_k = true,
+    kmax = 4,
     dims = dimensions(),
     fig_id="fig",
 ) {
@@ -273,32 +257,130 @@ export async function draw_entire_graph_meteogram(
     // We create a new fig for each variable
     for(var iplot = 0; iplot < g.d; iplot++ ) {
 
-        // Find extremum to set axes limits
-        const ymin = d3.min(g.members, (d => d3.min(d[iplot])) ),
-            ymax = d3.max(g.members, (d => d3.max(d[iplot])) );
-
         let figElem = draw_fig(dims, fig_id + "_" + iplot);
         let interactiveGroupElem = document.getElementById(figElem.id + "_input");
         let myPlot = d3.select(figElem).select("#plot-group");
 
-        // Reminder:
-        // - Range: output range that input values to map to
-        // - scaleLinear: Continuous domain mapped to continuous output range
-        let x = d3.scaleLinear().range([0, dims.plot.width]),
-            y = d3.scaleLinear().range([dims.plot.height, 0]);
+        // Add x and y axis element
+        let {x, y, xk, yk} = add_axes(
+            figElem, data.time, data.members, include_k, undefined, iplot
+        );
 
-        // Reminder: domain = min/max values of input data
-        x.domain([ d3.min(g.time_axis), d3.max(g.time_axis) ] );
-        y.domain([ymin, ymax]);
+        // Add titles and labels  and style ticks
+        setFigTitle(figElem, " ");
+        setAxTitle(figElem, "");
+        setXLabel(figElem, "Time (h)");
+        setYLabel(
+            figElem, data.long_name[iplot] +" (" + data.units[iplot] + ")"
+        );
+        style_ticks(figElem);
 
-        // This element will render the xAxis with the xLabel
-        myPlot.select('#xaxis')
-            // Create many sub-groups for the xAxis
-            .call(d3.axisBottom(x).tickSizeOuter(0));
+        const edge_fn = d3.line()
+            .x(d => x( g.time_axis(d.time_step) ))
+            .y(d => y( d.info.mean[iplot] ));
 
-        myPlot.select('#yaxis')
-            // Create many sub-groups for the yAxis
-            .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
+        // This element will render the vertices
+        myPlot.append('g')
+            .attr('id', 'vertices')
+            .selectAll('.vertex')
+            .data(vertices)
+            .enter()
+            .append("circle")
+            .classed("vertex", true)
+            .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+            .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+            .attr("cx", (d => x( g.time_axis[d.time_step] )))
+            .attr("cy", (d => y( d.info.mean[iplot] )))
+            .attr("r", (d => f_radius(d)) )
+            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)))
+            .attr("fill", (d => colors[d.info.brotherhood_size[0]]))
+            .attr("id", (d => "v" + d.key) );
+
+        // This element will render the standard deviation of edges
+        // myPlot.append('g')
+        //     .attr('id', 'edges-std')
+        //     .selectAll('.edge-std')
+        //     .data(edges)
+        //     .enter()
+        //     .append("polygon")
+        //     .classed("edge-std", true)
+        //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+        //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+        //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
+        //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
+        //     .attr("fill", (d => f_color_edge(d, g, colors)))
+        //     .attr("id", (d => "e-std" + d.key) );
+
+        // // This element will render the standard deviation of vertices
+        // myPlot.append('g')
+        //     .attr('id', 'vertices-std')
+        //     .selectAll('.vertex-std')
+        //     .data(vertices)
+        //     .enter()
+        //     .append("polygon")
+        //     .classed("vertex-std", true)
+        //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+        //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+        //     .attr("points", (d => f_polygon_vertex(d, g, x, y, iplot)))
+        //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
+        //     .attr("fill", (d => f_color_vertex(d, g, colors)))
+        //     .attr("id", (d => "v-std" + d.key) );
+
+        // This element will render the edges
+        myPlot.append('g')
+            .attr('id', 'edges')
+            .selectAll('.edges')
+            .data(edges)
+            .enter()
+            .append("polyline")
+            .classed("edge", true)
+            // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+            // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+            .attr("points", (d => f_line_edge(d, g, x, y, iplot)))
+            .attr("marker-start",(d => "url(graph.svg#dot) markerWidth="+f_radius(d)) )
+            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max) ))
+            .attr("stroke", (d => f_color_edge(d, g, colors)))
+            .attr("stroke-width", (d => f_stroke_width(d)))
+            .attr("id", (d => "e" + d.key) );
+
+        figs.push(figElem);
+    }
+    return figs
+}
+
+
+
+export async function draw_relevant_graph_meteogram(
+    filename_data,
+    filename_graph,
+    kmax = 4,
+    dims = dimensions(),
+    fig_id="fig",
+) {
+    // Load the graph and wait until it is ready
+    const g =  await d3.json(filename_graph);
+    const vertices = g.vertices.flat();
+    const edges = g.edges.flat();
+    const time = g.time_axis;
+    const members = g.members;
+    const colors = get_list_colors(g.n_clusters_range.length);
+
+    const data =  await d3.json(filename_data);
+
+    // where we will store all our figs
+    let figs = [];
+
+    // We create a new fig for each variable
+    for(var iplot = 0; iplot < g.d; iplot++ ) {
+
+        let figElem = draw_fig(dims, fig_id + "_" + iplot);
+        let interactiveGroupElem = document.getElementById(figElem.id + "_relevant");
+        let myPlot = d3.select(figElem).select("#plot-group");
+
+        // Add x and y axis element
+        let {x, y, xk, yk} = add_axes(
+            figElem, data.time, data.members, include_k=true, kmax, iplot
+        );
 
         // Add titles and labels  and style ticks
         setFigTitle(figElem, " ");

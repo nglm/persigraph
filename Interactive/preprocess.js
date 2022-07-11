@@ -28,7 +28,6 @@ export function d3fy_life_span(data) {
 
     var data_xy = []; // start empty, add each element one at a time
     var xy = [];
-    console.log(data)
 
     // Iterate over keys (k values)
     for (const [key, value] of Object.entries(data)) {
