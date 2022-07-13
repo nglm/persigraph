@@ -30,7 +30,7 @@ const dims_relevant_meteogram = dimensions(
 // await draw_meteogram(data_path + f2, undefined, "fig02");
 // await draw_meteogram(data_path + f3, undefined, "fig03");
 
-const kmax = 4;
+const kmax = 8;
 let mjo = await draw_mjo(data_path + f4,{ dims : dims_mjo, id : "mjo"});
 setAxTitle(mjo, f4);
 //let mjo_graph = await draw_entire_graph_mjo(
@@ -42,7 +42,7 @@ let mjo_rmm = await draw_meteogram(
     data_path + f4, {dims : dims_meteogram, id:"mjo_rmm"});
 
 let mjo_rmm_graph = await draw_entire_graph_meteogram(
-    data_path + f4, data_graph + f4, kmax,
+    data_path + f4, data_graph + f4,
     {dims : dims_meteogram, id : "mjo_rmm_graph"});
 
 let mjo_polar = await draw_meteogram(

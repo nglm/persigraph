@@ -252,6 +252,7 @@ export async function draw_entire_graph_meteogram(
 
     // We create a new fig for each variable
     for(var iplot = 0; iplot < g.d; iplot++ ) {
+        console.log("dims", dims);
 
         let figElem = draw_fig(dims, id + "_" + iplot);
         let interactiveGroupElem = document.getElementById(figElem.id + "_input");
