@@ -31,17 +31,22 @@ const dims_relevant_meteogram = dimensions(
 // await draw_meteogram(data_path + f3, undefined, "fig03");
 
 const kmax = 4;
-let mjo = await draw_mjo(data_path + f4, dims_mjo, "mjo");
+let mjo = await draw_mjo(data_path + f4,{ dims : dims_mjo, id : "mjo"});
 setAxTitle(mjo, f4);
 //let mjo_graph = await draw_entire_graph_mjo(
 //    data_path + f4, data_graph + f4, dims_mjo, "mjo_graph");
-let life_span = await life_span_plot(data_graph + f4, dims_mjo, "life_span");
+let life_span = await life_span_plot(
+    data_graph + f4, {dims : dims_mjo, id : "life_span"});
 d3.select("body").append('text').html('<br>');
-let mjo_rmm = await draw_meteogram(data_path + f4, dims_meteogram, "mjo_rmm");
+let mjo_rmm = await draw_meteogram(
+    data_path + f4, {dims : dims_meteogram, id:"mjo_rmm"});
+
 let mjo_rmm_graph = await draw_entire_graph_meteogram(
-    data_path + f4, data_graph + f4, true, kmax, dims_meteogram, "mjo_rmm_graph");
+    data_path + f4, data_graph + f4, kmax,
+    {dims : dims_meteogram, id : "mjo_rmm_graph"});
+
 let mjo_polar = await draw_meteogram(
-    data_path + f4_polar, dims_meteogram, "mjo_polar");
+    data_path + f4_polar, {dims : dims_meteogram, id : "mjo_polar"});
 
 
 // await draw_meteogram(data_path + f4, undefined, "fig01");

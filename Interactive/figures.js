@@ -387,7 +387,7 @@ export function draw_mjo_classes(figElem, x, y, vmax=5) {
 
 export function add_axes(
     figElem, xvalues, yvalues,
-    {include_k=true, kmax=4, iplot=0} = {}
+    {include_k=true, kmax=4, iplot=0, portion=0.25} = {}
 ) {
     let myPlot = d3.select(figElem).select("#plot-group");
 
@@ -407,7 +407,7 @@ export function add_axes(
 
     // Default value if not include_k
     let yMinDomain = ymin;
-    const plotHeightK = plotHeight / 5;
+    const plotHeightK = plotHeight * portion;
 
     const date_min = d3.min(xvalues),
         date_max = d3.max(xvalues);
@@ -420,20 +420,21 @@ export function add_axes(
 
     let xk, yk;
 
-    if (include_k === true) {
+    if (include_k === "yes") {
         // Additional scales for relevant k
         yk = d3.scaleLinear().range([plotHeightK, 0]);
         xk = d3.scaleBand().range([0, plotWidth])
             .padding(0.2);
-
-        // Extra space for relevant k
-        yMinDomain = ymin-Math.abs(ymax-ymin)/8;
 
         // Reminder: domain = min/max values of input data
         xk.domain([ date_min, date_max ] );
         yk.domain([0.5, kmax]);
     }
 
+    if (include_k != "no") {
+        // Extra space if include_k = "yes" or "blank"
+        yMinDomain = ymin-Math.abs(ymax-ymin) * portion;
+    }
 
     // Reminder: domain = min/max values of input data
     x.domain([ date_min, date_max ] );
@@ -447,7 +448,7 @@ export function add_axes(
         // Create many sub-groups for the yAxis
         .call(d3.axisLeft(y).tickSizeOuter(0).tickFormat(d => d));
 
-    if (include_k === true) {
+    if (include_k === "yes") {
         myPlot.append("g")
             .attr('id', 'xaxis-k')
             .attr("transform", "translate(0, " + plotHeight + ")");

@@ -120,8 +120,7 @@ function f_stroke_width(d) {
 
 export async function draw_meteogram(
     filename,
-    dims = dimensions(),
-    fig_id="fig",
+    {include_k = "blank", kmax = 4, id="fig", dims = dimensions()} = {},
 ) {
     // Load the data and wait until it is ready
     const data =  await d3.json(filename);
@@ -133,14 +132,14 @@ export async function draw_meteogram(
     // We create a new fig for each variable
     for(var iplot = 0; iplot < data.var_names.length; iplot++ ) {
 
-        let figElem = draw_fig(dims, fig_id + "_" + iplot);
+        let figElem = draw_fig(dims, id + "_" + iplot);
         let myPlot = d3.select(figElem).select("#plot-group");
         let interactiveGroupElem = document.getElementById(figElem.id + "_input");
 
         // Add x and y axis element
         let {x, y, xk, yk} = add_axes(
             figElem, data.time, data.members,
-            {include_k:false, iplot:iplot}
+            {include_k:include_k, iplot:iplot}
         );
 
         // Add titles and labels  and style ticks
@@ -178,11 +177,10 @@ export async function draw_meteogram(
 
 export async function draw_mjo(
     filename,
-    dims = dimensions(),
-    fig_id="fig",
+    {id="fig", dims = dimensions()} = {},
 ) {
 
-    let figElem = draw_fig(dims, fig_id);
+    let figElem = draw_fig(dims, id);
     let myPlot = d3.select(figElem).select("#plot-group");
     let interactiveGroupElem = document.getElementById(figElem.id + "_input");
     let vmax = 5;
@@ -237,10 +235,7 @@ export async function draw_mjo(
 export async function draw_entire_graph_meteogram(
     filename_data,
     filename_graph,
-    include_k = true,
-    kmax = 4,
-    dims = dimensions(),
-    fig_id="fig",
+    {include_k = "yes", kmax = 4, id="fig", dims = dimensions()} = {},
 ) {
     // Load the graph and wait until it is ready
     const g =  await d3.json(filename_graph);
@@ -258,7 +253,7 @@ export async function draw_entire_graph_meteogram(
     // We create a new fig for each variable
     for(var iplot = 0; iplot < g.d; iplot++ ) {
 
-        let figElem = draw_fig(dims, fig_id + "_" + iplot);
+        let figElem = draw_fig(dims, id + "_" + iplot);
         let interactiveGroupElem = document.getElementById(figElem.id + "_input");
         let myPlot = d3.select(figElem).select("#plot-group");
 
@@ -355,9 +350,7 @@ export async function draw_entire_graph_meteogram(
 export async function draw_relevant_graph_meteogram(
     filename_data,
     filename_graph,
-    kmax = 4,
-    dims = dimensions(),
-    fig_id="fig",
+    {include_k = "yes", kmax = 4, id="fig", dims = dimensions()} = {},
 ) {
     // Load the graph and wait until it is ready
     const g =  await d3.json(filename_graph);
@@ -375,14 +368,14 @@ export async function draw_relevant_graph_meteogram(
     // We create a new fig for each variable
     for(var iplot = 0; iplot < g.d; iplot++ ) {
 
-        let figElem = draw_fig(dims, fig_id + "_" + iplot);
+        let figElem = draw_fig(dims, id + "_" + iplot);
         let interactiveGroupElem = document.getElementById(figElem.id + "_relevant");
         let myPlot = d3.select(figElem).select("#plot-group");
 
         // Add x and y axis element
         let {x, y, xk, yk} = add_axes(
             figElem, data.time, data.members,
-            {include_k : true, kmax : kmax, iplot : iplot}
+            {include_k : include_k, kmax : kmax, iplot : iplot}
         );
 
         // Add titles and labels  and style ticks
@@ -471,8 +464,7 @@ export async function draw_relevant_graph_meteogram(
 export async function draw_entire_graph_mjo(
     filename_data,
     filename_graph,
-    dims = dimensions(),
-    fig_id="fig",
+    {id="fig", dims = dimensions()} = {},
 ) {
     // Load the graph and wait until it is ready
     const g =  await d3.json(filename_graph);
@@ -486,7 +478,7 @@ export async function draw_entire_graph_mjo(
 
     const vmax = 5;
 
-    let figElem = draw_fig(dims, fig_id + "_mjo");
+    let figElem = draw_fig(dims, id + "_mjo");
     let interactiveGroupElem = document.getElementById(figElem.id + "_input");
     let myPlot = d3.select(figElem).select("#plot-group");
 
@@ -589,15 +581,14 @@ export async function draw_entire_graph_mjo(
 
 export async function life_span_plot(
     filename_graph,
-    dims = dimensions(),
-    fig_id="fig",
+    {id="fig", dims = dimensions()} = {},
 ) {
     // Load the graph and wait until it is ready
     const g =  await d3.json(filename_graph);
     const life_spans = d3fy_life_span(g.life_span);
     const colors = get_list_colors(g.n_clusters_range.length);
 
-    let figElem = draw_fig(dims, fig_id);
+    let figElem = draw_fig(dims, id);
     let myPlot = d3.select(figElem).select("#plot-group");
 
     let x = d3.scaleLinear().range([0, dims.plot.width]),
