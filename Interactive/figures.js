@@ -386,7 +386,8 @@ export function draw_mjo_classes(figElem, x, y, vmax=5) {
 
 
 export function add_axes(
-    figElem, xvalues, yvalues, include_k=true, kmax=4, iplot=0
+    figElem, xvalues, yvalues,
+    {include_k=true, kmax=4, iplot=0} = {}
 ) {
     let myPlot = d3.select(figElem).select("#plot-group");
 

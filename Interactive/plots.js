@@ -139,7 +139,8 @@ export async function draw_meteogram(
 
         // Add x and y axis element
         let {x, y, xk, yk} = add_axes(
-            figElem, data.time, data.members, false, undefined, iplot
+            figElem, data.time, data.members,
+            {include_k:false, iplot:iplot}
         );
 
         // Add titles and labels  and style ticks
@@ -263,7 +264,8 @@ export async function draw_entire_graph_meteogram(
 
         // Add x and y axis element
         let {x, y, xk, yk} = add_axes(
-            figElem, data.time, data.members, include_k, undefined, iplot
+            figElem, data.time, data.members,
+            {include_k : include_k, iplot : iplot}
         );
 
         // Add titles and labels  and style ticks
@@ -379,7 +381,8 @@ export async function draw_relevant_graph_meteogram(
 
         // Add x and y axis element
         let {x, y, xk, yk} = add_axes(
-            figElem, data.time, data.members, include_k=true, kmax, iplot
+            figElem, data.time, data.members,
+            {include_k : true, kmax : kmax, iplot : iplot}
         );
 
         // Add titles and labels  and style ticks
