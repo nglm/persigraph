@@ -5,6 +5,7 @@ import {
     dimensions, setAxTitle, setFigTitle, setXLabel, setYLabel,
     draw_mjo_classes, draw_fig, style_ticks, get_list_colors, add_axes,
 } from "./figures.js"
+import { onMouseClusterAux, onMouseMemberAux } from "./interact.js";
 
 import {range_rescale, sigmoid, linear} from "./utils.js"
 
@@ -630,21 +631,6 @@ export async function life_span_plot(
     return figElem
 }
 
-function onMouseMemberAux(e, d, memberElem, interactiveGroupElem, classname) {
-    let figs = document.getElementsByClassName("container-fig");
-    for (let i = 0; i < figs.length; i++) {
-        let groupId = document.getElementById(figs[i].id + "_input").value
-        if (groupId == interactiveGroupElem.value) {
-            let svgElem = document.getElementById(figs[i].id + "_svg");
-            try {
-                svgElem.getElementById(memberElem.id)
-                    .setAttribute("class", classname);
-            }
-            catch(err) {}
-        }
-    }
-}
-
 //mouseover event handler function using closure
 function onMouseOverMember(interactiveGroupElem, e, d) {
     return function (e, d) {
@@ -656,29 +642,6 @@ function onMouseOverMember(interactiveGroupElem, e, d) {
 function onMouseOutMember(interactiveGroupElem, e, d) {
     return function (e, d) {
         onMouseMemberAux(e, d, this, interactiveGroupElem, 'line')
-    }
-}
-
-function onMouseClusterAux(e, d, memberElem, interactiveGroupElem, classname1, classname2) {
-    let figs = document.getElementsByClassName("container-fig");
-    for (let i = 0; i < figs.length; i++) {
-        let groupId = document.getElementById(figs[i].id + "_input").value
-        if (groupId == interactiveGroupElem.value) {
-            let svgElem = document.getElementById(figs[i].id + "_svg");
-            try {
-                svgElem.getElementById(memberElem.id)
-                    .setAttribute("class", classname1);
-            }
-            catch(err) {}
-            for (var m of d.members) {
-                let svgElem = document.getElementById(figs[i].id + "_svg");
-                try {
-                    svgElem.getElementById("m" + m)
-                        .setAttribute("class", classname2);
-                }
-                catch(err) {}
-            }
-        }
     }
 }
 
