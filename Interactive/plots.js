@@ -24,8 +24,9 @@ import {range_rescale, sigmoid, linear} from "./utils.js"
     // <polyline points="15,80 29,50 43,60 57,30 71,40 85,15" fill="none" stroke="grey"
     // marker-start="url(#dot)" marker-mid="url(#dot)"  marker-end="url(#dot)" />
 
-function f_life_span(life_span, vmax, {vmin=0} = {}) {
-    let rescaled = range_rescale(life_span, {x0:vmin, x1:vmax});
+function f_life_span(d,  {g=undefined, vmin=0} = {}) {
+    let vmax = g.life_span_max
+    let rescaled = range_rescale(d.life_span, {x0:vmin, x1:vmax});
     return sigmoid(rescaled, {range0_1:true});
 }
 
@@ -102,11 +103,17 @@ function f_polygon_vertex(d, g, xscale, yscale, iplot) {
     return points;
 }
 
-function f_color_vertex(d, g, colors) {
+function f_color_vertex(
+    d,
+    {colors = get_list_colors(50), g=undefined} = {}
+) {
     return colors[d.info.brotherhood_size[0]];
 }
 
-function f_color_edge(d, g, colors) {
+function f_color_edge(
+    d,
+    {colors = get_list_colors(50), g=undefined} = {}
+) {
     return colors[g.vertices[d.time_step][d.v_start].info.brotherhood_size[0]];
 }
 
@@ -118,6 +125,57 @@ function f_stroke_width(d) {
     return (4*d.ratio_members)
 }
 
+function add_vertices(
+    myPlot, g, vertices, x, y, interactiveGroupElem, iplot,
+    {fun_opacity = f_life_span,
+    fun_size = f_radius,
+    fun_color = f_color_vertex,
+    list_colors = get_list_colors(50),
+    } = {},
+) {
+    // This element will render the vertices
+    myPlot.append('g')
+        .attr('id', 'vertices')
+        .selectAll('.vertex')
+        .data(vertices)
+        .enter()
+        .append("circle")
+        .classed("vertex", true)
+        .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+        .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+        .attr("cx", (d => x( g.time_axis[d.time_step] )))
+        .attr("cy", (d => y( d.info.mean[iplot] )))
+        .attr("r", (d => fun_size(d)) )
+        .attr("opacity", (d => fun_opacity(d, {g : g})))
+        .attr("fill", (d => fun_color(d, {colors : list_colors})))
+        .attr("id", (d => "v" + d.key));
+}
+
+function add_edges(
+    myPlot, g, edges, x, y, interactiveGroupElem, iplot,
+    {fun_opacity = f_life_span,
+    fun_size = f_stroke_width,
+    fun_color = f_color_edge,
+    list_colors = get_list_colors(50),
+    } = {},
+) {
+    // This element will render the vertices
+    myPlot.append('g')
+        .attr('id', 'edges')
+        .selectAll('.edges')
+        .data(edges)
+        .enter()
+        .append("polyline")
+        .classed("edge", true)
+        // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+        // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+        .attr("points", (d => f_line_edge(d, g, x, y, iplot)))
+        .attr("marker-start",(d => "url(graph.svg#dot) markerWidth="+f_radius(d)) )
+        .attr("opacity", (d => fun_opacity(d, {g : g})))
+        .attr("stroke", (d => fun_color(d, {colors : list_colors, g : g})))
+        .attr("stroke-width", (d => fun_size(d)))
+        .attr("id", (d => "e" + d.key) );
+}
 
 export async function draw_meteogram(
     filename,
@@ -273,26 +331,15 @@ export async function draw_entire_graph_meteogram(
         );
         style_ticks(figElem);
 
-        const edge_fn = d3.line()
-            .x(d => x( g.time_axis(d.time_step) ))
-            .y(d => y( d.info.mean[iplot] ));
+        add_vertices(
+            myPlot, g, vertices, x, y, interactiveGroupElem, iplot,
+            {list_colors : colors}
+        )
 
-        // This element will render the vertices
-        myPlot.append('g')
-            .attr('id', 'vertices')
-            .selectAll('.vertex')
-            .data(vertices)
-            .enter()
-            .append("circle")
-            .classed("vertex", true)
-            .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-            .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-            .attr("cx", (d => x( g.time_axis[d.time_step] )))
-            .attr("cy", (d => y( d.info.mean[iplot] )))
-            .attr("r", (d => f_radius(d)) )
-            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)))
-            .attr("fill", (d => colors[d.info.brotherhood_size[0]]))
-            .attr("id", (d => "v" + d.key) );
+        add_edges(
+            myPlot, g, edges, x, y, interactiveGroupElem, iplot,
+            {list_colors : colors}
+        )
 
         // This element will render the standard deviation of edges
         // myPlot.append('g')
@@ -323,23 +370,6 @@ export async function draw_entire_graph_meteogram(
         //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
         //     .attr("fill", (d => f_color_vertex(d, g, colors)))
         //     .attr("id", (d => "v-std" + d.key) );
-
-        // This element will render the edges
-        myPlot.append('g')
-            .attr('id', 'edges')
-            .selectAll('.edges')
-            .data(edges)
-            .enter()
-            .append("polyline")
-            .classed("edge", true)
-            // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-            // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-            .attr("points", (d => f_line_edge(d, g, x, y, iplot)))
-            .attr("marker-start",(d => "url(graph.svg#dot) markerWidth="+f_radius(d)) )
-            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max) ))
-            .attr("stroke", (d => f_color_edge(d, g, colors)))
-            .attr("stroke-width", (d => f_stroke_width(d)))
-            .attr("id", (d => "e" + d.key) );
 
         figs.push(figElem);
     }
@@ -388,26 +418,16 @@ export async function draw_relevant_graph_meteogram(
         );
         style_ticks(figElem);
 
-        const edge_fn = d3.line()
-            .x(d => x( g.time_axis(d.time_step) ))
-            .y(d => y( d.info.mean[iplot] ));
-
         // This element will render the vertices
-        myPlot.append('g')
-            .attr('id', 'vertices')
-            .selectAll('.vertex')
-            .data(vertices)
-            .enter()
-            .append("circle")
-            .classed("vertex", true)
-            .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-            .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-            .attr("cx", (d => x( g.time_axis[d.time_step] )))
-            .attr("cy", (d => y( d.info.mean[iplot] )))
-            .attr("r", (d => f_radius(d)) )
-            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)))
-            .attr("fill", (d => colors[d.info.brotherhood_size[0]]))
-            .attr("id", (d => "v" + d.key) );
+        add_vertices(
+            myPlot, g, vertices, x, y, interactiveGroupElem, iplot,
+            {list_colors : colors}
+        )
+
+        add_edges(
+            myPlot, g, edges, x, y, interactiveGroupElem, iplot,
+            {list_colors : colors}
+        )
 
         // This element will render the standard deviation of edges
         // myPlot.append('g')
@@ -438,23 +458,6 @@ export async function draw_relevant_graph_meteogram(
         //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
         //     .attr("fill", (d => f_color_vertex(d, g, colors)))
         //     .attr("id", (d => "v-std" + d.key) );
-
-        // This element will render the edges
-        myPlot.append('g')
-            .attr('id', 'edges')
-            .selectAll('.edges')
-            .data(edges)
-            .enter()
-            .append("polyline")
-            .classed("edge", true)
-            // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-            // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-            .attr("points", (d => f_line_edge(d, g, x, y, iplot)))
-            .attr("marker-start",(d => "url(graph.svg#dot) markerWidth="+f_radius(d)) )
-            .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max) ))
-            .attr("stroke", (d => f_color_edge(d, g, colors)))
-            .attr("stroke-width", (d => f_stroke_width(d)))
-            .attr("id", (d => "e" + d.key) );
 
         figs.push(figElem);
     }
