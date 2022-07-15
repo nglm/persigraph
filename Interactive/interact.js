@@ -27,8 +27,10 @@ export function onMouseClusterAux(e, d, clusterElem, interactiveGroupElem, class
             // Within the outter svg element of each fig, all ids are unique
             let svgElem = document.getElementById(figs[i].id + "_svg");
             try {
-                // Change class of the cluster that has the same id
-                svgElem.getElementById(clusterElem.id)
+                // Correspondance between that v-event is the v id
+                id = "v" + clusterElem.id.slice(7);
+                // Change class of the cluster that has the associated id
+                svgElem.getElementById(id)
                     .setAttribute("class", classname1);
             }
             // (err is caught if this figure was actually spaghetti plot)

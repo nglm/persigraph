@@ -141,14 +141,26 @@ function add_vertices(
         .enter()
         .append("circle")
         .classed("vertex", true)
-        .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-        .on("mouseout", onMouseOutCluster(interactiveGroupElem))
         .attr("cx", (d => x( g.time_axis[d.time_step] )))
         .attr("cy", (d => y( d.info.mean[iplot] )))
         .attr("r", (d => fun_size(d)) )
         .attr("opacity", (d => fun_opacity(d, {g : g})))
         .attr("fill", (d => fun_color(d, {colors : list_colors})))
         .attr("id", (d => "v" + d.key));
+
+    myPlot.append('g')
+        .attr('id', 'vertices-event')
+        .selectAll('.vertex-event')
+        .data(vertices)
+        .enter()
+        .append("circle")
+        .classed("vertex-event", true)
+        .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+        .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+        .attr("cx", (d => x( g.time_axis[d.time_step] )))
+        .attr("cy", (d => y( d.info.mean[iplot] )))
+        .attr("r", (d => 2*fun_size(d)) )
+        .attr("id", (d => "v-event" + d.key));
 }
 
 function add_edges(
