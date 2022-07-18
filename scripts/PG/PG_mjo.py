@@ -47,7 +47,7 @@ ZERO_TYPE = 'bounds'
 save_spaghetti = False
 save_individual = False
 save_mean = False
-k_max = 5
+k_max = 4
 
 
 #FIXME: Outdated option

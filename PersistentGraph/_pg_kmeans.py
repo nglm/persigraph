@@ -5,8 +5,7 @@ the _clustering module.
 
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict, Tuple
-
-from ..utils.kmeans import kmeans_custom, row_norms
+from sklearn.cluster import KMeans
 from ..utils._clustering import get_centroids
 
 
@@ -31,9 +30,7 @@ def get_model_parameters(
     # We avoid doing that more than once
     # using copy_X and row_norms_X (in fit_predict_kw)
     copy_X = np.copy(X)
-    row_norms_X = row_norms(copy_X, squared=True)
     fit_predict_kw = {
-        "x_squared_norms" : row_norms_X,
         'X' : copy_X,
         }
     # Default kw values
@@ -90,7 +87,7 @@ def clustering_model(
         pg._model_kw['idx'] = idx
         members_r = np.zeros(pg.N, dtype=int)
 
-    model = kmeans_custom(
+    model = KMeans(
         n_clusters = n_clusters,
         copy_x = False,
         **model_kw,

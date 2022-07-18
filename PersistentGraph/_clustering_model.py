@@ -50,7 +50,9 @@ def get_model_parameters(
     model_kw.pop("precompute_centroids", None)
     if precompute_centroids:
         # Compute pairwise distances
-        distance_matrix = cdist(X, X, 'minkowski', 2, pg._weights[:, t])
+        distance_matrix = cdist(
+            X, X, metric='minkowski', p=2, w=pg._weights[:, t]
+        )
         # Argsort of pairwise distances
         sorted_idx = sort_dist_matrix(pg, distance_matrix)
         pg._model_kw["distance_matrix"] = distance_matrix
