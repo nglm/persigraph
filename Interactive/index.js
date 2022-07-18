@@ -33,8 +33,8 @@ const dims_relevant_meteogram = dimensions(
 const kmax = 8;
 let mjo = await draw_mjo(data_path + f4,{ dims : dims_mjo, id : "mjo"});
 setAxTitle(mjo, f4);
-//let mjo_graph = await draw_entire_graph_mjo(
-//    data_path + f4, data_graph + f4, dims_mjo, "mjo_graph");
+// let mjo_graph = await draw_entire_graph_mjo(
+//     data_path + f4, data_graph + f4, {dims : dims_mjo, id: "mjo_graph"});
 let life_span = await life_span_plot(
     data_graph + f4, {dims : dims_mjo, id : "life_span"});
 d3.select("body").append('text').html('<br>');

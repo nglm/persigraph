@@ -125,6 +125,37 @@ function f_stroke_width(d) {
     return (4*d.ratio_members)
 }
 
+function add_members(
+    myPlot, fun_line, members, interactiveGroupElem,
+) {
+
+    // This element will render the lines
+    myPlot.append('g')
+        .attr('id', 'members')
+        .selectAll('.line')
+        .data(members)
+        .enter()
+        .append("path")  // "path" is the svg element for lines
+        .classed("line", true)        // Style
+        .attr("d", (d => fun_line(d)))  // How to compute x and y
+        .attr("id", ((d, i) => "m" + i));   // Member's id (for selection)
+
+    // This element won't display anything but will react to the mouse
+    // The area is typically larger than their displayed counterpart
+    myPlot.append('g')
+        .attr('id', 'members-event')
+        .selectAll('.line-event')
+        .data(members)
+        .enter()
+        .append("path")  // "path" is the svg element for lines
+        .classed("line-event", true)        // Style
+        // Add listeners for mouseover/mouseout event
+        .on("mouseover", onMouseOverMember(interactiveGroupElem))
+        .on("mouseout", onMouseOutMember(interactiveGroupElem))
+        .attr("d", (d => fun_line(d)))  // How to compute x and y
+        .attr("id", ((d, i) => "m-event" + i));   // Member's id (for selection)
+}
+
 function add_vertices(
     myPlot, g, vertices, x, y, interactiveGroupElem, iplot,
     {fun_opacity = f_life_span,
@@ -148,6 +179,8 @@ function add_vertices(
         .attr("fill", (d => fun_color(d, {colors : list_colors})))
         .attr("id", (d => "v" + d.key));
 
+    // This element won't display anything but will react to the mouse
+    // The area is typically larger than their displayed counterpart
     myPlot.append('g')
         .attr('id', 'vertices-event')
         .selectAll('.vertex-event')
@@ -222,22 +255,13 @@ export async function draw_meteogram(
         );
         style_ticks(figElem);
 
-        const myLine = d3.line()
+        let myLine = d3.line()
             .x(d => x(d.t))
             .y(d => y(d[data.var_names[iplot]]));
 
-        // This element will render the lines
-        myPlot.append('g')
-            .attr('id', 'members')
-            .selectAll('.line')
-            .data(data_xy)
-            .enter()
-            .append("path")  // "path" is the svg element for lines
-            .classed("line", true)        // Style
-            .on("mouseover", onMouseOverMember(interactiveGroupElem)) // Add listener for mouseover event
-            .on("mouseout", onMouseOutMember(interactiveGroupElem))   // Add listener for mouseout event
-            .attr("d", (d => myLine(d)))  // How to compute x and y
-            .attr("id", ((d, i) => "m" + i));   // Member's id (for selection)
+        add_members(
+            myPlot, myLine, data_xy, interactiveGroupElem,
+        )
 
         figs.push(figElem);
     }
@@ -281,22 +305,14 @@ export async function draw_mjo(
     setYLabel(figElem, "RMM2");
     style_ticks(figElem);
 
-    const myLine = d3.line()
+    let myLine = d3.line()
         .x(d => x(d.rmm1))
         .y(d => y(d.rmm2));
 
-    // This element will render the lines
-    myPlot.append('g')
-        .attr('id', 'members')
-        .selectAll('.line')
-        .data(data_xy)
-        .enter()
-        .append("path")  // "path" is the svg element for lines
-        .classed("line", true)
-        .on("mouseover", onMouseOverMember(interactiveGroupElem))
-        .on("mouseout", onMouseOutMember(interactiveGroupElem))
-        .attr("d", (d => myLine(d)))
-        .attr("id", ((d, i) => "m" + i));
+    add_members(
+        myPlot, myLine, data_xy, interactiveGroupElem,
+    )
+
     // Add mjo classes lines
     draw_mjo_classes(figElem, x, y, vmax=vmax);
     return figElem

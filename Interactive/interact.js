@@ -2,13 +2,15 @@ export function onMouseMemberAux(e, d, memberElem, interactiveGroupElem, classna
     // Find all figures in the document
     let figs = document.getElementsByClassName("container-fig");
     for (let i = 0; i < figs.length; i++) {
+        // Check if the current fig belongs to the same interactive group
         let groupId = document.getElementById(figs[i].id + "_input").value
         if (groupId == interactiveGroupElem.value) {
             // Within the outter svg element of each fig, all ids are unique
             let svgElem = document.getElementById(figs[i].id + "_svg");
             // Change class of the member that has the same id
             try {
-                svgElem.getElementById(memberElem.id)
+                let id = "m" + memberElem.id.slice(7);
+                svgElem.getElementById(id)
                     .setAttribute("class", classname);
             }
             // (err is caught if this figure was actually cluster plot)
@@ -28,7 +30,7 @@ export function onMouseClusterAux(e, d, clusterElem, interactiveGroupElem, class
             let svgElem = document.getElementById(figs[i].id + "_svg");
             try {
                 // Correspondance between that v-event is the v id
-                id = "v" + clusterElem.id.slice(7);
+                let id = "v" + clusterElem.id.slice(7);
                 // Change class of the cluster that has the associated id
                 svgElem.getElementById(id)
                     .setAttribute("class", classname1);
