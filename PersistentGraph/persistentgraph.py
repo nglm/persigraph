@@ -11,7 +11,7 @@ from ._clustering_model import generate_all_clusters
 from ._scores import (
     _set_score_type, _compute_ratio_scores, _compute_score_bounds
 )
-from .analysis import get_k_life_span
+from .analysis import get_k_life_span, get_relevant_k
 
 from ..utils.sorted_lists import insert_no_duplicate, concat_no_duplicate
 from ..utils.d3 import jsonify
@@ -181,6 +181,7 @@ class PersistentGraph():
         self._life_span = None
         self._life_span_max = None
         self._life_span_min = None
+        self._relevant_k = None
         self._max = None
         self._min = None
 
@@ -1003,6 +1004,7 @@ class PersistentGraph():
 
         self._compute_statistics()
         self._life_span = get_k_life_span(self)
+        self._relevant_k = get_relevant_k(self, self._life_span, self.k_max)
 
     def save(self, filename = None, path='', type='pg'):
         if filename is None:
@@ -1085,6 +1087,10 @@ class PersistentGraph():
     @property
     def life_span_min(self):
         return self._life_span_min
+
+    @property
+    def relevant_k(self):
+        return self._relevant_k
 
     @property
     def nb_steps(self) -> int :
