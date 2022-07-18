@@ -24,10 +24,29 @@ import {range_rescale, sigmoid, linear} from "./utils.js"
     // <polyline points="15,80 29,50 43,60 57,30 71,40 85,15" fill="none" stroke="grey"
     // marker-start="url(#dot)" marker-mid="url(#dot)"  marker-end="url(#dot)" />
 
-function f_life_span(d,  {g=undefined, vmin=0} = {}) {
-    let vmax = g.life_span_max
-    let rescaled = range_rescale(d.life_span, {x0:vmin, x1:vmax});
-    return sigmoid(rescaled, {range0_1:true});
+function f_opacity(
+    d,
+    {g=undefined, vmin=0, only_relevant=false, selected_k=undefined} = {}
+) {
+
+    let opacity = undefined;
+    // Binary opacity if plotting only relevant components
+    if (only_relevant) {
+        // Opacity = 1 if the component is deemed relevant
+        if (selected_k[d.t] in d.brotherhood_size) {
+            opacity = 1;
+        // Otherwise the opacity is 0
+        } else {
+            opacity = 0;
+        }
+
+    // Else, opacity based on the life span of the component
+    } else {
+        let vmax = g.life_span_max
+        let rescaled = range_rescale(d.life_span, {x0:vmin, x1:vmax});
+        opacity = sigmoid(rescaled, {range0_1:true})
+    }
+    return opacity;
 }
 
 
@@ -159,7 +178,7 @@ function add_members(
 
 function add_vertices(
     myPlot, fun_cx, fun_cy, g, vertices, interactiveGroupElem,
-    {fun_opacity = f_life_span,
+    {fun_opacity = f_opacity,
     fun_size = f_radius,
     fun_color = f_color_vertex,
     list_colors = get_list_colors(50),
@@ -201,7 +220,7 @@ function add_vertices(
 
 function add_edges(
     myPlot, fun_edge, g, edges, interactiveGroupElem,
-    {fun_opacity = f_life_span,
+    {fun_opacity = f_opacity,
     fun_size = f_stroke_width,
     fun_color = f_color_edge,
     list_colors = get_list_colors(50),
@@ -332,6 +351,7 @@ export async function draw_entire_graph_meteogram(
     const time = g.time_axis;
     const members = g.members;
     const colors = get_list_colors(g.n_clusters_range.length);
+    console.log("vertices", vertices)
 
     const data =  await d3.json(filename_data);
 
@@ -386,7 +406,7 @@ export async function draw_entire_graph_meteogram(
         //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
         //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
         //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
-        //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
+        //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
         //     .attr("fill", (d => f_color_edge(d, g, colors)))
         //     .attr("id", (d => "e-std" + d.key) );
 
@@ -401,7 +421,7 @@ export async function draw_entire_graph_meteogram(
         //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
         //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
         //     .attr("points", (d => f_polygon_vertex(d, g, x, y, iplot)))
-        //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
+        //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
         //     .attr("fill", (d => f_color_vertex(d, g, colors)))
         //     .attr("id", (d => "v-std" + d.key) );
 
@@ -478,7 +498,7 @@ export async function draw_relevant_graph_meteogram(
         //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
         //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
         //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
-        //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
+        //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
         //     .attr("fill", (d => f_color_edge(d, g, colors)))
         //     .attr("id", (d => "e-std" + d.key) );
 
@@ -493,7 +513,7 @@ export async function draw_relevant_graph_meteogram(
         //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
         //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
         //     .attr("points", (d => f_polygon_vertex(d, g, x, y, iplot)))
-        //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
+        //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
         //     .attr("fill", (d => f_color_vertex(d, g, colors)))
         //     .attr("id", (d => "v-std" + d.key) );
 
@@ -576,7 +596,7 @@ export async function draw_entire_graph_mjo(
     //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
     //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
     //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
-    //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
+    //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
     //     .attr("fill", (d => f_color_edge(d, g, colors)))
     //     .attr("id", (d => "e-std" + d.key) );
 
@@ -591,7 +611,7 @@ export async function draw_entire_graph_mjo(
     //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
     //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
     //     .attr("points", (d => f_polygon_vertex(d, g, x, y, iplot)))
-    //     .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)/3 ))
+    //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
     //     .attr("fill", (d => f_color_vertex(d, g, colors)))
     //     .attr("id", (d => "v-std" + d.key) );
 
