@@ -129,15 +129,16 @@ function add_members(
     myPlot, fun_line, members, interactiveGroupElem,
 ) {
 
-    // This element will render the lines
+    // This element will (display) render the lines but they won't be
+    // interactive
     myPlot.append('g')
         .attr('id', 'members')
         .selectAll('.line')
         .data(members)
         .enter()
-        .append("path")  // "path" is the svg element for lines
-        .classed("line", true)        // Style
-        .attr("d", (d => fun_line(d)))  // How to compute x and y
+        .append("path")                     // path: svg element for lines
+        .classed("line", true)              // Style
+        .attr("d", (d => fun_line(d)))      // How to compute x and y
         .attr("id", ((d, i) => "m" + i));   // Member's id (for selection)
 
     // This element won't display anything but will react to the mouse
@@ -147,34 +148,35 @@ function add_members(
         .selectAll('.line-event')
         .data(members)
         .enter()
-        .append("path")  // "path" is the svg element for lines
-        .classed("line-event", true)        // Style
+        .append("path")
+        .classed("line-event", true)
         // Add listeners for mouseover/mouseout event
         .on("mouseover", onMouseOverMember(interactiveGroupElem))
         .on("mouseout", onMouseOutMember(interactiveGroupElem))
-        .attr("d", (d => fun_line(d)))  // How to compute x and y
-        .attr("id", ((d, i) => "m-event" + i));   // Member's id (for selection)
+        .attr("d", (d => fun_line(d)))
+        .attr("id", ((d, i) => "m-event" + i));
 }
 
 function add_vertices(
-    myPlot, g, vertices, x, y, interactiveGroupElem, iplot,
+    myPlot, fun_cx, fun_cy, g, vertices, interactiveGroupElem,
     {fun_opacity = f_life_span,
     fun_size = f_radius,
     fun_color = f_color_vertex,
     list_colors = get_list_colors(50),
     } = {},
 ) {
-    // This element will render the vertices
+    // This element will render (display) the vertices but they won't be
+    // interactive
     myPlot.append('g')
         .attr('id', 'vertices')
         .selectAll('.vertex')
         .data(vertices)
         .enter()
-        .append("circle")
-        .classed("vertex", true)
-        .attr("cx", (d => x( g.time_axis[d.time_step] )))
-        .attr("cy", (d => y( d.info.mean[iplot] )))
-        .attr("r", (d => fun_size(d)) )
+        .append("circle")                  // path: svg element for lines
+        .classed("vertex", true)           // Style
+        .attr("cx", (d => fun_cx(d)))      // Compute x coord
+        .attr("cy", (d => fun_cy(d)))      // Compute y coord
+        .attr("r", (d => fun_size(d)) )    // Compute radius
         .attr("opacity", (d => fun_opacity(d, {g : g})))
         .attr("fill", (d => fun_color(d, {colors : list_colors})))
         .attr("id", (d => "v" + d.key));
@@ -188,23 +190,24 @@ function add_vertices(
         .enter()
         .append("circle")
         .classed("vertex-event", true)
+        // Add listeners for mouseover/mouseout event
         .on("mouseover", onMouseOverCluster(interactiveGroupElem))
         .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-        .attr("cx", (d => x( g.time_axis[d.time_step] )))
-        .attr("cy", (d => y( d.info.mean[iplot] )))
+        .attr("cx", (d => fun_cx(d)))
+        .attr("cy", (d => fun_cy(d)))
         .attr("r", (d => 2*fun_size(d)) )
         .attr("id", (d => "v-event" + d.key));
 }
 
 function add_edges(
-    myPlot, g, edges, x, y, interactiveGroupElem, iplot,
+    myPlot, fun_edge, g, edges, interactiveGroupElem,
     {fun_opacity = f_life_span,
     fun_size = f_stroke_width,
     fun_color = f_color_edge,
     list_colors = get_list_colors(50),
     } = {},
 ) {
-    // This element will render the vertices
+
     myPlot.append('g')
         .attr('id', 'edges')
         .selectAll('.edges')
@@ -212,9 +215,7 @@ function add_edges(
         .enter()
         .append("polyline")
         .classed("edge", true)
-        // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-        // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-        .attr("points", (d => f_line_edge(d, g, x, y, iplot)))
+        .attr("points", (d => fun_edge(d)))
         .attr("marker-start",(d => "url(graph.svg#dot) markerWidth="+f_radius(d)) )
         .attr("opacity", (d => fun_opacity(d, {g : g})))
         .attr("stroke", (d => fun_color(d, {colors : list_colors, g : g})))
@@ -359,13 +360,18 @@ export async function draw_entire_graph_meteogram(
         );
         style_ticks(figElem);
 
+        let cx = (d => x( g.time_axis[d.time_step] ));
+        let cy = (d => y( d.info.mean[iplot] ));
+
         add_vertices(
-            myPlot, g, vertices, x, y, interactiveGroupElem, iplot,
+            myPlot, cx, cy, g, vertices, interactiveGroupElem,
             {list_colors : colors}
         )
 
+        let fun_edge = (d => f_line_edge(d, g, x, y, iplot));
+
         add_edges(
-            myPlot, g, edges, x, y, interactiveGroupElem, iplot,
+            myPlot, fun_edge, g, edges, interactiveGroupElem,
             {list_colors : colors}
         )
 
@@ -446,14 +452,18 @@ export async function draw_relevant_graph_meteogram(
         );
         style_ticks(figElem);
 
-        // This element will render the vertices
+        let cx = (d => x( g.time_axis[d.time_step] ));
+        let cy = (d => y( d.info.mean[iplot] ));
+
         add_vertices(
-            myPlot, g, vertices, x, y, interactiveGroupElem, iplot,
+            myPlot, cx, cy, g, vertices, interactiveGroupElem,
             {list_colors : colors}
         )
 
+        let fun_edge = (d => f_line_edge(d, g, x, y, iplot));
+
         add_edges(
-            myPlot, g, edges, x, y, interactiveGroupElem, iplot,
+            myPlot, fun_edge, g, edges, interactiveGroupElem,
             {list_colors : colors}
         )
 
@@ -540,22 +550,20 @@ export async function draw_entire_graph_mjo(
     setYLabel(figElem, "RMM2");
     style_ticks(figElem);
 
-    // This element will render the vertices
-    myPlot.append('g')
-        .attr('id', 'vertices')
-        .selectAll('.vertex')
-        .data(vertices)
-        .enter()
-        .append("circle")
-        .classed("vertex", true)
-        .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-        .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-        .attr("cx", (d => x( d.info.mean[0] )))
-        .attr("cy", (d => y( d.info.mean[1] )))
-        .attr("r", (d =>  f_radius(d)) )
-        .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max)))
-        .attr("fill", (d => colors[d.info.brotherhood_size[0]]))
-        .attr("id", (d => "v" + d.key) );
+    let cx = (d => x( d.info.mean[0] ));
+    let cy = (d => y( d.info.mean[1] ));
+
+    add_vertices(
+        myPlot, cx, cy, g, vertices, interactiveGroupElem,
+        {list_colors : colors}
+    )
+
+    let fun_edge = (d => f_line_edge_mjo(d, g, x, y));
+
+    add_edges(
+        myPlot, fun_edge, g, edges, interactiveGroupElem,
+        {list_colors : colors}
+    )
 
     // This element will render the standard deviation of edges
     // myPlot.append('g')
@@ -587,21 +595,6 @@ export async function draw_entire_graph_mjo(
     //     .attr("fill", (d => f_color_vertex(d, g, colors)))
     //     .attr("id", (d => "v-std" + d.key) );
 
-    // This element will render the edges
-    myPlot.append('g')
-        .attr('id', 'edges')
-        .selectAll('.edges')
-        .data(edges)
-        .enter()
-        .append("polyline")
-        .classed("edge", true)
-        // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-        // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-        .attr("points", (d => f_line_edge_mjo(d, g, x, y)))
-        .attr("opacity", (d => f_life_span(d.life_span, g.life_span_max) ))
-        .attr("stroke", (d => f_color_edge(d, g, colors)))
-        .attr("stroke-width", (d => f_stroke_width(d)))
-        .attr("id", (d => "e" + d.key) );
 
     // Add mjo classes lines
     draw_mjo_classes(figElem, x, y, vmax);
