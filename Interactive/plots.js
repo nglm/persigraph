@@ -1,5 +1,5 @@
 
-import { d3fy, d3fy_life_span } from "./preprocess.js";
+import { d3fy, d3fy_dict_of_arrays, d3fy_life_span } from "./preprocess.js";
 
 import {
     dimensions, setAxTitle, setFigTitle, setXLabel, setYLabel,
@@ -24,16 +24,33 @@ import {range_rescale, sigmoid, linear} from "./utils.js"
     // <polyline points="15,80 29,50 43,60 57,30 71,40 85,15" fill="none" stroke="grey"
     // marker-start="url(#dot)" marker-mid="url(#dot)"  marker-end="url(#dot)" />
 
+function get_brotherhood_size(
+    d,
+    {g=undefined} = {}
+) {
+    let brotherhood_size;
+    // If d is an edge
+    try {
+        brotherhood_size = g.vertices[d.time_step][d.v_start].info.brotherhood_size;
+    // d is a vertex
+    } catch {
+        brotherhood_size = d.info.brotherhood_size;
+    }
+    return brotherhood_size;
+}
+
 function f_opacity(
     d,
-    {g=undefined, vmin=0, only_relevant=false, selected_k=undefined} = {}
+    {g=undefined, vmin=0, selected_k=undefined} = {}
 ) {
 
     let opacity = undefined;
     // Binary opacity if plotting only relevant components
-    if (only_relevant) {
+    if (selected_k != undefined) {
         // Opacity = 1 if the component is deemed relevant
-        if (selected_k[d.t] in d.brotherhood_size) {
+        let brotherhood_size = get_brotherhood_size(d, {g : g});
+        console.log("brotherhood_size", brotherhood_size, 'selected_k[d.time_step]["k"]', selected_k[d.time_step]["k"], 'selected_k[d.time_step]["k"] in brotherhood_size', brotherhood_size.includes(selected_k[d.time_step]["k"]));
+        if (brotherhood_size.includes(selected_k[d.time_step]["k"])) {
             opacity = 1;
         // Otherwise the opacity is 0
         } else {
@@ -122,18 +139,11 @@ function f_polygon_vertex(d, g, xscale, yscale, iplot) {
     return points;
 }
 
-function f_color_vertex(
+function f_color(
     d,
     {colors = get_list_colors(50), g=undefined} = {}
 ) {
-    return colors[d.info.brotherhood_size[0]];
-}
-
-function f_color_edge(
-    d,
-    {colors = get_list_colors(50), g=undefined} = {}
-) {
-    return colors[g.vertices[d.time_step][d.v_start].info.brotherhood_size[0]];
+    return colors[get_brotherhood_size(d, {g : g})[0]];
 }
 
 function f_radius(d) {
@@ -180,8 +190,9 @@ function add_vertices(
     myPlot, fun_cx, fun_cy, g, vertices, interactiveGroupElem,
     {fun_opacity = f_opacity,
     fun_size = f_radius,
-    fun_color = f_color_vertex,
+    fun_color = f_color,
     list_colors = get_list_colors(50),
+    selected_k = undefined,
     } = {},
 ) {
     // This element will render (display) the vertices but they won't be
@@ -196,7 +207,9 @@ function add_vertices(
         .attr("cx", (d => fun_cx(d)))      // Compute x coord
         .attr("cy", (d => fun_cy(d)))      // Compute y coord
         .attr("r", (d => fun_size(d)) )    // Compute radius
-        .attr("opacity", (d => fun_opacity(d, {g : g})))
+        .attr("opacity", (d => fun_opacity(
+            d, {g : g, selected_k : selected_k}
+        )))
         .attr("fill", (d => fun_color(d, {colors : list_colors})))
         .attr("id", (d => "v" + d.key));
 
@@ -222,8 +235,9 @@ function add_edges(
     myPlot, fun_edge, g, edges, interactiveGroupElem,
     {fun_opacity = f_opacity,
     fun_size = f_stroke_width,
-    fun_color = f_color_edge,
+    fun_color = f_color,
     list_colors = get_list_colors(50),
+    selected_k = undefined,
     } = {},
 ) {
 
@@ -236,7 +250,9 @@ function add_edges(
         .classed("edge", true)
         .attr("points", (d => fun_edge(d)))
         .attr("marker-start",(d => "url(graph.svg#dot) markerWidth="+f_radius(d)) )
-        .attr("opacity", (d => fun_opacity(d, {g : g})))
+        .attr("opacity", (d => fun_opacity(
+            d, {g : g, selected_k : selected_k}
+        )))
         .attr("stroke", (d => fun_color(d, {colors : list_colors, g : g})))
         .attr("stroke-width", (d => fun_size(d)))
         .attr("id", (d => "e" + d.key) );
@@ -351,7 +367,6 @@ export async function draw_entire_graph_meteogram(
     const time = g.time_axis;
     const members = g.members;
     const colors = get_list_colors(g.n_clusters_range.length);
-    console.log("vertices", vertices)
 
     const data =  await d3.json(filename_data);
 
@@ -407,7 +422,7 @@ export async function draw_entire_graph_meteogram(
         //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
         //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
         //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
-        //     .attr("fill", (d => f_color_edge(d, g, colors)))
+        //     .attr("fill", (d => f_color(d, g, colors)))
         //     .attr("id", (d => "e-std" + d.key) );
 
         // // This element will render the standard deviation of vertices
@@ -422,7 +437,7 @@ export async function draw_entire_graph_meteogram(
         //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
         //     .attr("points", (d => f_polygon_vertex(d, g, x, y, iplot)))
         //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
-        //     .attr("fill", (d => f_color_vertex(d, g, colors)))
+        //     .attr("fill", (d => f_color(d, g, colors)))
         //     .attr("id", (d => "v-std" + d.key) );
 
         figs.push(figElem);
@@ -446,6 +461,9 @@ export async function draw_relevant_graph_meteogram(
     const colors = get_list_colors(g.n_clusters_range.length);
 
     const data =  await d3.json(filename_data);
+    let selected_k = d3fy_dict_of_arrays(g.relevant_k);
+    console.log("g.relevant_k", g.relevant_k);
+    console.log("selected_k", selected_k);
 
     // where we will store all our figs
     let figs = [];
@@ -454,7 +472,7 @@ export async function draw_relevant_graph_meteogram(
     for(var iplot = 0; iplot < g.d; iplot++ ) {
 
         let figElem = draw_fig(dims, id + "_" + iplot);
-        let interactiveGroupElem = document.getElementById(figElem.id + "_relevant");
+        let interactiveGroupElem = document.getElementById(figElem.id + "_input");
         let myPlot = d3.select(figElem).select("#plot-group");
 
         // Add x and y axis element
@@ -477,14 +495,14 @@ export async function draw_relevant_graph_meteogram(
 
         add_vertices(
             myPlot, cx, cy, g, vertices, interactiveGroupElem,
-            {list_colors : colors}
+            {list_colors : colors, selected_k : selected_k}
         )
 
         let fun_edge = (d => f_line_edge(d, g, x, y, iplot));
 
         add_edges(
             myPlot, fun_edge, g, edges, interactiveGroupElem,
-            {list_colors : colors}
+            {list_colors : colors, selected_k : selected_k}
         )
 
         // This element will render the standard deviation of edges
@@ -499,7 +517,7 @@ export async function draw_relevant_graph_meteogram(
         //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
         //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
         //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
-        //     .attr("fill", (d => f_color_edge(d, g, colors)))
+        //     .attr("fill", (d => f_color(d, g, colors)))
         //     .attr("id", (d => "e-std" + d.key) );
 
         // // This element will render the standard deviation of vertices
@@ -514,7 +532,7 @@ export async function draw_relevant_graph_meteogram(
         //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
         //     .attr("points", (d => f_polygon_vertex(d, g, x, y, iplot)))
         //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
-        //     .attr("fill", (d => f_color_vertex(d, g, colors)))
+        //     .attr("fill", (d => f_color(d, g, colors)))
         //     .attr("id", (d => "v-std" + d.key) );
 
         figs.push(figElem);
@@ -597,7 +615,7 @@ export async function draw_entire_graph_mjo(
     //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
     //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
     //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
-    //     .attr("fill", (d => f_color_edge(d, g, colors)))
+    //     .attr("fill", (d => f_color(d, g, colors)))
     //     .attr("id", (d => "e-std" + d.key) );
 
     // // This element will render the standard deviation of vertices
@@ -612,7 +630,7 @@ export async function draw_entire_graph_mjo(
     //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
     //     .attr("points", (d => f_polygon_vertex(d, g, x, y, iplot)))
     //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
-    //     .attr("fill", (d => f_color_vertex(d, g, colors)))
+    //     .attr("fill", (d => f_color(d, g, colors)))
     //     .attr("id", (d => "v-std" + d.key) );
 
 

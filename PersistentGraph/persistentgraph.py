@@ -1004,7 +1004,11 @@ class PersistentGraph():
 
         self._compute_statistics()
         self._life_span = get_k_life_span(self)
-        self._relevant_k = get_relevant_k(self, self._life_span, self.k_max)
+        relevant_k = get_relevant_k(self, self._life_span, self.k_max)
+        dict_relevant_k = {}
+        dict_relevant_k["k"] = [x[0] for x in relevant_k]
+        dict_relevant_k["life_span"] = [x[1] for x in relevant_k]
+        self._relevant_k = dict_relevant_k
 
     def save(self, filename = None, path='', type='pg'):
         if filename is None:
