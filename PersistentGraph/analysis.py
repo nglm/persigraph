@@ -111,7 +111,7 @@ def get_k_life_span(
     k_max: int = 5,
 ) -> Dict[int, List[float]]:
     """
-    Get the life span of k clusters for each k and each t
+    Get the life span for all k and each t
 
     :param g: [description]
     :type g: [type]
