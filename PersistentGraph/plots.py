@@ -6,7 +6,7 @@ import time
 from typing import List, Union
 
 
-from .analysis import get_k_life_span, get_relevant_k, get_relevant_components
+from .analysis import get_k_life_span, get_relevant_k
 from ..Preprocessing.extraction import to_polar, to_cartesian
 from ..Vis import PGraphStyle
 from ..Vis.commonstyle import nrows_ncols, get_list_colors
@@ -347,8 +347,8 @@ def plot_most_revelant_components(
     k_max = min(k_max, g.k_max)
     # For each time step, get the most relevant number of clusters
     if relevant_components is None:
-        vertices, edges = get_relevant_components(
-            g, relevant_k=relevant_k, k_max=k_max)
+        vertices, edges = g.get_relevant_components(
+            relevant_k=relevant_k, k_max=k_max)
     else:
         vertices, edges = relevant_components
 

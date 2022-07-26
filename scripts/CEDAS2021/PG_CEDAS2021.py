@@ -539,7 +539,7 @@ def select_best_examples():
         # ---- Most relevant ----
         relevant_k = get_relevant_k(g)
         relevant_k[-3:-2] = [[2, 0] for _ in range(len(relevant_k[-3:-2]))]
-        relevant_components = get_relevant_components(g, relevant_k)
+        relevant_components = g.get_relevant_components(relevant_k)
         ax3 = fig.add_subplot(gs[:, 2*m//3:], sharex=ax0)
         _, ax3 = plot_most_revelant_components(
             g, relevant_components=relevant_components,
@@ -815,7 +815,7 @@ def select_best_examples():
 
         for t in temp:
             print(t)
-        relevant_components = get_relevant_components(g)
+        relevant_components = g.get_relevant_components()
         indices_dates = [26, 30]
         lw_ranges = 6
         ls_ranges = (0, (1,1))
@@ -1191,7 +1191,7 @@ def talk_figs():
         # ---- Most relevant ----
         relevant_k = get_relevant_k(g)
         relevant_k[-3:-2] = [[2, 0] for _ in range(len(relevant_k[-3:-2]))]
-        relevant_components = get_relevant_components(g, relevant_k)
+        relevant_components = g.get_relevant_components(relevant_k)
         ax3 = fig.add_subplot(gs[:, 2*m//3:], sharex=ax0)
         _, ax3 = plot_most_revelant_components(
             g, relevant_components=relevant_components,
@@ -1562,7 +1562,7 @@ def talk_figs():
 
         for t in temp:
             print(t)
-        relevant_components = get_relevant_components(g)
+        relevant_components = g.get_relevant_components()
         indices_dates = [26-16, 30-16]
         lw_ranges = 6
         ls_ranges = (0, (1,1))

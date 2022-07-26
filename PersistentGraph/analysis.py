@@ -4,9 +4,6 @@ from gudhi import bottleneck_distance
 from typing import List, Dict, Tuple, Any
 
 from ..utils.lists import flatten
-from ..utils.sorted_lists import has_element
-from ..utils._clustering import compute_cluster_params
-from .edge import Edge
 from .component import Component
 
 
@@ -181,84 +178,6 @@ def get_relevant_k(
                 relevant_k[t][1] = life_span_k[t]
     return relevant_k
 
-def get_relevant_components(
-    g,
-    relevant_k = None,
-    k_max = 8,
-    fill_holes = True,
-):
-    """
-    Keep only the most relevant edges and vertices
-
-    :param g: [description]
-    :type g: [type]
-    :param relevant_k: [description], defaults to None
-    :type relevant_k: [type], optional
-    :param k_max: [description], defaults to 8
-    :type k_max: int, optional
-    :return: [description]
-    :rtype: [type]
-    """
-    k_max = min(k_max, g.k_max)
-    # For each time step, get the most relevant number of clusters
-    if relevant_k is None:
-        relevant_k = get_relevant_k(g, k_max=k_max)
-
-    relevant_vertices = [
-        [
-            v for v in g._vertices[t]
-            if has_element(v.info['brotherhood_size'], relevant_k[t][0])
-        ] for t in range(g.T)
-    ]
-
-    relevant_edges = [
-        [
-            e for e in g._edges[t]
-            if (
-                has_element(
-                    g._vertices[e.time_step][e.v_start].info['brotherhood_size'],
-                    relevant_k[t][0]
-                ) and has_element(
-                    g._vertices[e.time_step + 1][e.v_end].info['brotherhood_size'],
-                    relevant_k[t+1][0]
-                ))
-        ] for t in range(g.T-1)
-    ]
-
-    # Some edges might be non-existant (the combination k1 -> k2 does not exist)
-    # So we will create edges that won't be attached to the graph but with
-    # the necessary information so that they can be visualized
-    if fill_holes:
-        for t, edges in enumerate(relevant_edges):
-            if edges == []:
-                # Get start relevant vertices
-                v_starts = relevant_vertices[t]
-                v_ends = relevant_vertices[t+1]
-                for v_start in v_starts:
-                    v_end_members = [
-                        (v, v.get_common_members(v_start)) for v in v_ends
-                        if v.get_common_members(v_start) != []
-                    ]
-                    for (v_end, members) in v_end_members:
-
-                        # Compute info (mean, std inf/sup at start and end)
-                        X_start = g._members[members, :, t]
-                        info_start = compute_cluster_params(X_start)
-                        X_end = g._members[members, :, t+1]
-                        info_end = compute_cluster_params(X_end)
-
-                        edges.append(Edge(
-                            info_start=info_start,
-                            info_end=info_end,
-                            v_start = v_start.num,
-                            v_end = v_end.num,
-                            t = t,
-                            members = members,
-                            total_nb_members = g.N,
-                            score_ratios = [0, 1],
-                        ))
-
-    return relevant_vertices, relevant_edges
 
 
 # #def# get_contemporaries(g, cmpt):
