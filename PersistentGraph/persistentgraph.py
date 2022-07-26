@@ -1160,7 +1160,12 @@ class PersistentGraph():
         return self._d
 
     @property
-    def k_max(self):
+    def k_max(self) -> int:
+        """
+        Max value of k considered
+
+        :rtype: int
+        """
         return self._k_max
 
 
@@ -1182,27 +1187,57 @@ class PersistentGraph():
         return self._time_axis
 
     @property
-    def max(self):
+    def max(self) -> np.ndarray:
+        """
+        Max member values for each variable and each t
+
+        :rtype: np.ndarray[float], shape: (d, T)
+        """
         return self._max
 
     @property
-    def min(self):
+    def min(self) -> np.ndarray:
+        """
+        Min member values for each variable and each t
+
+        :rtype: np.ndarray[float], shape: (d, T)
+        """
         return self._min
 
     @property
-    def life_span(self):
+    def life_span(self) -> Dict[int, List[float]]:
+        """
+        life span for all k and each t
+
+        :rtype: Dict[int, List[float]]
+        """
         return self._life_span
 
     @property
-    def life_span_max(self):
+    def life_span_max(self) -> float:
+        """
+        Max life span
+
+        :rtype: float
+        """
         return self._life_span_max
 
     @property
-    def life_span_min(self):
+    def life_span_min(self) -> float:
+        """
+        Min life span
+
+        :rtype: float
+        """
         return self._life_span_min
 
     @property
-    def relevant_k(self):
+    def relevant_k(self) -> Dict[str, List]:
+        """
+        Dict of lists with to keys, "k" and "life_span"
+
+        :rtype:
+        """
         return self._relevant_k
 
     @property
