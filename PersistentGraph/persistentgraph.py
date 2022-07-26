@@ -3,7 +3,7 @@ from bisect import bisect, bisect_right, insort
 import time
 import pickle
 import json
-from typing import List, Sequence, Union, Any, Dict
+from typing import List, Sequence, Tuple, Union, Any, Dict
 
 from . import Vertex
 from . import Edge
@@ -1010,7 +1010,24 @@ class PersistentGraph():
         dict_relevant_k["life_span"] = [x[1] for x in relevant_k]
         self._relevant_k = dict_relevant_k
 
-    def save(self, filename = None, path='', type='pg'):
+
+    def save(
+        self,
+        filename: str = None,
+        path: str = '',
+        type:str = 'pg'
+    ) -> None:
+        """
+        Save the graph (either as a class or a JSON file)
+
+        :param filename: filename of the saved graph, defaults to None
+        :type filename: str, optional
+        :param path: path to the saved graph, defaults to ''
+        :type path: str, optional
+        :param type: type of the graph, either as a python class (.pg)
+        or as a JSON file, defaults to 'pg'
+        :type type: str, optional
+        """
         if filename is None:
             filename = self.name
         if type == 'json':
@@ -1021,7 +1038,19 @@ class PersistentGraph():
             with open(path + filename + '.pg', 'wb') as f:
                 pickle.dump(self, f)
 
-    def load(self, filename, path=''):
+    def load(
+        self,
+        filename: str = None,
+        path: str = '',
+    ) -> None:
+        """
+        Load a graph from a PersistentGraph file (.pg)
+
+        :param filename: filename of the saved graph, defaults to None
+        :type filename: str, optional
+        :param path: path to the saved graph, defaults to ''
+        :type path: str, optional
+        """
         with open(path + filename, 'rb') as f:
             self = pickle.load(f)
 
