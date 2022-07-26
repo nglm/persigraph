@@ -1,7 +1,7 @@
 import numpy as np
 
 from gudhi import bottleneck_distance
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 
 from ..utils.lists import flatten
 from ..utils.sorted_lists import has_element
@@ -111,21 +111,21 @@ def sort_components_by(components, criteron="life_span", descending=True):
 
 def get_k_life_span(
     g,
-    k_max=5,
-):
+    k_max: int = 5,
+) -> Dict[int, List[float]]:
     """
     Get the life span of k clusters for each k and each t
 
     :param g: [description]
     :type g: [type]
-    :param k_max: [description], defaults to 8
+    :param k_max: Max value of k considered, defaults to 5
     :type k_max: int, optional
-    :return: [description]
-    :rtype: [type]
+    :return: life span of k clusters for each k and each t
+    :rtype: Dict[int, List[float]]
     """
     k_max = min(k_max, g.k_max)
 
-    life_span = {k : [0 for _ in range(g.T)] for k in g._n_clusters_range}
+    life_span = {k : [0. for _ in range(g.T)] for k in g._n_clusters_range}
 
     # Extract ratio scores for each k and each t
     for t in range(g.T):
@@ -152,27 +152,27 @@ def get_k_life_span(
 
 def get_relevant_k(
     g,
-    life_span = None,
-    k_max = 8,
-):
+    life_span: Dict[int, List[float]] = None,
+    k_max: int = 8,
+) -> List[List]:
     """
     For each time step, get the most relevant number of clusters
 
-    :param g: [description]
+    :param g: Graph
     :type g: [type]
-    :param life_span: [description], defaults to None
-    :type life_span: [type], optional
-    :param k_max: [description], defaults to 8
+    :param life_span: life span of all k for all t, defaults to None
+    :type life_span: Dict[int, List[float]], optional
+    :param k_max: Max value of k considered, defaults to 8
     :type k_max: int, optional
-    :return: [description]
-    :rtype: [type]
+    :return: Nested list of [k_relevant, life_span] for each time step
+    :rtype: List[List]
     """
     k_max = min(k_max, g.k_max)
     if life_span is None:
         life_span = get_k_life_span(g, k_max)
 
     # list of t (k, life_span_k)
-    relevant_k = [[0 for _ in range(2)] for _ in range(g.T)]
+    relevant_k = [[0, 0.] for _ in range(g.T)]
     for t in range(g.T):
         for k, life_span_k in life_span.items():
             # Strict comparison to prioritize smaller k values
