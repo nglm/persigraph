@@ -13,7 +13,9 @@ from ._scores import (
 )
 from .analysis import get_k_life_span, get_relevant_k
 
-from ..utils.sorted_lists import insert_no_duplicate, concat_no_duplicate
+from ..utils.sorted_lists import (
+    insert_no_duplicate, concat_no_duplicate, has_element
+)
 from ..utils.d3 import jsonify
 from ..utils._clustering import compute_cluster_params
 
@@ -1010,6 +1012,84 @@ class PersistentGraph():
         dict_relevant_k["life_span"] = [x[1] for x in relevant_k]
         self._relevant_k = dict_relevant_k
 
+
+    def get_relevant_components(
+        self,
+        relevant_k: List[List] = None,
+        k_max: int = 8,
+        fill_holes: bool = True,
+    ) -> Tuple[List[Vertex], List[Edge]]:
+        """
+        Return the most relevant vertices and edges
+
+        :param relevant_k: Nested list of [k_relevant, life_span]
+        for each time step, defaults to None
+        :type relevant_k: List[List], optional
+        :param k_max: Max value of k considered, defaults to 8
+        :type k_max: int, optional
+        :return: Relevant vertices and edges
+        :rtype: Tuple[List[Vertex], List[Edge]]
+        """
+        k_max = min(k_max, self.k_max)
+        # For each time step, get the most relevant number of clusters
+        if relevant_k is None:
+            relevant_k = get_relevant_k(self, k_max=k_max)
+
+        relevant_vertices = [
+            [
+                v for v in self._vertices[t]
+                if has_element(v.info['brotherhood_size'], relevant_k[t][0])
+            ] for t in range(self.T)
+        ]
+
+        relevant_edges = [
+            [
+                e for e in self._edges[t]
+                if (
+                    has_element(
+                        self._vertices[e.time_step][e.v_start].info['brotherhood_size'],
+                        relevant_k[t][0]
+                    ) and has_element(
+                        self._vertices[e.time_step + 1][e.v_end].info['brotherhood_size'],
+                        relevant_k[t+1][0]
+                    ))
+            ] for t in range(self.T-1)
+        ]
+
+        # Some edges might be non-existant (edge k1 -> k2 does not exist)
+        # So we will create edges that won't be attached to the graph but with
+        # the necessary information so that they can be visualized
+        if fill_holes:
+            for t, edges in enumerate(relevant_edges):
+                if edges == []:
+                    # Get start relevant vertices
+                    v_starts = relevant_vertices[t]
+                    v_ends = relevant_vertices[t+1]
+                    for v_start in v_starts:
+                        v_end_members = [
+                            (v, v.get_common_members(v_start)) for v in v_ends
+                            if v.get_common_members(v_start) != []
+                        ]
+                        for (v_end, members) in v_end_members:
+
+                            # Compute info (mean, std inf/sup at start and end)
+                            X_start = self._members[members, :, t]
+                            info_start = compute_cluster_params(X_start)
+                            X_end = self._members[members, :, t+1]
+                            info_end = compute_cluster_params(X_end)
+
+                            edges.append(Edge(
+                                info_start=info_start,
+                                info_end=info_end,
+                                v_start = v_start.num,
+                                v_end = v_end.num,
+                                t = t,
+                                members = members,
+                                total_nb_members = self.N,
+                                score_ratios = [0, 1],
+                            ))
+
+        return relevant_vertices, relevant_edges
 
     def save(
         self,
