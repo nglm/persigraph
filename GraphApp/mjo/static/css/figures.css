@@ -1,0 +1,209 @@
+
+/* ------- Styles of existing types ------- */
+
+
+
+/* ------- Styles of custom classes ------- */
+
+.container-fig {
+    display: inline-block;
+    position: relative;
+}
+
+.input-interactive-group {
+    position: absolute;
+    bottom: 20px;
+    right: 10px;
+    width: 40px;
+    font-size: 24px;
+    padding: 0px 0px;
+}
+
+.delete-button {
+    position: absolute;
+    bottom: 20px;
+    right: 10px;
+    width: 40px;
+    font-size: 24px;
+    padding: 0px 0px;
+}
+
+.fig {
+    stroke-width: 0px;
+    stroke: rgb(99, 91, 42);
+    fill: rgba(255, 255, 255, 0.845);
+}
+
+.axes {
+    border: 15px solid rgb(143, 73, 73);
+}
+
+.plot {
+    border: 5px solid rgb(143, 73, 73);
+    fill: rgb(255, 255, 255);
+}
+
+.figtitle {
+    /* Use this in combination with .attr("x", "50%") to center text */
+    text-anchor: middle;
+    font-size: 24px;
+    stroke: black;
+}
+
+.axtitle {
+    text-anchor: middle;
+    font-size: 20px;
+    stroke: black;
+}
+
+
+.xtext {
+    text-anchor: end;
+    font-size: 15px;
+    transform: rotate(-45deg);
+}
+
+.xlabel {
+    text-anchor: middle;
+    font-size: 18px;
+    stroke: black;
+    color: #000;
+    fill: black;
+}
+
+.ytext {
+    text-anchor: end;
+    font-size: 15px;
+    transform: rotate(0deg);
+    color: #000;
+}
+
+.ylabel {
+    text-anchor: middle;
+    stroke: black;
+    font-size: 18px;
+    transform: rotate(-90deg);
+    fill: black;
+}
+
+.line {
+    fill: none;
+    stroke: blue;
+    stroke-width: 0.5;
+    stroke-opacity: 0.3;
+}
+
+.line-event {
+    fill: none;
+    stroke: blue;
+    stroke-width: 1.5;
+    stroke-opacity: 0;
+    /* opacity: 0; */
+    position: relative;
+}
+
+
+.lineSelected {
+    fill: none;
+    stroke: red;
+    stroke-width: 4;
+    stroke-opacity: 1;
+}
+
+.lineSelectedbyCluster {
+    fill: none;
+    stroke: red;
+    stroke-width: 0.8;
+    stroke-opacity: 1;
+}
+
+.life-span {
+    fill: none;
+    stroke-width: 1.0;
+    stroke-opacity: 1.0;
+}
+
+.vertex {
+    stroke-width: 0;
+    stroke-opacity: 1;
+}
+
+.vertex-event {
+    stroke-width: 0;
+    stroke-opacity: 0;
+    opacity: 0;
+    position: relative;
+}
+
+.vertexSelected {
+    stroke-width: 4;
+    stroke: red;
+    stroke-opacity: 1;
+}
+
+.vertex-std {
+    stroke-width: 0;
+}
+
+
+.vertexSelected-std {
+    stroke-width: 0;
+}
+
+
+.edge {
+    fill:none;
+}
+
+.edgeSelected {
+    stroke-width: 0;
+}
+
+
+.edge-std {
+    stroke-width: 0;
+}
+
+
+.edgeSelected-std {
+    stroke-width: 0;
+}
+
+
+
+.bar {
+    width: 25px;
+    margin-right: 5px;
+    background-color: #9606ac;
+    float: left;
+    cursor: pointer;
+    }
+
+    /* Now defining Pseudo-class using '.myclass:myspeudoclass' */
+    /* see css cheat sheet for list of pseudo classes */
+
+    .bar:last-child {
+    margin-right: 0;
+    }
+
+    .bar:hover {
+    background-color: #927A94;
+    }
+
+    .bar:visited {
+        background-color: #d50606;
+        }
+
+
+.mjoClass {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    stroke-opacity: 1;
+}
+/* ------- Styles of existing types with specific id ------- */
+
+
+/* ------- Styles of specific id ------- */
+
+

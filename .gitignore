@@ -14,3 +14,6 @@ package-lock.json
 */docs/build*
 # no tmp files
 */tmp/*
+
+# --- Django ----
+GraphApp/static*
