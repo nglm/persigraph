@@ -6,7 +6,6 @@ import {
 } from "./plots.js";
 
 const path_script = document.getElementById("main-script").getAttribute("path_data");
-console.log(path_script);
 const data_path = path_script + "data/";
 const data_graph = path_script + "graphs/";
 const f1 = "ec.ens.2020011400.sfc.meteogram.json";
