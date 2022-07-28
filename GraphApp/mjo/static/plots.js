@@ -49,7 +49,6 @@ function f_opacity(
     if (selected_k != undefined) {
         // Opacity = 1 if the component is deemed relevant
         let brotherhood_size = get_brotherhood_size(d, {g : g});
-        console.log("brotherhood_size", brotherhood_size, 'selected_k[d.time_step]["k"]', selected_k[d.time_step]["k"], 'selected_k[d.time_step]["k"] in brotherhood_size', brotherhood_size.includes(selected_k[d.time_step]["k"]));
         if (brotherhood_size.includes(selected_k[d.time_step]["k"])) {
             opacity = 1;
         // Otherwise the opacity is 0
@@ -445,7 +444,29 @@ export async function draw_entire_graph_meteogram(
     return figs
 }
 
-
+async function get_relevant_components(g) {
+    // Document ready event
+    return $( document ).ready(function(){
+        // GET request
+        $.get(
+            "relevant/",                   // URL
+            {g : g}, // Additional data
+            function(data, status) {       // Callback function, called on success
+                console.log('This is success');
+                console.log('vertices', data.vertices);
+                console.log('edges', data.edges);
+                let vertices = data.vertices;
+                let edges = data.edges;
+                return {vertices, edges}
+            })
+            .fail(function(data, status) {
+                console.log('This is fail', data, status);
+            })
+            .always(function(data, status) {
+                console.log('This is always', data, status);
+            })
+        });
+}
 
 export async function draw_relevant_graph_meteogram(
     filename_data,
@@ -454,18 +475,19 @@ export async function draw_relevant_graph_meteogram(
 ) {
     // Load the graph and wait until it is ready
     const g =  await d3.json(filename_graph);
-    const vertices = g.vertices.flat();
-    const edges = g.edges.flat();
     const time = g.time_axis;
     const members = g.members;
     const colors = get_list_colors(g.n_clusters_range.length);
 
     const data =  await d3.json(filename_data);
     let selected_k = d3fy_dict_of_arrays(g.relevant_k);
-    console.log("g.relevant_k", g.relevant_k);
-    console.log("selected_k", selected_k);
+    // console.log("g.relevant_k", g.relevant_k);
+    // console.log("selected_k", selected_k);
 
-    
+    let relevant_components = await get_relevant_components(g);
+    console.log(relevant_components);
+    let vertices = relevant_components.vertices;
+    let edges = relevant_components.edges;
 
     // where we will store all our figs
     let figs = [];
