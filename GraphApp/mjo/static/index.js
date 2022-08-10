@@ -8,11 +8,11 @@ import {
 const path_script = document.getElementById("main-script").getAttribute("path_data");
 const data_path = path_script + "data/";
 const data_graph = path_script + "graphs/";
-const f1 = "ec.ens.2020011400.sfc.meteogram.json";
-const f2 = "ec.ens.2020011500.sfc.meteogram.json";
-const f3 = "ec.ens.2020011600.sfc.meteogram.json";
-const f4 = "z_s2s_rmm_ecmf_prod_rt_2015030500.json";
-const f4_polar = "z_s2s_rmm_ecmf_prod_rt_2015030500_polar.json";
+const f1 = "ec.ens.2020011400.sfc.meteogram";
+const f2 = "ec.ens.2020011500.sfc.meteogram";
+const f3 = "ec.ens.2020011600.sfc.meteogram";
+const f4 = "z_s2s_rmm_ecmf_prod_rt_2015030500";
+const f4_polar = "z_s2s_rmm_ecmf_prod_rt_2015030500_polar";
 const f5 = "z_s2s_rmm_ecmf_prod_rt_2020120300";
 
 const plotHeightMeteogram = 400;

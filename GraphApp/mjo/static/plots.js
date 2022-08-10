@@ -360,7 +360,7 @@ export async function draw_entire_graph_meteogram(
     {include_k = "yes", kmax = 4, id="fig", dims = dimensions()} = {},
 ) {
     // Load the graph and wait until it is ready
-    const g =  await d3.json(filename_graph);
+    const g =  await d3.json(filename_graph + ".json");
     const vertices = g.vertices.flat();
     const edges = g.edges.flat();
     const time = g.time_axis;
@@ -444,28 +444,25 @@ export async function draw_entire_graph_meteogram(
     return figs
 }
 
-async function get_relevant_components(g) {
-    // Document ready event
-    return $( document ).ready(function(){
-        // GET request
-        $.get(
-            "relevant/",                   // URL
-            {g : g}, // Additional data
-            function(data, status) {       // Callback function, called on success
-                console.log('This is success');
-                console.log('vertices', data.vertices);
-                console.log('edges', data.edges);
-                let vertices = data.vertices;
-                let edges = data.edges;
-                return {vertices, edges}
-            })
-            .fail(function(data, status) {
-                console.log('This is fail', data, status);
-            })
-            .always(function(data, status) {
-                console.log('This is always', data, status);
-            })
-        });
+async function get_relevant_components(filename, {k = undefined} = {}) {
+    return $.get(
+        "relevant/",                   // URL
+        {filename : filename, k: k},                       // Additional data
+        function(data, status) {       // Callback function, called on success
+            // Function called on success
+            // "data" is the value returned by the python function
+            // mapped to the "mjo/relevant/" address
+            console.log('This is success');
+            console.log('vertices', data.vertices);
+            console.log('edges', data.edges);
+            return data
+        })
+        .fail(function(data, status) {
+            console.log('This is fail', data, status);
+        })
+        .always(function(data, status) {
+            console.log('This is always', data, status);
+        })
 }
 
 export async function draw_relevant_graph_meteogram(
@@ -474,7 +471,7 @@ export async function draw_relevant_graph_meteogram(
     {include_k = "yes", kmax = 4, id="fig", dims = dimensions()} = {},
 ) {
     // Load the graph and wait until it is ready
-    const g =  await d3.json(filename_graph);
+    const g =  await d3.json(filename_graph + ".json");
     const time = g.time_axis;
     const members = g.members;
     const colors = get_list_colors(g.n_clusters_range.length);
@@ -484,83 +481,91 @@ export async function draw_relevant_graph_meteogram(
     // console.log("g.relevant_k", g.relevant_k);
     // console.log("selected_k", selected_k);
 
-    let relevant_components = await get_relevant_components(g);
-    console.log(relevant_components);
-    let vertices = relevant_components.vertices;
-    let edges = relevant_components.edges;
-
     // where we will store all our figs
     let figs = [];
 
-    // We create a new fig for each variable
-    for(var iplot = 0; iplot < g.d; iplot++ ) {
+    // document ready return a promise, se we should wait
+    await $(async function () {
+        console.log("g", filename_graph);
+        // sending_HTTP_request return a promise, so we should wait
+        let relevant_components = await get_relevant_components(filename_graph);
+        console.log(relevant_components);
 
-        let figElem = draw_fig(dims, id + "_" + iplot);
-        let interactiveGroupElem = document.getElementById(figElem.id + "_input");
-        let myPlot = d3.select(figElem).select("#plot-group");
+        let vertices = relevant_components.vertices;
+        let edges = relevant_components.edges;
 
-        // Add x and y axis element
-        let {x, y, xk, yk} = add_axes(
-            figElem, data.time, data.members,
-            {include_k : include_k, kmax : kmax, iplot : iplot}
-        );
 
-        // Add titles and labels  and style ticks
-        setFigTitle(figElem, " ");
-        setAxTitle(figElem, "");
-        setXLabel(figElem, "Time (h)");
-        setYLabel(
-            figElem, data.long_name[iplot] +" (" + data.units[iplot] + ")"
-        );
-        style_ticks(figElem);
+        // We create a new fig for each variable
+        for(var iplot = 0; iplot < g.d; iplot++ ) {
 
-        let cx = (d => x( g.time_axis[d.time_step] ));
-        let cy = (d => y( d.info.mean[iplot] ));
+            let figElem = draw_fig(dims, id + "_" + iplot);
+            let interactiveGroupElem = document.getElementById(figElem.id + "_input");
+            let myPlot = d3.select(figElem).select("#plot-group");
 
-        add_vertices(
-            myPlot, cx, cy, g, vertices, interactiveGroupElem,
-            {list_colors : colors, selected_k : selected_k}
-        )
+            // Add x and y axis element
+            let {x, y, xk, yk} = add_axes(
+                figElem, data.time, data.members,
+                {include_k : include_k, kmax : kmax, iplot : iplot}
+            );
 
-        let fun_edge = (d => f_line_edge(d, g, x, y, iplot));
+            // Add titles and labels  and style ticks
+            setFigTitle(figElem, " ");
+            setAxTitle(figElem, "");
+            setXLabel(figElem, "Time (h)");
+            setYLabel(
+                figElem, data.long_name[iplot] +" (" + data.units[iplot] + ")"
+            );
+            style_ticks(figElem);
 
-        // add_edges(
-        //     myPlot, fun_edge, g, edges, interactiveGroupElem,
-        //     {list_colors : colors, selected_k : selected_k}
-        // )
+            let cx = (d => x( g.time_axis[d.time_step] ));
+            let cy = (d => y( d.info.mean[iplot] ));
 
-        // This element will render the standard deviation of edges
-        // myPlot.append('g')
-        //     .attr('id', 'edges-std')
-        //     .selectAll('.edge-std')
-        //     .data(edges)
-        //     .enter()
-        //     .append("polygon")
-        //     .classed("edge-std", true)
-        //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-        //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-        //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
-        //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
-        //     .attr("fill", (d => f_color(d, g, colors)))
-        //     .attr("id", (d => "e-std" + d.key) );
+            add_vertices(
+                myPlot, cx, cy, g, vertices, interactiveGroupElem,
+                {list_colors : colors, selected_k : selected_k}
+            )
 
-        // // This element will render the standard deviation of vertices
-        // myPlot.append('g')
-        //     .attr('id', 'vertices-std')
-        //     .selectAll('.vertex-std')
-        //     .data(vertices)
-        //     .enter()
-        //     .append("polygon")
-        //     .classed("vertex-std", true)
-        //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
-        //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
-        //     .attr("points", (d => f_polygon_vertex(d, g, x, y, iplot)))
-        //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
-        //     .attr("fill", (d => f_color(d, g, colors)))
-        //     .attr("id", (d => "v-std" + d.key) );
+            let fun_edge = (d => f_line_edge(d, g, x, y, iplot));
 
-        figs.push(figElem);
-    }
+            // add_edges(
+            //     myPlot, fun_edge, g, edges, interactiveGroupElem,
+            //     {list_colors : colors, selected_k : selected_k}
+            // )
+
+            // This element will render the standard deviation of edges
+            // myPlot.append('g')
+            //     .attr('id', 'edges-std')
+            //     .selectAll('.edge-std')
+            //     .data(edges)
+            //     .enter()
+            //     .append("polygon")
+            //     .classed("edge-std", true)
+            //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+            //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+            //     .attr("points", (d => f_polygon_edge(d, g, x, y, iplot)))
+            //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
+            //     .attr("fill", (d => f_color(d, g, colors)))
+            //     .attr("id", (d => "e-std" + d.key) );
+
+            // // This element will render the standard deviation of vertices
+            // myPlot.append('g')
+            //     .attr('id', 'vertices-std')
+            //     .selectAll('.vertex-std')
+            //     .data(vertices)
+            //     .enter()
+            //     .append("polygon")
+            //     .classed("vertex-std", true)
+            //     // .on("mouseover", onMouseOverCluster(interactiveGroupElem))
+            //     // .on("mouseout", onMouseOutCluster(interactiveGroupElem))
+            //     .attr("points", (d => f_polygon_vertex(d, g, x, y, iplot)))
+            //     .attr("opacity", (d => f_opacity(d.life_span, g.life_span_max)/3 ))
+            //     .attr("fill", (d => f_color(d, g, colors)))
+            //     .attr("id", (d => "v-std" + d.key) );
+
+            figs.push(figElem);
+        }
+        return undefined
+    })
     return figs
 }
 
@@ -571,7 +576,7 @@ export async function draw_entire_graph_mjo(
     {id="fig", dims = dimensions()} = {},
 ) {
     // Load the graph and wait until it is ready
-    const g =  await d3.json(filename_graph);
+    const g =  await d3.json(filename_graph + ".json");
     const vertices = g.vertices.flat();
     const edges = g.edges.flat();
     const time = g.time_axis;
@@ -671,7 +676,7 @@ export async function life_span_plot(
     {id="fig", dims = dimensions()} = {},
 ) {
     // Load the graph and wait until it is ready
-    const g =  await d3.json(filename_graph);
+    const g =  await d3.json(filename_graph + ".json");
     const life_spans = d3fy_life_span(g.life_span);
     const colors = get_list_colors(g.n_clusters_range.length);
 
