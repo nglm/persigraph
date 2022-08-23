@@ -124,7 +124,7 @@ class PersistentGraph():
         if time_axis is None:
             self._time_axis = np.arange(self.T)
         else:
-            self._time_axis = time_axis
+            self._time_axis = np.copy(time_axis)
 
         if weights is None:
             self._weights = np.ones((self.d, self.T), dtype = float)

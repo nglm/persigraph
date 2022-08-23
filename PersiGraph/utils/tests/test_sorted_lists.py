@@ -1,12 +1,4 @@
-import pytest
-
-# ------
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-
-from sorted_lists import *
-
-
+from ..sorted_lists import *
 
 def test_has_element():
 

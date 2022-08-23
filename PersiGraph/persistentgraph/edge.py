@@ -1,6 +1,6 @@
-from TopEns.utils.check_variable import check_int_positive
-from . import Component
 from typing import Sequence, List, Dict, Any
+from . import Component
+from ..utils.check_variable import check_int_positive
 
 class Edge(Component):
     """
