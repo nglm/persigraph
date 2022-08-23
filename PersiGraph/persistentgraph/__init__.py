@@ -1,5 +1,5 @@
-# To replace 'from PersistentGraph.component import Component'
-# And use from PersistentGraph import Component'
+# To replace 'from persistentgraph.component import Component'
+# And use from persistentgraph import Component'
 
 from .component import Component
 from .vertex import Vertex
