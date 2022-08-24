@@ -1,6 +1,5 @@
 import numpy as np
 
-from gudhi import bottleneck_distance
 from typing import List, Dict, Tuple, Any
 
 from ..utils.lists import flatten
