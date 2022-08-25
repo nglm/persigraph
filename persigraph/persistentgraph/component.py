@@ -248,7 +248,7 @@ class Component():
             # LIFE SPAN
             # Note: ratio death must always be >= ratio_birth
             # Note: life_span is with 0-1 range
-            life_span = euclidean(score_ratios[0], score_ratios[1])
+            life_span = euclidean([score_ratios[0]], [score_ratios[1]])
             self.__life_span = np.around(min(max(life_span,0), 1), 3)
 
 
