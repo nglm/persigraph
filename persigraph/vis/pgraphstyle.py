@@ -6,9 +6,9 @@ from . import VertexStyle, EdgeStyle, UncertaintyStyle
 from .commonstyle import get_list_colors
 
 from ..utils.lists import to_iterable
-from ..PersistentGraph import Vertex
-from ..PersistentGraph import Edge
-from ..PersistentGraph.analysis import sort_components_by
+from ..persistentgraph import Vertex
+from ..persistentgraph import Edge
+from ..persistentgraph.analysis import sort_components_by
 
 class PGraphStyle():
 
