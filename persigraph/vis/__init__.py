@@ -1,5 +1,5 @@
 # To replace 'from .vertexstyle import VertexStyle'
-# And use from Vis import VertexStyle'
+# And use from vis import VertexStyle'
 from .componentstyle import ComponentStyle
 from .vertexstyle import VertexStyle
 from .edgestyle import EdgeStyle

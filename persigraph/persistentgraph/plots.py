@@ -7,10 +7,10 @@ from typing import List, Union
 
 
 from .analysis import get_k_life_span, get_relevant_k
-from ..Vis import PGraphStyle
-from ..Vis.commonstyle import nrows_ncols, get_list_colors
-from ..Vis.barstyle import draw_arrow
-from ..Vis.mjostyle import draw_mjo_classes, add_mjo_member ,add_mjo_mean
+from ..vis import PGraphStyle
+from ..vis.commonstyle import nrows_ncols, get_list_colors
+from ..vis.barstyle import draw_arrow
+from ..vis.mjostyle import draw_mjo_classes, add_mjo_member ,add_mjo_mean
 from ..utils.lists import to_list
 
 def plot_mean_std(

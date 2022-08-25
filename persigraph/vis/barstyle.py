@@ -1,4 +1,4 @@
-from ..Vis.commonstyle import get_list_colors
+from ..vis.commonstyle import get_list_colors
 
 def draw_arrow(
     g,
