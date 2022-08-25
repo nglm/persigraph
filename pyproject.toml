@@ -8,6 +8,7 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12"
 scipy = "^1.9.0"
+sklearn = "^0.0"
 
 [tool.poetry.dev-dependencies]
 
