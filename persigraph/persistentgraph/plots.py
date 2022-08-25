@@ -7,7 +7,6 @@ from typing import List, Union
 
 
 from .analysis import get_k_life_span, get_relevant_k
-from ..Preprocessing.extraction import to_polar, to_cartesian
 from ..Vis import PGraphStyle
 from ..Vis.commonstyle import nrows_ncols, get_list_colors
 from ..Vis.barstyle import draw_arrow
@@ -116,9 +115,10 @@ def plot_mjo_mean_std(
     std_sup = np.std(members, axis=0)
     std_inf = np.std(members, axis=0)
     if polar:
-        mean = to_cartesian(mean)
-        std_inf = None
-        std_sup = None
+        raise NotImplementedError("to_cartesian function is not available anymore")
+        #mean = to_cartesian(mean)
+        # std_inf = None
+        # std_sup = None
     polys, segments = add_mjo_mean(mean, std_inf, std_sup)
     if not polar and show_std:    # There is no poly if polar
         ax.add_collection(polys)
