@@ -8,6 +8,6 @@ Install
 
 In a poetry project, run:
 
-```
+```bash
 poetry add git+ssh://git@github.com:nglm/persigraph.git
 ```
