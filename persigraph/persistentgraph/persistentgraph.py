@@ -1132,7 +1132,10 @@ class PersistentGraph():
         :param path: path to the saved graph, defaults to ''
         :type path: str, optional
         """
+        print("This is filename", filename)
+        print("This is path", path)
         with open(path + filename, 'rb') as f:
+            print("This is f", f)
             self = pickle.load(f)
 
 
