@@ -1137,6 +1137,7 @@ class PersistentGraph():
         with open(path + filename, 'rb') as f:
             print("This is f", f)
             self = pickle.load(f)
+            print(self.members)
 
 
 
