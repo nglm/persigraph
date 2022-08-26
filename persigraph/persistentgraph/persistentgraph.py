@@ -26,7 +26,7 @@ class PersistentGraph():
 
     def __init__(
         self,
-        members: np.ndarray,
+        members: np.ndarray = None,
         time_axis: np.ndarray = None,
         weights: np.ndarray = None,
         precision: int = 13,
@@ -107,144 +107,145 @@ class PersistentGraph():
         # ---------------------- About the data ------------------------
         # --------------------------------------------------------------
 
-        self._members = np.copy(members)  #Original Data
+        if members is not None:
+            self._members = np.copy(members)  #Original Data
 
-        # Variable dimension
-        shape = members.shape
-        if len(shape) < 3:
-            self._d = int(1)
-            self._members = np.expand_dims(self._members, axis=1)
-        else:
-            self._d = shape[1]
+            # Variable dimension
+            shape = members.shape
+            if len(shape) < 3:
+                self._d = int(1)
+                self._members = np.expand_dims(self._members, axis=1)
+            else:
+                self._d = shape[1]
 
-        self._N = shape[0]   # Number of members (time series)
-        self._T = shape[-1]  # Length of the time series
+            self._N = shape[0]   # Number of members (time series)
+            self._T = shape[-1]  # Length of the time series
 
-        # Shared x-axis values among the members
-        if time_axis is None:
-            self._time_axis = np.arange(self.T)
-        else:
-            self._time_axis = np.copy(time_axis)
+            # Shared x-axis values among the members
+            if time_axis is None:
+                self._time_axis = np.arange(self.T)
+            else:
+                self._time_axis = np.copy(time_axis)
 
-        if weights is None:
-            self._weights = np.ones((self.d, self.T), dtype = float)
-        else:
-            self._weights = np.array(weights)
-            if len(self._weights.shape) < 2:
-                self._weights = np.expand_dims(self._weights, axis=0)
+            if weights is None:
+                self._weights = np.ones((self.d, self.T), dtype = float)
+            else:
+                self._weights = np.array(weights)
+                if len(self._weights.shape) < 2:
+                    self._weights = np.expand_dims(self._weights, axis=0)
 
-        # --------------------------------------------------------------
-        # --------- About the graph:   graph's attributes --------------
-        # --------------------------------------------------------------
+            # --------------------------------------------------------------
+            # --------- About the graph:   graph's attributes --------------
+            # --------------------------------------------------------------
 
-        # True if we should consider only relevant scores
-        self._pre_prune = True
-        self._pre_prune_threshold = 0
-        # True if we should remove vertices with short life span
-        self._post_prune = False
-        self._post_prune_threshold = 0
-        if k_max is None:
-            self._k_max = self.N
-        else:
-            self._k_max = min(max(int(k_max), 1), self.N)
-        # Determines how to cluster the members
-        self._model_type = model_type
-        # Key-words related to the clustering model
-        self._model_kw = {'precompute_centroids' : True}
-        self._model_kw.update(model_kw)
-        # Ordered number of clusters that will be tried
-        self._n_clusters_range = range(self.k_max + 1)
-        # Score type, determines how to measure how good a model is
-        _set_score_type(self, score_type)
-        # Determines how to measure the score of the 0th component
-        self._zero_type = zero_type
-        # Total number of iteration of the algorithm
-        self._nb_steps = 0
-        # Local number of iteration of the algorithm
-        self._nb_local_steps = np.zeros(self.T, dtype = int)
-        # Total number of vertices/edges created at each time step
-        self._nb_vertices = np.zeros((self.T), dtype=int)
-        self._nb_edges = np.zeros((self.T-1), dtype=int)
-        # Nested list (time, nb_vertices/edges) of vertices/edges
-        # Here are stored Vertices/Edges themselves, not only their num
-        self._vertices = [[] for _ in range(self.T)]
-        self._edges = [[] for _ in range(self.T-1)]
-        # Nested list (time, nb_local_steps) of dict storing info about
-        # The successive steps
-        self._local_steps = [[] for _ in range(self.T)]
-        # Dict of lists containing step info stored in increasing step order
-        self._sorted_steps = {
-            'time_steps' : [],
-            'local_step_nums' : [],
-            'ratio_scores' : [],
-            'scores' : [],
-            'params' : [],
-        }
-        self._life_span = None
-        self._life_span_max = None
-        self._life_span_min = None
-        self._relevant_k = None
-        self._max = None
-        self._min = None
+            # True if we should consider only relevant scores
+            self._pre_prune = True
+            self._pre_prune_threshold = 0
+            # True if we should remove vertices with short life span
+            self._post_prune = False
+            self._post_prune_threshold = 0
+            if k_max is None:
+                self._k_max = self.N
+            else:
+                self._k_max = min(max(int(k_max), 1), self.N)
+            # Determines how to cluster the members
+            self._model_type = model_type
+            # Key-words related to the clustering model
+            self._model_kw = {'precompute_centroids' : True}
+            self._model_kw.update(model_kw)
+            # Ordered number of clusters that will be tried
+            self._n_clusters_range = range(self.k_max + 1)
+            # Score type, determines how to measure how good a model is
+            _set_score_type(self, score_type)
+            # Determines how to measure the score of the 0th component
+            self._zero_type = zero_type
+            # Total number of iteration of the algorithm
+            self._nb_steps = 0
+            # Local number of iteration of the algorithm
+            self._nb_local_steps = np.zeros(self.T, dtype = int)
+            # Total number of vertices/edges created at each time step
+            self._nb_vertices = np.zeros((self.T), dtype=int)
+            self._nb_edges = np.zeros((self.T-1), dtype=int)
+            # Nested list (time, nb_vertices/edges) of vertices/edges
+            # Here are stored Vertices/Edges themselves, not only their num
+            self._vertices = [[] for _ in range(self.T)]
+            self._edges = [[] for _ in range(self.T-1)]
+            # Nested list (time, nb_local_steps) of dict storing info about
+            # The successive steps
+            self._local_steps = [[] for _ in range(self.T)]
+            # Dict of lists containing step info stored in increasing step order
+            self._sorted_steps = {
+                'time_steps' : [],
+                'local_step_nums' : [],
+                'ratio_scores' : [],
+                'scores' : [],
+                'params' : [],
+            }
+            self._life_span = None
+            self._life_span_max = None
+            self._life_span_min = None
+            self._relevant_k = None
+            self._max = None
+            self._min = None
 
-        # Score precision
-        if precision <= 0:
-            raise ValueError("precision must be a > 0 int")
-        else:
-            self._precision = int(precision)
+            # Score precision
+            if precision <= 0:
+                raise ValueError("precision must be a > 0 int")
+            else:
+                self._precision = int(precision)
 
-        if name is None:
-            name = score_type + zero_type
+            if name is None:
+                name = score_type + zero_type
 
-        # --------------------------------------------------------------
-        # --------- About the graph:   algo's helpers ------------------
-        # --------------------------------------------------------------
+            # --------------------------------------------------------------
+            # --------- About the graph:   algo's helpers ------------------
+            # --------------------------------------------------------------
 
-        # To find members' vertices and edges more efficiently
-        #
-        # Nested list (time, local steps) of arrays of size N
-        # members_v_distrib[t][local_step][i] is the vertex num of the
-        # ith member at t at the given local step
-        self._members_v_distrib = [
-            [] for _ in range(self.T)
-        ]
-        # To find local steps vertices and more efficiently
-        #
-        # v_at_step[t]['v'][local_step][i] is the vertex num of the
-        # ith alive vertex at t at the given local step
-        #
-        # v_at_step[t]['global_step_nums'][local_step] is the global step
-        # num associated with 'local_step' at 't'
-        self._v_at_step = [
-            {
-                'v' : [],
-                'global_step_nums' : []
-             } for _ in range(self.T)
-        ]
+            # To find members' vertices and edges more efficiently
+            #
+            # Nested list (time, local steps) of arrays of size N
+            # members_v_distrib[t][local_step][i] is the vertex num of the
+            # ith member at t at the given local step
+            self._members_v_distrib = [
+                [] for _ in range(self.T)
+            ]
+            # To find local steps vertices and more efficiently
+            #
+            # v_at_step[t]['v'][local_step][i] is the vertex num of the
+            # ith alive vertex at t at the given local step
+            #
+            # v_at_step[t]['global_step_nums'][local_step] is the global step
+            # num associated with 'local_step' at 't'
+            self._v_at_step = [
+                {
+                    'v' : [],
+                    'global_step_nums' : []
+                } for _ in range(self.T)
+            ]
 
-        # Same as above EXCEPT that here local steps don't really refer to
-        # the algo's local steps since they will be new edges at t whenever
-        # there is a new local step at t OR at t+1
-        self._e_at_step = [
-            {
-                'e' : [],
-                'global_step_nums' : []
-             } for _ in range(self.T)
-        ]
+            # Same as above EXCEPT that here local steps don't really refer to
+            # the algo's local steps since they will be new edges at t whenever
+            # there is a new local step at t OR at t+1
+            self._e_at_step = [
+                {
+                    'e' : [],
+                    'global_step_nums' : []
+                } for _ in range(self.T)
+            ]
 
-        if self._maximize:
-            self._best_scores = -np.inf*np.ones(self.T)
-            self._worst_scores = np.inf*np.ones(self.T)
-        else:
-            self._best_scores = np.inf*np.ones(self.T)
-            self._worst_scores = -np.inf*np.ones(self.T)
-        self._zero_scores = np.nan*np.ones(self.T)
-        self._max_life_span = 0
+            if self._maximize:
+                self._best_scores = -np.inf*np.ones(self.T)
+                self._worst_scores = np.inf*np.ones(self.T)
+            else:
+                self._best_scores = np.inf*np.ones(self.T)
+                self._worst_scores = -np.inf*np.ones(self.T)
+            self._zero_scores = np.nan*np.ones(self.T)
+            self._max_life_span = 0
 
-        self._are_bounds_known = False
-        self._norm_bounds = None
-        self._verbose = False
-        self._quiet = False
+            self._are_bounds_known = False
+            self._norm_bounds = None
+            self._verbose = False
+            self._quiet = False
 
 
 
