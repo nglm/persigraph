@@ -13,7 +13,7 @@ from ..vis.barstyle import draw_arrow
 from ..vis.mjostyle import draw_mjo_classes, add_mjo_member ,add_mjo_mean
 from ..utils.lists import to_list
 
-def plot_mean_std(
+def mean_std(
     g = None,
     members = None,
     time_axis = None,
@@ -55,7 +55,7 @@ def plot_mean_std(
         ax.plot(time_axis, mean[i] - std_inf[i], lw=lw/2, **plt_kw)
     return fig, axs
 
-def plot_members(
+def members(
     g = None,
     members = None,
     time_axis = None,
@@ -92,7 +92,7 @@ def plot_members(
             ax.plot(time_axis, m,  **plt_kw)
     return fig, axs
 
-def plot_mjo_mean_std(
+def mjo_mean_std(
     g = None,
     members = None,
     fig = None,
@@ -127,7 +127,7 @@ def plot_mjo_mean_std(
     ax.set_ylim(-4, 4)
     return fig, ax
 
-def plot_mjo_members(
+def mjo_members(
     g = None,
     members = None,
     fig = None,
@@ -152,7 +152,7 @@ def plot_mjo_members(
     ax.set_ylim(-4, 4)
     return fig, ax
 
-def plot_as_graph(
+def graph(
     g,
     s:int = None,
     t = None,
@@ -325,7 +325,7 @@ def suggestion_bar(
     return ax
 
 
-def plot_most_revelant_components(
+def revelant_components(
     g,
     t = None,
     relevant_components = None,
@@ -358,7 +358,7 @@ def plot_most_revelant_components(
     if pgstyle is None:
         pgstyle = PGraphStyle(color_list = color_list, **pgstyle_kw)
 
-    fig, axs =  plot_as_graph(
+    fig, axs =  graph(
         g,
         t = t,
         vertices = vertices,
@@ -373,7 +373,7 @@ def plot_most_revelant_components(
     return fig, axs
 
 
-def plot_overview(
+def overview(
     g,
     t = None,
     relevant_components = None,
@@ -434,7 +434,7 @@ def plot_overview(
 
 
     # Plot entire graph
-    fix, axs01 = plot_as_graph(
+    fix, axs01 = graph(
         g,
         t = t,
         fig = fig,
@@ -445,7 +445,7 @@ def plot_overview(
     )
 
     # Plot most relevant components
-    fix, axs02 = plot_most_revelant_components(
+    fix, axs02 = revelant_components(
         g,
         t = t,
         relevant_components = relevant_components,
@@ -491,7 +491,7 @@ def __update_make_gif(
         # ax.set_ylim(g.min_value-1, g.max_value+1)
     if verbose:
         print(s)
-    fig, ax = plot_as_graph(
+    fig, ax = graph(
         g,
         s = s,
         show_vertices = show_vertices,

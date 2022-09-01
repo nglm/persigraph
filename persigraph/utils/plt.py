@@ -164,7 +164,7 @@ def set_kwargs_default_values(dic, plt_type):
         dic['hist']["label"] = dic['hist'].pop("label", "histogram")
         dic['hist']["color"] = dic['hist'].pop("color", "blue")
 
-    elif plt_type in ["plot",  "plot_mean_std"]:
+    elif plt_type in ["plot",  "mean_std"]:
         dic['plot']['mean_label'] = dic['plot'].pop("mean_label", "Mean")
         dic['plot']['std_alpha'] = dic['plot'].pop("std_alpha", 0.1)
         dic['plot']['mean_zorder'] = dic['plot'].pop("mean_zorder", None)
@@ -183,7 +183,7 @@ def set_kwargs_default_values(dic, plt_type):
             dic['plot']['show_mean_label'] = dic['plot'].pop("show_mean_label", True)
             dic['plot']['show_std_label'] = dic['plot'].pop("show_std_label", False)
 
-        if plt_type == "plot_mean_std":
+        if plt_type == "mean_std":
             # For plot with mean and std
             dic['plot']['show_mean'] = dic['plot'].pop("show_mean", True)
             dic['plot']['show_std'] = dic['plot'].pop("show_std", True)
@@ -648,7 +648,7 @@ def plot_mean_and_std(
     if xvalues is None:
         xvalues = np.arange(len(yvalues))
 
-    dict_kwargs = set_kwargs_default_values(dict_kwargs, plt_type = "plot_mean_std")
+    dict_kwargs = set_kwargs_default_values(dict_kwargs, plt_type = "mean_std")
     if yvalues is not None:
         mean = np.mean(yvalues, axis=0)
         std = np.std(yvalues, axis=0)
@@ -937,7 +937,7 @@ def from_list_to_subplots(
                     yvalues[i_line],
                     **dict_kwargs['line'])
 
-        if plt_type == "plot_mean_std":
+        if plt_type == "mean_std":
             fig, ax = plot_mean_and_std(
                 xvalues = xvalues,
                 yvalues = yvalues,

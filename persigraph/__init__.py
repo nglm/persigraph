@@ -3,9 +3,9 @@
 # import PersiGraph as pg
 #
 # g = pg.PersistentGraph()
-# fig, axes = pg.plot_overview(g)
+# fig, axes = pg.plots.overview(g)
 
-# We do that to skip the persistent graph folder (which itself
+# We do that to skip the persistentgraph folder (which itself
 # skip the persistentgraph.py file and access the class directly)
 from .persistentgraph import PersistentGraph
 from .persistentgraph import plots, analysis
