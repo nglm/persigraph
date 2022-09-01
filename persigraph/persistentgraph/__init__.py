@@ -7,5 +7,5 @@ from .edge import Edge
 from .persistentgraph import PersistentGraph
 
 # Select which modules should be available to the user
-from . import plots
-from . import analysis
+# from . import plots
+# from . import analysis
