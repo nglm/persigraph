@@ -22,19 +22,6 @@ from ..utils._clustering import compute_cluster_params
 
 class PersistentGraph():
 
-    def _init_attributes(self):
-        self._members = None
-        self._d = None
-        self._N = None
-        self._T = None
-        self._time_axis = None
-        self._weights = None
-        self._pre_prune = None
-        self._pre_prune_threshold = None
-        self._post_prune = None
-        self._post_prune_threshold = None
-        self._k_max = None
-        self.
 
     def __init__(
         self,
@@ -1144,6 +1131,7 @@ class PersistentGraph():
         :param path: path to the saved graph, defaults to ''
         :type path: str, optional
         """
+        raise NotImplementedError("pg.load not working, use pickle instead")
         with open(path + filename, 'rb') as f:
             self = pickle.load(f)
 

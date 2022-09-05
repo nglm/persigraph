@@ -13,3 +13,4 @@ from .persistentgraph import plots, analysis
 # Select which modules should be available to the user
 from . import vis
 from . import datasets
+from . import utils
