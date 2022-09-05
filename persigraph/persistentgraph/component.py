@@ -138,7 +138,7 @@ class Component():
             check_int_positive(num, 'num')
             self.__num = int(num)
         else:
-            num = None
+            self.__num = None
 
     @property
     def time_step(self) -> int:
