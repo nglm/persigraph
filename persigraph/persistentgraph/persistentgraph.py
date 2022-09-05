@@ -1062,6 +1062,10 @@ class PersistentGraph():
         if fill_holes:
             for t, edges in enumerate(relevant_edges):
                 if edges == []:
+
+                    # keep track of edge num for each t
+                    e_num = self._nb_edges[t]
+
                     # Get start relevant vertices
                     v_starts = relevant_vertices[t]
                     v_ends = relevant_vertices[t+1]
@@ -1084,10 +1088,12 @@ class PersistentGraph():
                                 v_start = v_start.num,
                                 v_end = v_end.num,
                                 t = t,
+                                num = e_num,
                                 members = members,
                                 total_nb_members = self.N,
                                 score_ratios = [0, 1],
                             ))
+                            e_num += 1
 
         return relevant_vertices, relevant_edges
 
