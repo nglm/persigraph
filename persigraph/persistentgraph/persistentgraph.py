@@ -1239,7 +1239,7 @@ class PersistentGraph():
     @property
     def relevant_k(self) -> Dict[str, List]:
         """
-        Dict of lists with to keys, "k" and "life_span"
+        Dict of lists with 2 keys, "k" and "life_span"
 
         :rtype:
         """
