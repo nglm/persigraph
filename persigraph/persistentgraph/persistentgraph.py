@@ -1015,7 +1015,7 @@ class PersistentGraph():
 
     def get_relevant_components(
         self,
-        relevant_k: List[List] = None,
+        selected_k: List[int] = None,
         k_max: int = 8,
         fill_holes: bool = True,
     ) -> Tuple[List[Vertex], List[Edge]]:
@@ -1024,7 +1024,7 @@ class PersistentGraph():
 
         :param relevant_k: Nested list of [k_relevant, life_span]
         for each time step, defaults to None
-        :type relevant_k: List[List], optional
+        :type selected_k: List[int], optional
         :param k_max: Max value of k considered, defaults to 8
         :type k_max: int, optional
         :return: Relevant vertices and edges
@@ -1032,13 +1032,14 @@ class PersistentGraph():
         """
         k_max = min(k_max, self.k_max)
         # For each time step, get the most relevant number of clusters
-        if relevant_k is None:
+        if selected_k is None:
             relevant_k = get_relevant_k(self, k_max=k_max)
+            selected_k = [k for [k, _] in relevant_k]
 
         relevant_vertices = [
             [
                 v for v in self._vertices[t]
-                if has_element(v.info['brotherhood_size'], relevant_k[t][0])
+                if has_element(v.info['brotherhood_size'], selected_k[t])
             ] for t in range(self.T)
         ]
 
@@ -1048,10 +1049,10 @@ class PersistentGraph():
                 if (
                     has_element(
                         self._vertices[e.time_step][e.v_start].info['brotherhood_size'],
-                        relevant_k[t][0]
+                        selected_k[t]
                     ) and has_element(
                         self._vertices[e.time_step + 1][e.v_end].info['brotherhood_size'],
-                        relevant_k[t+1][0]
+                        selected_k[t+1]
                     ))
             ] for t in range(self.T-1)
         ]
