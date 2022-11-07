@@ -1120,7 +1120,7 @@ class PersistentGraph():
         if type == 'json':
             with open(path + filename + '.json', 'w', encoding='utf-8') as f:
                 class_dict = jsonify(self)
-                json.dump(class_dict, f, ensure_ascii=False, indent=4)
+                json.dump(class_dict, f)
         else:
             with open(path + filename + '.pg', 'wb') as f:
                 pickle.dump(self, f)
