@@ -110,7 +110,7 @@ class PersistentGraph():
             self._members = np.copy(members)  #Original Data
 
             # Variable dimension
-            shape = members.shape
+            shape = self._members.shape
             if len(shape) < 3:
                 self._d = int(1)
                 self._members = np.expand_dims(self._members, axis=1)
