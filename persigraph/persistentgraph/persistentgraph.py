@@ -3,6 +3,7 @@ from bisect import bisect, bisect_right, insort
 import time
 import pickle
 import json
+from sklearn.cluster import KMeans
 from typing import List, Sequence, Tuple, Union, Any, Dict
 
 from . import Vertex
@@ -31,10 +32,15 @@ class PersistentGraph():
         precision: int = 13,
         score_type: str = 'max_inertia',
         zero_type: str = 'bounds',
-        model_type: str = 'KMeans',
-        k_max : int = None,
+        model_class = KMeans,
+        k_max : int = 5,
         name: str = None,
         model_kw: dict = {},
+        fit_predict_kw: dict = {},
+        model_class_kw: dict = {
+            "k_arg_name" = "n_clusters",
+            "X_arg_name" = "X"
+        }
     ):
         """
         Initialize an empty graph
@@ -68,26 +74,6 @@ class PersistentGraph():
         :type score_type: str, optional
         :param zero_type: Define the "0" cluster, defaults to 'uniform'
         :type zero_type: str, optional
-
-        :param pre_prune: Are new step close to their previous step
-        pre-pruned? Pre-pruned means their corresponding vertices are
-        never created and the step never stored, defaults to False.
-        FIXME: OUTDATED IMPLEMENTATION
-        :type pre_prune: bool, optional
-
-        :param pre_prune_threshold: Threshold determining which steps
-        are pre-pruned, defaults to 0.30
-        FIXME: OUTDATED IMPLEMENTATION
-        :type pre_prune_threshold: float, optional
-
-        :param post_prune: FIXME: NOT IMPLEMENTED YET
-        :type post_prune: bool, optional
-
-        :param post_prune_threshold: Threshold determining which steps
-        are post-pruned,, defaults to 0.05
-        FIXME: NOT IMPLEMENTED YET
-        :type post_prune_threshold: float, optional
-
         :param verbose: Level of verbosity (defaults to False):
 
         - 0 (False) Nothing
@@ -137,21 +123,17 @@ class PersistentGraph():
             # --------- About the graph:   graph's attributes --------------
             # --------------------------------------------------------------
 
-            # True if we should consider only relevant scores
-            self._pre_prune = True
-            self._pre_prune_threshold = 0
-            # True if we should remove vertices with short life span
-            self._post_prune = False
-            self._post_prune_threshold = 0
             if k_max is None:
                 self._k_max = self.N
             else:
                 self._k_max = min(max(int(k_max), 1), self.N)
             # Determines how to cluster the members
-            self._model_type = model_type
-            # Key-words related to the clustering model
-            self._model_kw = {'precompute_centroids' : True}
-            self._model_kw.update(model_kw)
+            self._model_class = model_class
+            self._model_type = str(self._model_class())[:-2]
+            # Key-words related to the clustering model instantiation
+            self._model_kw = model_kw
+            # Key-words related to the clustering model fit_predict method
+            self._fit_predict_kw = fit_predict_kw
             # Ordered number of clusters that will be tried
             self._n_clusters_range = range(self.k_max + 1)
             # Score type, determines how to measure how good a model is
@@ -194,7 +176,7 @@ class PersistentGraph():
                 self._precision = int(precision)
 
             if name is None:
-                name = score_type + zero_type
+                name = self._model_type + "_" + score_type + "_" + zero_type
 
             # --------------------------------------------------------------
             # --------- About the graph:   algo's helpers ------------------
@@ -245,8 +227,6 @@ class PersistentGraph():
             self._norm_bounds = None
             self._verbose = False
             self._quiet = False
-
-
 
     def _add_vertex(
         self,
