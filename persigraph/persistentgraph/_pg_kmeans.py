@@ -53,6 +53,7 @@ def clustering_model(
     X,
     model_kw : Dict = {},
     fit_predict_kw : Dict = {},
+    model_class_kw : Dict = {},
 ) -> Tuple[List[List[int]], List[Dict], Dict, Dict]:
     """
     Generate a clustering instance with the given model/fit parameters

@@ -90,7 +90,8 @@ def test_agglomerative():
 def test_gmm():
     members, time = mini()
     model_class = GaussianMixture
-    model_class_kw = {"k_arg_name" : "n_components"}
+    #model_class_kw = {"k_arg_name" : "n_components"}
+    model_class_kw = {}
     list_model_kw = [{}]
     for model_kw in list_model_kw:
         g = PersistentGraph(

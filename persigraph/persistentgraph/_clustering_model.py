@@ -5,6 +5,7 @@ call _pg_* for more model-dependant code.
 import numpy as np
 from bisect import bisect_left
 from sklearn.cluster import KMeans
+from sklearn.mixture import GaussianMixture
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
 from ._scores import compute_score
@@ -16,6 +17,7 @@ def get_model_parameters(
     model_class,
     model_kw = {},
     fit_predict_kw = {},
+    model_class_kw = {},
 ) -> Tuple[Dict, Dict]:
     """
     Initialize clustering model parameters
@@ -25,6 +27,10 @@ def get_model_parameters(
     """
     m_kw = {}
     ft_kw = {}
+    mc_kw = {
+        "k_arg_name" : "n_clusters",
+        "X_arg_name" : "X"
+    }
     # ----------- method specific key-words ------------------------
     if model_class == KMeans:
         m_kw = {
@@ -34,11 +40,13 @@ def get_model_parameters(
         }
         m_kw.update(model_kw)
         ft_kw.update(fit_predict_kw)
-
+    elif model_class == GaussianMixture:
+        mc_kw['k_arg_name'] = "n_components"
+        mc_kw.update(model_class_kw)
     elif model_class == "Naive":
         raise NotImplementedError
 
-    return m_kw, ft_kw
+    return m_kw, ft_kw, mc_kw
 
 
 def generate_zero_component(
@@ -100,6 +108,7 @@ def clustering_model(
     pg,
     model_kw : Dict = {},
     fit_predict_kw : Dict = {},
+    model_class_kw : Dict = {},
 ) -> Tuple[List[List[int]], List[Dict], Dict, Dict]:
     """
     Generate a clustering instance with the given model/fit parameters
@@ -113,8 +122,8 @@ def clustering_model(
     :return: All data corresponding to the generated clustering
     :rtype: Tuple[List[List[int]], List[Dict], Dict, Dict]
     """
-    n_clusters = model_kw[pg._model_class_kw["k_arg_name"]]
-    X = fit_predict_kw[pg._model_class_kw["X_arg_name"]]
+    n_clusters = model_kw[model_class_kw["k_arg_name"]]
+    X = fit_predict_kw[model_class_kw["X_arg_name"]]
     if n_clusters == 0:
         return generate_zero_component(pg, X, model_kw, fit_predict_kw)
     else:
@@ -166,17 +175,18 @@ def generate_all_clusters(
         X = pg._members[:, :, t]
         # Get clustering model parameters required by the
         # clustering model
-        model_kw, fit_predict_kw = get_model_parameters(
+        model_kw, fit_predict_kw, model_class_kw = get_model_parameters(
             pg._model_class,
             model_kw = pg._model_kw,
             fit_predict_kw = pg._fit_predict_kw,
+            model_class_kw = pg._model_class_kw,
         )
-        fit_predict_kw[pg._model_class_kw["X_arg_name"]] = X
+        fit_predict_kw[model_class_kw["X_arg_name"]] = X
 
         for n_clusters in pg._n_clusters_range:
 
             # Update model_kw
-            model_kw[pg._model_class_kw["k_arg_name"]] = n_clusters
+            model_kw[model_class_kw["k_arg_name"]] = n_clusters
 
             # ---------- Fit & predict using clustering model-------
             try :
@@ -188,6 +198,7 @@ def generate_all_clusters(
                     pg,
                     model_kw = model_kw,
                     fit_predict_kw = fit_predict_kw,
+                    model_class_kw = model_class_kw,
                 )
             except ValueError as ve:
                 if not pg._quiet:
