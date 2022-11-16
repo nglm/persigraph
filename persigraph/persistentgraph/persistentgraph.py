@@ -38,8 +38,8 @@ class PersistentGraph():
         model_kw: dict = {},
         fit_predict_kw: dict = {},
         model_class_kw: dict = {
-            "k_arg_name" = "n_clusters",
-            "X_arg_name" = "X"
+            "k_arg_name" : "n_clusters",
+            "X_arg_name" : "X"
         }
     ):
         """
@@ -130,6 +130,8 @@ class PersistentGraph():
             # Determines how to cluster the members
             self._model_class = model_class
             self._model_type = str(self._model_class())[:-2]
+            # To know how X and n_clusters args are called in this model class
+            self._model_class_kw = model_class_kw
             # Key-words related to the clustering model instantiation
             self._model_kw = model_kw
             # Key-words related to the clustering model fit_predict method

@@ -116,7 +116,7 @@ def clustering_model(
         return generate_zero_component(pg, X, model_kw, fit_predict_kw)
     else:
         # ====================== Fit & predict part =======================
-        model = pg.model_class(**model_kw)
+        model = pg._model_class(**model_kw)
         labels = model.fit_predict(**fit_predict_kw)
 
         # ==================== clusters, cluster_info ======================
@@ -151,9 +151,8 @@ def generate_all_clusters(
     else:
         sort_fc = bisect_left
 
-    model_kw = pg.model_kw
-    fit_predict_kw = pg.fit_predict_kw
-    kwargs = pg.kwargs
+    model_kw = pg._model_kw
+    fit_predict_kw = pg._fit_predict_kw
 
     # temporary variable to help sort the local steps
     cluster_data = [[] for _ in range(pg.T)]
@@ -168,10 +167,9 @@ def generate_all_clusters(
         # Get clustering model parameters required by the
         # clustering model
         model_kw, fit_predict_kw = get_model_parameters(
-            pg.model_class,
+            pg._model_class,
             model_kw = model_kw,
             fit_predict_kw = fit_predict_kw,
-            kwargs = kwargs,
         )
         fit_predict_kw[pg._model_class_kw["X_arg_name"]] = X
 
