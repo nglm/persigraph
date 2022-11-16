@@ -1,7 +1,10 @@
 import numpy as np
 from numpy.testing import assert_array_equal
+from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
+from sklearn.mixture import GaussianMixture
 
 from ..persistentgraph import PersistentGraph
+from ..plots import graph
 from ...datasets import mini
 
 
@@ -37,6 +40,7 @@ def test_construct_graph():
     members, time = mini()
     g = PersistentGraph(members, time)
     g.construct_graph()
+    graph(g)
 
     # ------------------------------------------------------------------
     # Test numbers of vertices / edges / steps are consistent
@@ -60,6 +64,44 @@ def test_construct_graph():
     for out, out_exp in zip(output_np, output_np_exp):
         assert_array_equal(out, out_exp)
 
+def test_clustering_methods():
+    members, time = mini()
+    methods = [KMeans, SpectralClustering, AgglomerativeClustering]
+    for m in methods:
+        g = PersistentGraph(members, time, model_class=m)
+        g.construct_graph()
+        graph(g)
+
+def test_agglomerative():
+    members, time = mini()
+    model_class = AgglomerativeClustering
+    linkages = ["ward", "simple", "complete", "average"]
+    list_model_kw = [{"linkage" : l} for l in linkages]
+    for model_kw in list_model_kw:
+        g = PersistentGraph(
+            members,
+            time,
+            model_class=model_class,
+            model_kw=model_kw
+        )
+        g.construct_graph()
+        graph(g)
+
+def test_gmm():
+    members, time = mini()
+    model_class = GaussianMixture
+    model_class_kw = {"k_arg_name" : "n_components"}
+    list_model_kw = [{}]
+    for model_kw in list_model_kw:
+        g = PersistentGraph(
+            members,
+            time,
+            model_class=model_class,
+            model_kw=model_kw,
+            model_class_kw = model_class_kw
+        )
+        g.construct_graph()
+        graph(g)
 
 # def test_decreasing_distance():
 #     """

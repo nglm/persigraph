@@ -84,6 +84,7 @@ class PGraphStyle():
             if (c.nb_members > self.m_min and c.life_span > self.l_min )
         ]
         types = ['gaussian','KMeans','Naive']
+        u_types = ['uniform']
         # If there are still components matching the thresholds
         if components:
 
@@ -95,10 +96,10 @@ class PGraphStyle():
             # --------------------- VERTICES ---------------------------
             if isinstance(components[0], Vertex):
                 gaussians = [
-                    c for c in components if c.info['type'] in types
+                    c for c in components if c.info['type'] not in u_types
                 ]
                 uniforms = [
-                    c for c in components if c.info['type'] == 'uniform'
+                    c for c in components if c.info['type'] in u_types
                 ]
             # ----------------------- EDGES ----------------------------
             elif isinstance(components[0], Edge):
@@ -106,25 +107,25 @@ class PGraphStyle():
                     c for c in components
                     if (
                         g._vertices[c.time_step][c.v_start].info['type']
-                        in types
+                        not in u_types
                     and
                         g._vertices[c.time_step + 1][c.v_end].info['type']
-                        in types
+                        not in u_types
                     )]
                 from_to_uniforms = [
                     c for c in components
-                    if (g._vertices[c.time_step][c.v_start].info['type'] == 'uniform')
-                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] == 'uniform')
+                    if (g._vertices[c.time_step][c.v_start].info['type'] in u_types)
+                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] in u_types)
                     ]
                 to_uniforms = [
                     c for c in components
-                    if (g._vertices[c.time_step][c.v_start].info['type'] != 'uniform')
-                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] == 'uniform')
+                    if (g._vertices[c.time_step][c.v_start].info['type'] not in u_types)
+                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] in u_types)
                     ]
                 from_uniforms = [
                     c for c in components
-                    if (g._vertices[c.time_step][c.v_start].info['type'] == 'uniform')
-                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] != 'uniform')
+                    if (g._vertices[c.time_step][c.v_start].info['type'] in u_types)
+                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] not in u_types)
                     ]
                 uniforms = [to_uniforms, from_to_uniforms, from_uniforms]
         else:

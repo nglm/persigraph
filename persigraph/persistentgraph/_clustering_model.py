@@ -23,6 +23,8 @@ def get_model_parameters(
     :return: 2 dict, for the model initialization and its fit method
     :rtype: Tuple[Dict, Dict]
     """
+    m_kw = {}
+    ft_kw = {}
     # ----------- method specific key-words ------------------------
     if model_class == KMeans:
         m_kw = {
@@ -30,12 +32,13 @@ def get_model_parameters(
             'n_init' : model_kw.pop('n_init', 20),
             'tol' : model_kw.pop('tol', 1e-3),
         }
-        model_kw.update(m_kw)
+        m_kw.update(model_kw)
+        ft_kw.update(fit_predict_kw)
 
     elif model_class == "Naive":
         raise NotImplementedError
 
-    return model_kw, fit_predict_kw
+    return m_kw, ft_kw
 
 
 def generate_zero_component(
@@ -91,7 +94,7 @@ def generate_zero_component(
     # ========================== step_info =============================
     step_info = {'values': values}
 
-    return clusters, clusters_info, step_info, model_kw
+    return clusters, clusters_info, step_info
 
 def clustering_model(
     pg,
@@ -138,7 +141,7 @@ def clustering_model(
         # (Score is computed in persistentgraph)
         step_info = {}
 
-    return clusters, clusters_info, step_info, model_kw
+    return clusters, clusters_info, step_info
 
 
 def generate_all_clusters(
@@ -150,9 +153,6 @@ def generate_all_clusters(
         sort_fc = reverse_bisect_left
     else:
         sort_fc = bisect_left
-
-    model_kw = pg._model_kw
-    fit_predict_kw = pg._fit_predict_kw
 
     # temporary variable to help sort the local steps
     cluster_data = [[] for _ in range(pg.T)]
@@ -168,8 +168,8 @@ def generate_all_clusters(
         # clustering model
         model_kw, fit_predict_kw = get_model_parameters(
             pg._model_class,
-            model_kw = model_kw,
-            fit_predict_kw = fit_predict_kw,
+            model_kw = pg._model_kw,
+            fit_predict_kw = pg._fit_predict_kw,
         )
         fit_predict_kw[pg._model_class_kw["X_arg_name"]] = X
 
@@ -184,7 +184,6 @@ def generate_all_clusters(
                     clusters,
                     clusters_info,
                     step_info,
-                    model_kw,
                 ) = clustering_model(
                     pg,
                     model_kw = model_kw,
