@@ -1,9 +1,11 @@
 # We typically want:
 #
-# import PersiGraph as pg
+# import persigraph as pg
 #
 # g = pg.PersistentGraph()
 # fig, axes = pg.plots.overview(g)
+# SCORES = pg.SCORES
+# CLUSTERING_METHODS = pg.CLUSTERING_METHODS
 
 # We do that to skip the persistentgraph folder (which itself
 # skip the persistentgraph.py file and access the class directly)

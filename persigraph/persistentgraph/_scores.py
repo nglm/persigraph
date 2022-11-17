@@ -9,6 +9,21 @@ from scipy.spatial.distance import sqeuclidean, cdist
 from sklearn.metrics import pairwise_distances
 from typing import List, Sequence, Union, Any, Dict
 
+SCORES = [
+        'inertia',
+        'mean_inertia',
+        'weighted_inertia',
+        'max_inertia',
+        # ----------
+        'distortion'
+        # ----------
+        'max_variance',
+        # ----------
+        'MedDevMean',
+        'mean_MedDevMean',
+        'max_MedDevMean',
+]
+
 SCORES_TO_MINIMIZE = [
         'inertia',
         'mean_inertia',

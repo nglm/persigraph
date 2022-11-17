@@ -11,7 +11,7 @@ from typing import List, Sequence, Union, Any, Dict, Tuple
 from ._scores import compute_score
 from ..utils.sorted_lists import reverse_bisect_left
 
-
+CLUSTERING_METHODS = ["KMeans", "Spectral Clustering", "Gaussian Mixture", "Hierachical Clustering"]
 
 def get_model_parameters(
     model_class,
