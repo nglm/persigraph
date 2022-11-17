@@ -31,7 +31,7 @@ class PersistentGraph():
         time_axis: np.ndarray = None,
         weights: np.ndarray = None,
         precision: int = 13,
-        score_type: str = 'max_inertia',
+        score_type: str = None,
         zero_type: str = 'bounds',
         model_class = None,
         k_max : int = 5,
@@ -176,8 +176,7 @@ class PersistentGraph():
                 self._precision = int(precision)
 
             if name is None:
-                # self._name = self._model_type + "_" + score_type + "_" + zero_type
-                self._name = self._model_type + "_" + score_type
+                self._name = self._model_type + "_" + self._score_type
             else:
                 self._name = name
 
