@@ -1102,9 +1102,9 @@ class PersistentGraph():
         if filename is None:
             filename = self.name
         if type == 'json':
+            class_dict = jsonify(self)
+            json_str = json.dumps(class_dict, indent=4)
             with open(path + filename + '.json', 'w', encoding='utf-8') as f:
-                class_dict = jsonify(self)
-                json_str = json.dumps(class_dict, indent=4)
                 f.write(json_str)
         else:
             with open(path + filename + '.pg', 'wb') as f:
