@@ -9,7 +9,7 @@ from typing import List, Sequence, Tuple, Union, Any, Dict
 
 from . import Vertex
 from . import Edge
-from ._clustering_model import generate_all_clusters
+from ._clustering_model import generate_all_clusters, CLUSTERING_METHODS
 from ._scores import (
     _set_score_type, _compute_ratio_scores, _compute_score_bounds
 )
@@ -237,10 +237,7 @@ class PersistentGraph():
 
         Note that custom classes are still possible
         """
-        names = [
-            "KMeans", "Spectral Clustering", "Gaussian Mixture",
-            "Hierachical Clustering"
-        ]
+        names = CLUSTERING_METHODS
         algos = [
             KMeans, SpectralClustering, GaussianMixture,
             AgglomerativeClustering
