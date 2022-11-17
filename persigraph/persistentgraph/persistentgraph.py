@@ -3,16 +3,16 @@ from bisect import bisect, bisect_right, insort
 import time
 import pickle
 import json
-from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
-from sklearn.mixture import GaussianMixture
+
 from typing import List, Sequence, Tuple, Union, Any, Dict
 
 from . import Vertex
 from . import Edge
-from ._clustering_model import generate_all_clusters, CLUSTERING_METHODS
-from ._scores import (
-    _set_score_type, _compute_ratio_scores, _compute_score_bounds
+from ._set_default_properties import (
+    _set_model_class, _set_score_type
 )
+from ._clustering_model import generate_all_clusters
+from ._scores import _compute_ratio_scores, _compute_score_bounds
 from .analysis import get_k_life_span, get_relevant_k
 
 from ..utils.sorted_lists import (
@@ -126,7 +126,7 @@ class PersistentGraph():
             else:
                 self._k_max = min(max(int(k_max), 1), self.N)
             # Determines how to cluster the members
-            self._set_model_class(model_class)
+            _set_model_class(self, model_class)
             self._model_type = str(self._model_class())[:-2]
             # To know how X and n_clusters args are called in this model class
             self._model_class_kw = model_class_kw
@@ -231,34 +231,6 @@ class PersistentGraph():
             self._verbose = False
             self._quiet = False
 
-    def _set_model_class(self, model_class):
-        """
-        Set mode_class, allowing strings instead of sklearn class
-
-        Note that custom classes are still possible
-        """
-        names = CLUSTERING_METHODS
-        algos = [
-            KMeans, SpectralClustering, GaussianMixture,
-            AgglomerativeClustering
-        ]
-        default_names = [None, ""]
-        default_algo = KMeans
-
-        d = {n : a for n,a in zip(names,algos)}
-
-        if model_class in default_names:
-            self._model_class = default_algo
-        elif model_class in names:
-            self._model_class = d[model_class]
-        elif type(model_class) == str:
-            msg = (
-                "Please select a valid clustering method name or give a "
-                + "valid clustering method class"
-            )
-            raise ValueError(msg)
-        else:
-            self._model_class = model_class
 
 
     def _add_vertex(

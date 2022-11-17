@@ -52,21 +52,7 @@ SCORES_TO_MINIMIZE = [
 SCORES_TO_MAXIMIZE = []
 
 
-def _set_score_type(pg, score_type):
-    if score_type in SCORES_TO_MAXIMIZE:
-        pg._maximize = True
-    elif score_type in SCORES_TO_MINIMIZE:
-        pg._maximize = False
-    else:
-        raise ValueError(
-            "Choose an available score_type"
-            + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
-        )
-    if score_type in ['max_diameter']:
-        pg._global_bounds = True
-    else:
-        pg._global_bounds = False
-    pg._score_type = score_type
+
 
 def compute_score(
     pg,
