@@ -3,7 +3,8 @@ from bisect import bisect, bisect_right, insort
 import time
 import pickle
 import json
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
+from sklearn.mixture import GaussianMixture
 from typing import List, Sequence, Tuple, Union, Any, Dict
 
 from . import Vertex
@@ -32,7 +33,7 @@ class PersistentGraph():
         precision: int = 13,
         score_type: str = 'max_inertia',
         zero_type: str = 'bounds',
-        model_class = KMeans,
+        model_class = None,
         k_max : int = 5,
         name: str = None,
         model_kw: dict = {},
@@ -125,7 +126,7 @@ class PersistentGraph():
             else:
                 self._k_max = min(max(int(k_max), 1), self.N)
             # Determines how to cluster the members
-            self._model_class = model_class
+            self._set_model_class(model_class)
             self._model_type = str(self._model_class())[:-2]
             # To know how X and n_clusters args are called in this model class
             self._model_class_kw = model_class_kw
@@ -226,6 +227,39 @@ class PersistentGraph():
             self._norm_bounds = None
             self._verbose = False
             self._quiet = False
+
+    def _set_model_class(self, model_class):
+        """
+        Set mode_class, allowing strings instead of sklearn class
+
+        Note that custom classes are still possible
+        """
+        names = [
+            "KMeans", "Spectral Clustering", "Gaussian Mixture",
+            "Hierachical Clustering"
+        ]
+        algos = [
+            KMeans, SpectralClustering, GaussianMixture,
+            AgglomerativeClustering
+        ]
+        default_names = [None, ""]
+        default_algo = KMeans
+
+        d = {n : a for n,a in zip(names,algos)}
+
+        if model_class in default_names:
+            self._model_class = default_algo
+        elif model_class in names:
+            self._model_class = d[model_class]
+        elif type(model_class) == str:
+            msg = (
+                "Please select a valid clustering method name or give a "
+                + "valid clustering method class"
+            )
+            raise ValueError(msg)
+        else:
+            self._model_class = model_class
+
 
     def _add_vertex(
         self,
