@@ -9,7 +9,7 @@
 
 # We do that to skip the persistentgraph folder (which itself
 # skip the persistentgraph.py file and access the class directly)
-from .persistentgraph import PersistentGraph
+from .persistentgraph import PersistentGraph, SCORES, CLUSTERING_METHODS
 from .persistentgraph import plots, analysis
 
 # Select which modules should be available to the user
