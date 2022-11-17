@@ -176,7 +176,9 @@ class PersistentGraph():
                 self._precision = int(precision)
 
             if name is None:
-                name = self._model_type + "_" + score_type + "_" + zero_type
+                self._name = self._model_type + "_" + score_type + "_" + zero_type
+            else:
+                self._name = name
 
             # --------------------------------------------------------------
             # --------- About the graph:   algo's helpers ------------------
@@ -1155,6 +1157,14 @@ class PersistentGraph():
         raise NotImplementedError("pg.load not working, use pickle instead")
         with open(path + filename, 'rb') as f:
             self = pickle.load(f)
+
+    @property
+    def name(self) -> str :
+        """Name of the graph object, used as filename by default when saved
+
+        :rtype: str
+        """
+        return self._name
 
     @property
     def N(self) -> int :
