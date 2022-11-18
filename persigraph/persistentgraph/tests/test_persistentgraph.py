@@ -3,6 +3,8 @@ from numpy.testing import assert_array_equal
 from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
 from sklearn.mixture import GaussianMixture
 
+from .._scores import SCORES, SCORES_TO_MINIMIZE
+from .._clustering_model import CLUSTERING_METHODS
 from ..persistentgraph import PersistentGraph
 from ..plots import graph
 from ...datasets import mini
@@ -66,7 +68,7 @@ def test_construct_graph():
 
 def test_clustering_methods():
     members, time = mini()
-    methods = [KMeans, SpectralClustering, AgglomerativeClustering]
+    methods = CLUSTERING_METHODS
     for m in methods:
         g = PersistentGraph(members, time, model_class=m)
         g.construct_graph()
@@ -101,6 +103,15 @@ def test_gmm():
             model_kw=model_kw,
             model_class_kw = model_class_kw
         )
+        g.construct_graph()
+        graph(g)
+
+def test_scores():
+    members, time = mini()
+    scores = SCORES_TO_MINIMIZE
+    for s in scores:
+        print(s)
+        g = PersistentGraph(members, time, score_type=s)
         g.construct_graph()
         graph(g)
 

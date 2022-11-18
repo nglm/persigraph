@@ -1,4 +1,5 @@
 import numpy as np
+from typing import List, Sequence, Union, Any, Dict, Tuple
 
 members_with_dup_equal_dist = np.array([
     (0.1 ,   1.,    2.,   1.,     0.1 ),
@@ -33,29 +34,61 @@ members_biv[:,0,:] = members
 members_biv[:,1,:] = members_bis
 
 def mini(
-    vtype = "univariate",
-    time_scale=True,
-    duplicates=False,
-    equal_dist=False,
-):
+    multivariate: bool = False,
+    time_series: bool = True,
+    time_scale: bool = True,
+    duplicates: bool = False,
+    equal_dist: bool = False,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Returns a mini dataset for testing purpose
+
+    :param multivariate: Use multivariate data, defaults to False
+    :type multivariate: bool, optional
+    :param time_series: Treat each time step separately if True, otherwise,
+    consider time steps as different variable, defaults to True
+    :type time_series: bool, optional
+    :param time_scale: get a time axis different from the indices,
+    defaults to True
+    :type time_scale: bool, optional
+    :param duplicates: Allow for duplicates for some time steps,
+    defaults to False
+    :type duplicates: bool, optional
+    :param equal_dist: Allow for member being at equal distance from 2 other
+    members, defaults to False
+    :type equal_dist: bool, optional
+    :return: _description_
+    :rtype: Tuple[np.ndarray, np.ndarray]
+    """
     (N, T) = members.shape
     time = np.arange(T)
 
-    # To get a time axis different from the indices
+    # Get a time axis different from the indices (by a factor 6)
     if time_scale:
         time *= 6
-    if vtype == "multivariate":
+    # Bivariate data
+    if multivariate:
         data = np.ones((N, 2, T))
         data[:,0,:] = members
         data[:,1,:] = members_bis
         data = members_biv
+    # Univariate data
     else:
+        # Add duplicate values at some time steps
         if duplicates:
             data = members_with_dup_equal_dist
         else:
+            # Add members
             if equal_dist:
                 data = members_with_equal_dist
             else:
                 data = members
+        # Add the "d" dimension with d=1
         data = np.expand_dims(data, 1)
+    # Treat time series as multivariate data instead of time series
+    # New shape: (N, d*T, 1)
+    if not time_series:
+        data = np.reshape(N, -1, 1)
     return np.copy(data), np.copy(time)
+
+
