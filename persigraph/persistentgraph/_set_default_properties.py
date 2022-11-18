@@ -1,9 +1,38 @@
 
 from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
 from sklearn.mixture import GaussianMixture
+import numpy as np
 
 from ._scores import SCORES_TO_MAXIMIZE, SCORES_TO_MINIMIZE, SCORES
 from ._clustering_model import CLUSTERING_METHODS
+
+def _set_members(pg, members):
+    """
+    Set members, N, d, T
+    """
+    pg._members = np.copy(members)  #Original Data
+
+    # Variable dimension
+    shape = pg._members.shape
+
+    # Assume that both d and T are "missing"
+    if len(shape) == 1:
+        pg._d = int(1)
+        pg._T = int(1)
+        pg._members = np.expand_dims(pg._members, axis=(1,2))
+    # Assume that only d is missing
+    elif len(shape) == 2:
+        pg._d = int(1)
+        pg._members = np.expand_dims(pg._members, axis=1)
+    elif len(shape) == 3:
+        pg._N = shape[0]  # Number of members (time series)
+        pg._d = shape[1]  # Number of variables
+        pg._T = shape[2]  # Length of the time series
+    else:
+        raise ValueError(
+            "Invalid shape of members provided:" + str(shape)
+            + ". Please provide a valid shape: (N,) or (N, T) or (N, d, T)"
+        )
 
 def _set_model_class(pg, model_class):
     """

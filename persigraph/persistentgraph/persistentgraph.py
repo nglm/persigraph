@@ -9,7 +9,7 @@ from typing import List, Sequence, Tuple, Union, Any, Dict
 from . import Vertex
 from . import Edge
 from ._set_default_properties import (
-    _set_model_class, _set_score_type
+    _set_members, _set_model_class, _set_score_type
 )
 from ._clustering_model import generate_all_clusters
 from ._scores import _compute_ratio_scores, _compute_score_bounds
@@ -91,18 +91,7 @@ class PersistentGraph():
         # --------------------------------------------------------------
 
         if members is not None:
-            self._members = np.copy(members)  #Original Data
-
-            # Variable dimension
-            shape = self._members.shape
-            if len(shape) < 3:
-                self._d = int(1)
-                self._members = np.expand_dims(self._members, axis=1)
-            else:
-                self._d = shape[1]
-
-            self._N = shape[0]   # Number of members (time series)
-            self._T = shape[-1]  # Length of the time series
+            _set_members(self, members)
 
             # Shared x-axis values among the members
             if time_axis is None:
