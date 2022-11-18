@@ -31,6 +31,7 @@ class PersistentGraph():
         time_axis: np.ndarray = None,
         weights: np.ndarray = None,
         precision: int = 13,
+        as_time_series: bool = True,
         score_type: str = None,
         zero_type: str = 'bounds',
         model_class = None,
