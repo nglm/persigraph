@@ -15,7 +15,7 @@ SCORES = [
         'weighted_inertia',
         'max_inertia',
         # ----------
-        'distortion'
+        'distortion',
         # ----------
         'max_variance',
         # ----------
@@ -31,7 +31,7 @@ SCORES_TO_MINIMIZE = [
         'max_inertia',
         'min_inertia',       # Shouldn't be used: taking min makes no sense
         # ----------
-        'distortion'
+        'distortion',
         # ----------         # Shouldn't be used: use inertia instead
         'variance',          # Shouldn't be used: use inertia instead
         'mean_variance',     # Shouldn't be used: use inertia instead
