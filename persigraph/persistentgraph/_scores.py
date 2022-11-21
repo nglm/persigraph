@@ -5,7 +5,7 @@ It is totally clustering model independant
 
 import numpy as np
 from numpy.linalg import norm
-from scipy.spatial.distance import sqeuclidean, cdist
+from scipy.spatial.distance import sqeuclidean, cdist, pdist
 from sklearn.metrics import pairwise_distances
 from typing import List, Sequence, Union, Any, Dict
 
@@ -15,7 +15,10 @@ SCORES = [
         'weighted_inertia',
         'max_inertia',
         # ----------
-        'max_variance',
+        'variance',
+        # ----------
+        "diameter",
+        "max_diameter",
         # ----------
         'MedDevMean',
         'mean_MedDevMean',
@@ -25,7 +28,8 @@ SCORES = [
 SUBSCORES = ["", "mean_", "median_", "weighted_", "min_", "max_"]
 
 MAIN_SCORES_TO_MINIMIZE = [
-    "inertia", "variance", "MedDevMean", "MeanDevMed", "MedDevMed"
+    "inertia", "variance", "MedDevMean", "MeanDevMed", "MedDevMed",
+    'diameter',
 ]
 
 MAIN_SCORES_TO_MAXIMIZE = []
@@ -132,6 +136,20 @@ def f_med_dev_med(cluster: np.ndarray) -> float:
             metric='sqeuclidean'
         ))
 
+def f_diameter(cluster: np.ndarray) -> float:
+    """
+    Compute the diameter of the given cluster
+
+    :param cluster: (N_c, d) array, representing a cluster of size N_c
+    :type cluster: np.ndarray
+    :return: the diameter of that cluster
+    :rtype: float
+    """
+    if len(cluster) == 1:
+        return 0
+    else:
+        return np.amax(pairwise_distances(cluster))
+
 def compute_subscores(
     pg,
     X : np.ndarray,
@@ -173,6 +191,12 @@ def compute_subscores(
     # Take the min score among all clusters
     elif pg._score_type == 'min_' + main_score:
         score = min([f_score(X[members]) for members in clusters])
+    else:
+        raise ValueError(
+                pg._score_type + " has an invalid prefix."
+                + "Please choose a valid score_type: "
+                + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
+            )
     return score
 
 
@@ -235,25 +259,13 @@ def compute_score(
     elif pg._score_type.endswith("MedDevMed"):
         score = compute_subscores(pg, X, clusters, "MedDevMed", f_med_dev_med)
     # ------------------------------------------------------------------
-    elif pg._score_type == 'diameter':
-        # WARNING: diameter should be used with weights
-        # WARNING: Should not be used..... Does not penalize enough high
-        # values of n_clusters
-        score = 0
-        for i_cluster, members in enumerate(clusters):
-            score += np.amax(pairwise_distances(X[members])) * pg._weights[:, t]
+    elif pg._score_type.endswith("diameter"):
+        score = compute_subscores(pg, X, clusters, "diameter", f_diameter)
     # ------------------------------------------------------------------
-    elif pg._score_type == 'max_diameter':
-        # WARNING: Max diameter should be used with weights
-        score = 0
-        for i_cluster, members in enumerate(clusters):
-            score = max(
-                np.amax(pairwise_distances(X[members])) * pg._weights[:, t],
-                score
-            )
     else:
         raise ValueError(
-                pg._score_type + " is invalid. Please choose a valid score_type"
+                pg._score_type
+                + " is invalid. Please choose a valid score_type: "
                 + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
             )
 
