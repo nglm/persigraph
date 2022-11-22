@@ -215,7 +215,7 @@ def compute_score(
     :param model: sklearn model, defaults to None
     :type model: sklearn model, optional
     :param X: Values of all members, defaults to None
-    :type X: np.ndarray, shape: (N, d) optional
+    :type X: np.ndarray, shape: (N, d*w) optional
     :param clusters: Members ids of each cluster, defaults to None
     :type clusters: List[List[int]], optional
     :param t: current time step (for weights), defaults to None
@@ -274,22 +274,19 @@ def compute_score(
 
 def _compute_score_bounds(
     pg,
-    local_scores: List[float],
 ) -> None:
     """
     Compare local_scores and zero_scores at t to find score bounds at t
 
     :param pg: [description]
     :type pg: [type]
-    :param local_scores: scores computed at a given time step
-    :type local_scores: List[float]
     """
     for t in range(pg.T):
         pg._worst_scores[t] = worst_score(
-            pg, pg._zero_scores[t], local_scores[t][-1]
+            pg, pg._zero_scores[t], pg._local_steps[t][-1]['score']
         )
         pg._best_scores[t] = best_score(
-            pg, pg._zero_scores[t], local_scores[t][0]
+            pg, pg._zero_scores[t], pg._local_steps[t][0]['score']
         )
     if pg._global_bounds:
         worst_score_global = pg._worst_scores[0]

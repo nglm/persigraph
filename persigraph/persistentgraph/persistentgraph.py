@@ -29,9 +29,9 @@ class PersistentGraph():
         self,
         members: np.ndarray = None,
         time_axis: np.ndarray = None,
+        time_window: int = 1,
         weights: np.ndarray = None,
         precision: int = 13,
-        as_time_series: bool = True,
         score_type: str = None,
         zero_type: str = 'bounds',
         model_class = None,
@@ -93,6 +93,7 @@ class PersistentGraph():
 
         if members is not None:
             _set_members(self, members)
+            self._w = min( max(int(time_window), 0), self.T)
 
             # Shared x-axis values among the members
             if time_axis is None:
@@ -254,9 +255,6 @@ class PersistentGraph():
             info["type"] = self._model_type
         else:
             info["type"] = "uniform"
-        X = self._members[members, :, t]
-        info_cluster = compute_cluster_params(X)
-        info.update(info_cluster)
 
         # Create the vertex
         num = self._nb_vertices[t]
@@ -628,7 +626,7 @@ class PersistentGraph():
         return e_alive
 
 
-    def _construct_vertices(self, cluster_data, local_scores):
+    def _construct_vertices(self, cluster_data):
         for t in range(self.T):
             for step, (clusters, clusters_info) in enumerate(cluster_data[t]):
                 n_clusters = len(clusters)
@@ -939,20 +937,20 @@ class PersistentGraph():
         t_start = time.time()
         if self._verbose:
             print("Clustering data...")
-        cluster_data, local_scores = generate_all_clusters(self)
+        cluster_data = generate_all_clusters(self)
         t_end = time.time()
         if self._verbose:
             print('Data clustered in %.2f s' %(t_end - t_start))
 
         # ================== Compute score bounds ======================
-        _compute_score_bounds(self, local_scores)
+        _compute_score_bounds(self)
 
 
         # ================== Construct vertices ========================
         t_start = time.time()
         if self._verbose:
             print("Construct vertices...")
-        self._construct_vertices(cluster_data, local_scores)
+        self._construct_vertices(cluster_data)
         t_end = time.time()
         if self._verbose:
             print('Vertices constructed in %.2f s' %(t_end - t_start))
@@ -1147,6 +1145,13 @@ class PersistentGraph():
         :rtype: int
         """
         return self._d
+
+    @property
+    def w(self) -> int :
+        """Size of the sliding time window
+        :rtype: int
+        """
+        return self._w
 
     @property
     def k_max(self) -> int:

@@ -9,6 +9,7 @@ from sklearn.mixture import GaussianMixture
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
 from ._scores import compute_score
+from ..utils._clustering import compute_cluster_params
 from ..utils.sorted_lists import reverse_bisect_left
 
 CLUSTERING_METHODS = ["KMeans", "SpectralClustering", "GaussianMixture", "AgglomerativeClustering"]
@@ -52,22 +53,16 @@ def get_model_parameters(
 def generate_zero_component(
     pg,
     X: np.ndarray,
-    model_kw: dict = {},
-    fit_predict_kw: dict = {},
-) -> Tuple[List[List[int]], List[Dict], Dict, Dict]:
+) -> np.ndarray:
     """
-    Create the 0 component of the graph for all time steps
+    Generate values to emulate the case k=0
 
     :param pg: PersistentGraph
     :type pg: PersistentGraph
     :param X: Values of all members, defaults to None
     :type X: np.ndarray, shape: (N, d) optional
-    :param model_kw: Dict of kw for the model initalization, defaults to {}
-    :type model_kw: dict, optional
-    :param fit_predict_kw: Dict of kw for the fit_predict method, defaults to {}
-    :type fit_predict_kw: dict, optional
-    :return: All data corresponding to the generated clustering
-    :rtype: Tuple[List[List[int]], List[Dict], Dict, Dict]
+    :return: Data emulating the k=0 based on X
+    :rtype: np.ndarray
     """
     # ====================== Fit & predict part ========================
     if pg._zero_type == 'bounds':
@@ -87,22 +82,9 @@ def generate_zero_component(
 
     # Generate a perfect uniform distribution
     steps = (maxs-mins) / (pg.N-1)
-    values = np.array([mins + i*steps for i in range(pg.N)])
+    X_zero = np.array([mins + i*steps for i in range(pg.N)])
 
-    # ==================== clusters, cluster_info ======================
-    # Compute the score of that distribution
-    clusters = [[i for i in range(pg.N)]]
-    clusters_info = [{
-        'type' : 'uniform',
-        'params' : [values[0], values[-1]], # lower/upper bounds
-        'brotherhood_size' : [0],
-        'mean' : (values[0] + values[-1])/2
-    }]
-
-    # ========================== step_info =============================
-    step_info = {'values': values}
-
-    return clusters, clusters_info, step_info
+    return X_zero
 
 def clustering_model(
     pg,
@@ -124,33 +106,59 @@ def clustering_model(
     """
     n_clusters = model_kw[model_class_kw["k_arg_name"]]
     X = fit_predict_kw[model_class_kw["X_arg_name"]]
-    if n_clusters == 0:
-        return generate_zero_component(pg, X, model_kw, fit_predict_kw)
-    else:
-        # ====================== Fit & predict part =======================
-        model = pg._model_class(**model_kw)
-        labels = model.fit_predict(**fit_predict_kw)
 
-        # ==================== clusters, cluster_info ======================
-        clusters_info = []
-        clusters = []
-        for label_i in range(n_clusters):
-            # Members belonging to that clusters
-            members = [m for m in range(pg.N) if labels[m] == label_i]
-            clusters.append(members)
-            if members == []:
-                raise ValueError('No members in cluster')
+    # ====================== Fit & predict part =======================
+    model = pg._model_class(**model_kw)
+    labels = model.fit_predict(**fit_predict_kw)
 
-            # Info related to this specific vertex
-            info = {}
-            clusters_info.append(info)
+    # ==================== clusters ======================
+    clusters = [ [] for _ in range(n_clusters)]
+    for label_i in range(n_clusters):
+        # Members belonging to that clusters
+        members = [m for m in range(pg.N) if labels[m] == label_i]
+        clusters[label_i] = members
+        if members == []:
+            raise ValueError('No members in cluster')
 
-        # ========================== step_info =============================
-        # Add method specific info here if necessary
-        # (Score is computed in persistentgraph)
-        step_info = {}
+    return clusters
 
-    return clusters, clusters_info, step_info
+def _data_to_cluster(pg) -> np.ndarray:
+    """
+    Data to be clustered using sliding window.
+
+    Note that if `pg.w` is even, it takes `t` and `t+1` time steps to cluster
+    data at `t`. It is recommended to use odd numbers for `pg.w`. There is
+    no padding for the sliding window and `stride=1`.
+    So `T_clus = T - w + 1`, and `T_origin_to_clust[0..t//2] = T_clus[0]`
+
+    :param pg: Persistent Graph
+    :type pg: _type_
+    :return: The data that will be clustered as a (N, d*w, T_clus) array
+    :rtype: np.ndarray
+    """
+    # Correspondance of indices between T and T_clus
+    T_clus = pg.T - pg.w + 1
+
+    X_clus = np.zeros((pg.N, pg.d*pg.w, T_clus))
+    for t in range(T_clus):
+        X_clus[:, :, t] = pg._members[:,:,t:t+pg.w].reshape(pg.N, pg.d*pg.w)
+    return X_clus
+
+def _time_indices(pg):
+    T_clus = pg.T - pg.w + 1
+    T_ind = {'to_clus' : {}, 'to_origin' : {}}
+    # From origin to cluster, length T
+    T_ind["to_clus"].update({t: 0 for t in range(pg.w)})
+    T_ind["to_clus"].update({int(t+pg.w): t+1 for t in range(T_clus-1)})
+    T_ind["to_clus"].update({t: T_clus-1 for t in range(T_clus-1, pg.T)})
+
+    # From cluster to origin, length T_clus but the first and last elements
+    # could have multiple indices
+    T_ind["to_origin"].update({0: [t for t in range(pg.w)]})
+    T_ind["to_origin"].update({t+1: int(t+pg.w) for t in range(T_clus-1)})
+    T_ind["to_origin"].update({T_clus-1 :t for t in range(T_clus-1, pg.T)})
+
+    return T_ind
 
 
 def generate_all_clusters(
@@ -163,16 +171,18 @@ def generate_all_clusters(
     else:
         sort_fc = bisect_left
 
-    # temporary variable to help sort the local steps
-    cluster_data = [[] for _ in range(pg.T)]
-    local_scores = [[] for _ in range(pg.T)]
+    members_clus = _data_to_cluster(pg)
+    T_clus = members_clus.shape[-1]
 
-    for t in range(pg.T):
-        if pg._verbose:
-            print(" ========= ", t, " ========= ")
+    # temporary variable to help remember clusters before merging
+    # clusters_t_n[t][k][i] is a list of members indices contained in cluster i
+    # for the clustering assuming k cluster at time step t.
+    clusters_t_n = [{} for _ in range(T_clus)]
+
+    for t in range(T_clus):
 
         # ------ clustering method specific parameters -------------
-        X = pg._members[:, :, t]
+        X = members_clus[:, :, t]
         # Get clustering model parameters required by the
         # clustering model
         model_kw, fit_predict_kw, model_class_kw = get_model_parameters(
@@ -185,16 +195,16 @@ def generate_all_clusters(
 
         for n_clusters in pg._n_clusters_range:
 
+            if n_clusters == 0:
+                clusters_t_n[t][n_clusters] = [[i for i in range(pg.N)]]
+                continue
+
             # Update model_kw
             model_kw[model_class_kw["k_arg_name"]] = n_clusters
 
             # ---------- Fit & predict using clustering model-------
             try :
-                (
-                    clusters,
-                    clusters_info,
-                    step_info,
-                ) = clustering_model(
+                clusters = clustering_model(
                     pg,
                     model_kw = model_kw,
                     fit_predict_kw = fit_predict_kw,
@@ -205,12 +215,31 @@ def generate_all_clusters(
                     print(str(ve))
                 continue
 
+            clusters_t_n[t][n_clusters] = clusters
+
+    # temporary variable to help sort the local steps
+    # cluster_data[t] contains (clusters, clusters_info)
+    cluster_data = [[] for _ in range(pg.T)]
+    local_scores = [[] for _ in range(pg.T)]
+    T_ind = _time_indices(pg)
+
+    for t in range(pg.T):
+
+        X = pg._members[:, :, t]
+        for n_clusters in pg._n_clusters_range:
+
+            # Difference between time step indices with/without sliding window
+            clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
+
+            # -------- Cluster infos for each cluster ---------
+            clusters_info = [compute_cluster_params(X[c]) for c in clusters]
+
             # -------- Score corresponding to 'n_clusters' ---------
 
             if n_clusters == 0:
                 score = compute_score(
                     pg,
-                    X = step_info.pop('values'),
+                    X = generate_zero_component(pg, X),
                     clusters = clusters,
                     t = t,
                 )
@@ -222,7 +251,7 @@ def generate_all_clusters(
                     clusters = clusters,
                     t = t,
                 )
-            step_info['score'] = score
+            step_info = {"score" : score}
 
             # ---------------- Finalize local step -----------------
             # Find where should we insert this future local step
@@ -239,9 +268,10 @@ def generate_all_clusters(
             pg._nb_local_steps[t] += 1
 
             if pg._verbose:
+                print(" ========= ", t, " ========= ")
                 msg = "n_clusters: " + str(n_clusters)
                 for (key,item) in step_info.items():
                     msg += '  ||  ' + key + ":  " + str(item)
                 print(msg)
 
-    return cluster_data, local_scores
+    return cluster_data
