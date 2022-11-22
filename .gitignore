@@ -8,5 +8,5 @@
 # no generated html files
 */docs/build*
 # no tmp files
-*/tmp/*
+tmp/*
 

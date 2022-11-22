@@ -2,6 +2,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
 from sklearn.mixture import GaussianMixture
+import matplotlib.pyplot as plt
 
 from .._scores import SCORES, SCORES_TO_MINIMIZE
 from .._clustering_model import CLUSTERING_METHODS
@@ -72,7 +73,10 @@ def test_time_window():
     for w in list_w:
         g = PersistentGraph(members, time, time_window=w)
         g.construct_graph()
-        graph(g)
+        fig, ax = graph(g)
+        fname = "test_" + "time_window_" + str(w)
+        fig.savefig('tmp/'+fname)
+        g.save('tmp/'+fname)
 
 def test_clustering_methods():
     members, time = mini()
@@ -80,7 +84,10 @@ def test_clustering_methods():
     for m in methods:
         g = PersistentGraph(members, time, model_class=m)
         g.construct_graph()
-        graph(g)
+        fig, ax = graph(g)
+        fname = "test_" + "method_" + str(m)
+        fig.savefig('tmp/'+fname)
+        g.save('tmp/'+fname)
 
 def test_agglomerative():
     members, time = mini()
