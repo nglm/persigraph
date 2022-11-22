@@ -66,6 +66,14 @@ def test_construct_graph():
     for out, out_exp in zip(output_np, output_np_exp):
         assert_array_equal(out, out_exp)
 
+def test_time_window():
+    members, time = mini()
+    list_w = [t for t in range(1, len(time))]
+    for w in list_w:
+        g = PersistentGraph(members, time, time_window=w)
+        g.construct_graph()
+        graph(g)
+
 def test_clustering_methods():
     members, time = mini()
     methods = CLUSTERING_METHODS
