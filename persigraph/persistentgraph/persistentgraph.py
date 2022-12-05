@@ -33,6 +33,7 @@ class PersistentGraph():
         weights: np.ndarray = None,
         precision: int = 13,
         score_type: str = None,
+        squared_radius: bool = False,
         zero_type: str = 'bounds',
         model_class = None,
         k_max : int = 5,
@@ -129,6 +130,8 @@ class PersistentGraph():
             self._n_clusters_range = range(self.k_max + 1)
             # Score type, determines how to measure how good a model is
             _set_score_type(self, score_type)
+            # Should we use a squared radius when clustering data?
+            self._squared_radius = squared_radius
             # Determines how to measure the score of the 0th component
             self._zero_type = zero_type
             # Total number of iteration of the algorithm
@@ -1368,5 +1371,9 @@ class PersistentGraph():
             "model_type" : self._model_type,
             "zero_type" : self._zero_type,
             "score_type" : self._score_type,
+            "squared_radius" : self._squared_radius,
+            "model_class_kw" : self._model_class_kw,
+            "model_kw" : self._model_kw,
+            "fit_predict_kw" : self._fit_predict_kw,
         }
         return dic

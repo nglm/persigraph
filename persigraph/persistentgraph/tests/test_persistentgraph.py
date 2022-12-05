@@ -78,6 +78,27 @@ def test_time_window():
         fig.savefig('tmp/'+fname)
         g.save('tmp/'+fname)
 
+def test_squared_radius():
+    members, time = mini(multivariate=True)
+    list_squared_radius = [True, False]
+    list_w = [1,2,3, len(time)]
+    for squared_radius in list_squared_radius:
+        for w in list_w:
+            g = PersistentGraph(
+                members,
+                time,
+                squared_radius=squared_radius,
+                time_window=w,
+            )
+            g.construct_graph()
+            fig, ax = graph(g)
+            fname = (
+                "test_" + "time_window_" + str(w)
+                + "squared_radius_" + str(squared_radius)
+            )
+            fig.savefig('tmp/'+fname)
+            g.save('tmp/'+fname)
+
 def test_clustering_methods():
     members, time = mini()
     methods = CLUSTERING_METHODS

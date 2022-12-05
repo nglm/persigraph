@@ -97,7 +97,7 @@ def clustering_model(
 
     :param pg: PersistentGraph
     :type pg: PersistentGraph
-    :param model_kw: Dict of kw for the model initalization, defaults to {}
+    :param model_kw: Dict of kw for the model initialization, defaults to {}
     :type model_kw: dict, optional
     :param fit_predict_kw: Dict of kw for the fit_predict method, defaults to {}
     :type fit_predict_kw: dict, optional
@@ -136,12 +136,22 @@ def _data_to_cluster(pg) -> np.ndarray:
     :return: The data that will be clustered as a (N, d*w, T_clus) array
     :rtype: np.ndarray
     """
-    # Correspondance of indices between T and T_clus
+    # Correspondence of indices between T and T_clus
     T_clus = pg.T - pg.w + 1
+
+    X = np.copy(pg._members)
+
+    if pg._squared_radius:
+        # r = sqrt(RMM1**2 + RMM2**2)
+        # r of shape (N, 1, T)
+        r = np.sqrt(np.sum(np.square(X), axis=1, keepdims=True))
+        # r*X gives the same angle but a squared radius
+        X = r*X
 
     X_clus = np.zeros((pg.N, pg.d*pg.w, T_clus))
     for t in range(T_clus):
-        X_clus[:, :, t] = pg._members[:,:,t:t+pg.w].reshape(pg.N, pg.d*pg.w)
+        X_clus[:, :, t] = X[:,:,t:t+pg.w].reshape(pg.N, pg.d*pg.w)
+
     return X_clus
 
 def _time_indices(pg):
