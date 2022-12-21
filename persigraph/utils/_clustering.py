@@ -6,6 +6,10 @@ clustering model used
 from bisect import insort
 from math import isnan
 import numpy as np
+import dtaidistance
+from dtaidistance.clustering import medoids
+from dtaidistance.clustering.hierarchical import Hierarchical
+from dtaidistance.clustering.kmeans import KMeans
 from typing import List, Sequence, Union, Any, Dict
 
 from .sorted_lists import insert_no_duplicate
@@ -128,3 +132,78 @@ def compute_cluster_params(
     cluster_params['std_inf'] = std_inf
     cluster_params['std_sup'] = std_sup
     return cluster_params
+
+class KMeansDTW(KMeans):
+
+    # def __init__(
+    #     self, k, max_it=10, max_dba_it=10, thr=0.0001, drop_stddev=None,
+    #     nb_prob_samples=None, dists_options=None, show_progress=True,
+    #     initialize_with_kmedoids=False, initialize_with_kmeanspp=True,
+    #     initialize_sample_size=None
+    # ):
+    #     super().__init__(
+    #         k, max_it, max_dba_it, thr, drop_stddev, nb_prob_samples,
+    #         dists_options, show_progress, initialize_with_kmedoids,
+    #         initialize_with_kmeanspp, initialize_sample_size
+    #     )
+    def __init__( self, n_clusters=None):
+        super().__init__(k=n_clusters)
+
+    def fit_predict(self, X):
+        return self.fit(X)
+
+class AgglomerativeClusteringDTW(Hierarchical):
+
+    # def __init__(
+    #     self, dists_fun, dists_options, max_dist=..., merge_hook=None,
+    #     order_hook=None, show_progress=True
+    # ):
+    #     super().__init__(
+    #         dists_fun, dists_options, max_dist, merge_hook, order_hook,
+    #         show_progress
+    #     )
+
+    def __init__(self, n_clusters=1):
+        super().__init__(
+            dtaidistance.dtw.distance_matrix_fast, {}, k=n_clusters
+        )
+
+    def fit_predict(self, X):
+        return self.fit(X)
+
+# class KMedoidsDTW(medoids.KMedoids):
+
+#     # def __init__(
+#     #     self, dists_fun, dists_options, k=None, initial_medoids=None,
+#     #     show_progress=True
+#     # ):
+#     #     super().__init__(
+#     #         dists_fun, dists_options, k, initial_medoids, show_progress
+#     #     )
+
+#     def __init__( self, n_clusters=1, ):
+#         print("n_clusters", n_clusters)
+#         super().__init__(dtaidistance.dtw.distance_matrix_fast, {}, k=n_clusters)
+
+#     def fit_predict(self, X):
+#         return self.fit(X)
+
+# class KMedoids(medoids.KMedoids):
+
+#     # def __init__(
+#     #     self, dists_fun, dists_options, k=None, initial_medoids=None,
+#     #     show_progress=True
+#     # ):
+#     #     super().__init__(
+#     #         dists_fun, dists_options, k, initial_medoids, show_progress
+#     #     )
+
+#     def __init__( self, n_clusters=1, ):
+#         print("n_clusters", n_clusters)
+#         super().__init__(dtaidistance.ed.distance, {}, k=n_clusters)
+#         print(self.dists_fun)
+#         self.dists_options = {}
+#         print(self.k)
+
+#     def fit_predict(self, X):
+#         return self.fit(X)

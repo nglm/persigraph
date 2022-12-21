@@ -34,6 +34,7 @@ class PersistentGraph():
         precision: int = 13,
         score_type: str = None,
         squared_radius: bool = False,
+        DTW: bool = False,
         zero_type: str = 'bounds',
         model_class = None,
         k_max : int = 5,
@@ -87,7 +88,6 @@ class PersistentGraph():
         :raises ValueError: [description]
         """
 
-
         # --------------------------------------------------------------
         # ---------------------- About the data ------------------------
         # --------------------------------------------------------------
@@ -118,7 +118,7 @@ class PersistentGraph():
             else:
                 self._k_max = min(max(int(k_max), 1), self.N)
             # Determines how to cluster the members
-            _set_model_class(self, model_class)
+            _set_model_class(self, model_class, DTW)
             self._model_type = str(self._model_class())[:-2]
             # To know how X and n_clusters args are called in this model class
             self._model_class_kw = model_class_kw
@@ -132,6 +132,8 @@ class PersistentGraph():
             _set_score_type(self, score_type)
             # Should we use a squared radius when clustering data?
             self._squared_radius = squared_radius
+            # Should we use DTW when clustering the data
+            self._DTW = DTW
             # Determines how to measure the score of the 0th component
             self._zero_type = zero_type
             # Total number of iteration of the algorithm
@@ -1372,6 +1374,7 @@ class PersistentGraph():
             "zero_type" : self._zero_type,
             "score_type" : self._score_type,
             "squared_radius" : self._squared_radius,
+            "DTW" : self._DTW,
             "model_class_kw" : self._model_class_kw,
             "model_kw" : self._model_kw,
             "fit_predict_kw" : self._fit_predict_kw,

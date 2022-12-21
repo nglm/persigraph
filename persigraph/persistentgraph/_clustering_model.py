@@ -5,14 +5,30 @@ call _pg_* for more model-dependant code.
 import numpy as np
 from bisect import bisect_left
 from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
 from sklearn.mixture import GaussianMixture
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
 from ._scores import compute_score
-from ..utils._clustering import compute_cluster_params
+from ..utils._clustering import (
+    compute_cluster_params, KMeansDTW, AgglomerativeClusteringDTW,
+)
 from ..utils.sorted_lists import reverse_bisect_left
 
-CLUSTERING_METHODS = ["KMeans", "SpectralClustering", "GaussianMixture", "AgglomerativeClustering"]
+CLUSTERING_METHODS = {
+    "names": [
+        "KMeans", "SpectralClustering", "GaussianMixture",
+        "AgglomerativeClustering",
+    ],
+    "classes-standards": [
+        KMeans, SpectralClustering, GaussianMixture,
+        AgglomerativeClustering,
+    ],
+    "classes-dtw": [
+        None, None, None,
+        None,
+    ],
+}
 
 def get_model_parameters(
     model_class,

@@ -34,32 +34,48 @@ def _set_members(pg, members):
             + ". Please provide a valid shape: (N,) or (N, T) or (N, d, T)"
         )
 
-def _set_model_class(pg, model_class):
+def _set_model_class(pg, model_class, DTW: bool = False):
     """
     Set mode_class, allowing strings instead of sklearn class
 
     Note that custom classes are still possible
     """
-    names = CLUSTERING_METHODS
-    algos = [
-        KMeans, SpectralClustering, GaussianMixture,
-        AgglomerativeClustering
-    ]
+    names = CLUSTERING_METHODS["names"]
+    algos_ed = {
+        n : a for (n,a) in zip(names, CLUSTERING_METHODS["classes-standards"])
+    }
+    algos_dtw = {
+        n : a for (n,a) in zip(names, CLUSTERING_METHODS["classes-dtw"])
+    }
+
     default_names = [None, ""]
     default_algo = KMeans
 
-    d = {n : a for n,a in zip(names,algos)}
-
+    # Base case
     if model_class in default_names:
         pg._model_class = default_algo
+    # Usual case
     elif model_class in names:
-        pg._model_class = d[model_class]
+        if DTW:
+            if algos_dtw[model_class] is None:
+                msg = (
+                    "DTW is not available with " + model_class
+                    + ". Please select a valid clustering method or "
+                    + "use euclidean distance"
+                )
+                raise ValueError(msg)
+            else:
+                pg._model_class = algos_dtw[model_class]
+        else:
+            pg._model_class = algos_ed[model_class]
+    # Invalid option
     elif type(model_class) == str:
         msg = (
             "Please select a valid clustering method name or give a "
             + "valid clustering method class"
         )
         raise ValueError(msg)
+    # Assume that a valid python class was given
     else:
         pg._model_class = model_class
 

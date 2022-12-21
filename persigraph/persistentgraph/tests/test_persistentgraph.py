@@ -99,10 +99,26 @@ def test_squared_radius():
             fig.savefig('tmp/'+fname)
             g.save('tmp/'+fname)
 
+def test_DTW():
+    members, time = mini()
+    methods = CLUSTERING_METHODS["names"]
+    DTWs = [False, True]
+    for i, m in enumerate(methods):
+        for is_dtw in DTWs:
+            if not (is_dtw and CLUSTERING_METHODS["classes-dtw"][i] is None):
+                print(m, is_dtw)
+                g = PersistentGraph(members, time, model_class=m, DTW=is_dtw)
+                g.construct_graph()
+                fig, ax = graph(g)
+                fname = "test_" + "method_" + str(m) + "_" + str(is_dtw)
+                fig.savefig('tmp/'+fname)
+                g.save('tmp/'+fname)
+
 def test_clustering_methods():
     members, time = mini()
-    methods = CLUSTERING_METHODS
+    methods = CLUSTERING_METHODS["names"]
     for m in methods:
+        print(m)
         g = PersistentGraph(members, time, model_class=m)
         g.construct_graph()
         fig, ax = graph(g)
