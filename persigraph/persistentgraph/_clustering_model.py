@@ -7,25 +7,26 @@ from bisect import bisect_left
 from sklearn.cluster import KMeans
 from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
 from sklearn.mixture import GaussianMixture
+from tslearn.clustering import TimeSeriesKMeans
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
 from ._scores import compute_score
 from ..utils._clustering import (
-    compute_cluster_params, KMeansDTW, AgglomerativeClusteringDTW,
+    compute_cluster_params,
 )
 from ..utils.sorted_lists import reverse_bisect_left
 
 CLUSTERING_METHODS = {
     "names": [
-        "KMeans", "SpectralClustering", "GaussianMixture",
+        "KMeans", "TimeSeriesKMeans", "SpectralClustering", "GaussianMixture",
         "AgglomerativeClustering",
     ],
     "classes-standards": [
-        KMeans, SpectralClustering, GaussianMixture,
+        KMeans, TimeSeriesKMeans, SpectralClustering, GaussianMixture,
         AgglomerativeClustering,
     ],
     "classes-dtw": [
-        None, None, None,
+        None, TimeSeriesKMeans, None, None,
         None,
     ],
 }
@@ -60,6 +61,11 @@ def get_model_parameters(
     elif model_class == GaussianMixture:
         mc_kw['k_arg_name'] = "n_components"
         mc_kw.update(model_class_kw)
+    elif model_class == TimeSeriesKMeans:
+        m_kw = {
+            'metric' : 'dtw',
+        }
+        m_kw.update(model_kw)
     elif model_class == "Naive":
         raise NotImplementedError
 
