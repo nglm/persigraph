@@ -18,15 +18,15 @@ from ..utils.sorted_lists import reverse_bisect_left
 
 CLUSTERING_METHODS = {
     "names": [
-        "KMeans", "TimeSeriesKMeans", "SpectralClustering", "GaussianMixture",
+        "KMeans", "SpectralClustering", "GaussianMixture",
         "AgglomerativeClustering",
     ],
-    "classes-standards": [
-        KMeans, TimeSeriesKMeans, SpectralClustering, GaussianMixture,
+    "classes-standard": [
+        KMeans, SpectralClustering, GaussianMixture,
         AgglomerativeClustering,
     ],
     "classes-dtw": [
-        None, TimeSeriesKMeans, None, None,
+        TimeSeriesKMeans, None, None, None,
         None,
     ],
 }
@@ -63,7 +63,7 @@ def get_model_parameters(
         mc_kw.update(model_class_kw)
     elif model_class == TimeSeriesKMeans:
         m_kw = {
-            'metric' : 'dtw',
+            'metric' : 'softdtw',
         }
         m_kw.update(model_kw)
     elif model_class == "Naive":

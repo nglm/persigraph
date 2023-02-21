@@ -132,8 +132,6 @@ class PersistentGraph():
             _set_score_type(self, score_type)
             # Should we use a squared radius when clustering data?
             self._squared_radius = squared_radius
-            # Should we use DTW when clustering the data
-            self._DTW = DTW
             # Determines how to measure the score of the 0th component
             self._zero_type = zero_type
             # Total number of iteration of the algorithm

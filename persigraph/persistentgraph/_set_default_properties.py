@@ -36,13 +36,13 @@ def _set_members(pg, members):
 
 def _set_model_class(pg, model_class, DTW: bool = False):
     """
-    Set mode_class, allowing strings instead of sklearn class
+    Set _model_class, and `_DTW` allowing strings instead of sklearn class
 
     Note that custom classes are still possible
     """
     names = CLUSTERING_METHODS["names"]
     algos_ed = {
-        n : a for (n,a) in zip(names, CLUSTERING_METHODS["classes-standards"])
+        n : a for (n,a) in zip(names, CLUSTERING_METHODS["classes-standard"])
     }
     algos_dtw = {
         n : a for (n,a) in zip(names, CLUSTERING_METHODS["classes-dtw"])
@@ -50,10 +50,12 @@ def _set_model_class(pg, model_class, DTW: bool = False):
 
     default_names = [None, ""]
     default_algo = KMeans
+    default_DTW = False
 
     # Base case
     if model_class in default_names:
         pg._model_class = default_algo
+        pg._DTW = default_DTW
     # Usual case
     elif model_class in names:
         if DTW:
@@ -66,8 +68,18 @@ def _set_model_class(pg, model_class, DTW: bool = False):
                 raise ValueError(msg)
             else:
                 pg._model_class = algos_dtw[model_class]
+                pg._DTW = True
         else:
-            pg._model_class = algos_ed[model_class]
+            if algos_ed[model_class] is None:
+                msg = (
+                    "Euclidean distance is not available with " + model_class
+                    + ". Please select a valid clustering method or "
+                    + "use DTW"
+                )
+                raise ValueError(msg)
+            else:
+                pg._model_class = algos_ed[model_class]
+                pg._DTW = False
     # Invalid option
     elif type(model_class) == str:
         msg = (
@@ -75,9 +87,10 @@ def _set_model_class(pg, model_class, DTW: bool = False):
             + "valid clustering method class"
         )
         raise ValueError(msg)
-    # Assume that a valid python class was given
+    # Assume that a valid (python class, DTW) tuple was given
     else:
         pg._model_class = model_class
+        pg._DTW = DTW
 
 def _set_score_type(pg, score_type):
 
