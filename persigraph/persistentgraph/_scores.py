@@ -7,6 +7,7 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.spatial.distance import sqeuclidean, cdist, pdist
 from sklearn.metrics import pairwise_distances
+from tslearn.metrics import cdist_soft_dtw
 from typing import List, Sequence, Union, Any, Dict
 
 SCORES = [
@@ -15,10 +16,10 @@ SCORES = [
         'weighted_inertia',
         'max_inertia',
         # ----------
-        'variance',
+        #'variance',     #TODO: Outdated since DTW
         # ----------
-        "diameter",
-        "max_diameter",
+        #"diameter",     #TODO: Outdated since DTW
+        #"max_diameter", #TODO: Outdated since DTW
         # ----------
         'MedDevMean',
         'mean_MedDevMean',
@@ -28,8 +29,12 @@ SCORES = [
 SUBSCORES = ["", "mean_", "median_", "weighted_", "min_", "max_"]
 
 MAIN_SCORES_TO_MINIMIZE = [
-    "inertia", "variance", "MedDevMean", "MeanDevMed", "MedDevMed",
-    'diameter',
+    "inertia",
+    #"variance",            #TODO: Outdated since DTW
+    "MedDevMean",
+    #"MeanDevMed",          #TODO: Outdated since DTW
+    #"MedDevMed",           #TODO: Outdated since DTW
+    #'diameter',            #TODO: Outdated since DTW
 ]
 
 MAIN_SCORES_TO_MAXIMIZE = []
@@ -38,7 +43,7 @@ SCORES_TO_MINIMIZE = [p+s for s in MAIN_SCORES_TO_MINIMIZE for p in SUBSCORES]
 SCORES_TO_MAXIMIZE = [p+s for s in MAIN_SCORES_TO_MAXIMIZE for p in SUBSCORES]
 
 
-def f_inertia(cluster: np.ndarray) -> float:
+def f_inertia(cluster: np.ndarray, cluster_info: dict = None) -> float:
     """
     Compute the inertia of ONE cluster
 
@@ -47,13 +52,21 @@ def f_inertia(cluster: np.ndarray) -> float:
     :return: inertia of that cluster
     :rtype: float
     """
-    return np.sum(cdist(
-        cluster,
-        np.mean(cluster, axis=0, keepdims=True),
-        metric='sqeuclidean'
-    ))
+    dims = cluster.shape
+    if len(dims) == 2:
+        print(np.shape(cluster),  np.shape(cluster_info["mean"].reshape(1, -1)))
+        return np.sum(cdist(
+            cluster,
+            cluster_info["mean"].reshape(1, -1),
+            metric='sqeuclidean'
+        ))
+    if len(dims) == 3:
+        return np.sum(cdist_soft_dtw(
+            cluster,
+            cluster_info["mean"],
+        ))
 
-def f_generalized_var(cluster: np.ndarray) -> float:
+def f_generalized_var(cluster: np.ndarray, cluster_info: dict = None) -> float:
     """
     Compute the sample generalized variance of ONE cluster
 
@@ -72,7 +85,7 @@ def f_generalized_var(cluster: np.ndarray) -> float:
         else:
             return sample_cov
 
-def f_med_dev_mean(cluster: np.ndarray) -> float:
+def f_med_dev_mean(cluster: np.ndarray, cluster_info: dict = None) -> float:
     """
     Compute the median deviation around the mean
 
@@ -86,13 +99,20 @@ def f_med_dev_mean(cluster: np.ndarray) -> float:
     if len(cluster) == 1:
         return 0
     else:
-        return np.median(cdist(
-            cluster,
-            np.mean(cluster, axis=0, keepdims=True),
-            metric='sqeuclidean'
-        ))
+        dims = cluster.shape
+        if len(dims) == 2:
+            return np.median(cdist(
+                cluster,
+                cluster_info["mean"].reshape(1, -1),
+                metric='sqeuclidean'
+            ))
+        if len(dims) == 3:
+            return np.median(cdist_soft_dtw(
+                cluster,
+                cluster_info["mean"],
+            ))
 
-def f_mean_dev_med(cluster: np.ndarray) -> float:
+def f_mean_dev_med(cluster: np.ndarray, cluster_info: dict = None) -> float:
     """
     Compute the mean deviation around the median
 
@@ -106,15 +126,22 @@ def f_mean_dev_med(cluster: np.ndarray) -> float:
     if len(cluster) == 1:
         return 0
     else:
-        return np.mean(cdist(
-            cluster,
-            np.median(cluster, axis=0, keepdims=True),
-            metric='sqeuclidean'
-        ))
+        dims = cluster.shape
+        if len(dims) == 2:
+            return np.mean(cdist(
+                cluster,
+                cluster_info["mean"].reshape(1, -1),
+                metric='sqeuclidean'
+            ))
+        if len(dims) == 3:
+            return np.mean(cdist_soft_dtw(
+                cluster,
+                cluster_info["mean"],
+            ))
 
 
 
-def f_med_dev_med(cluster: np.ndarray) -> float:
+def f_med_dev_med(cluster: np.ndarray, cluster_info: dict = None) -> float:
     """
     Compute the median deviation around the median
 
@@ -136,7 +163,7 @@ def f_med_dev_med(cluster: np.ndarray) -> float:
             metric='sqeuclidean'
         ))
 
-def f_diameter(cluster: np.ndarray) -> float:
+def f_diameter(cluster: np.ndarray, cluster_info: dict = None) -> float:
     """
     Compute the diameter of the given cluster
 
@@ -156,6 +183,7 @@ def compute_subscores(
     clusters: List[List[int]],
     main_score: str,
     f_score,
+    clusters_info: Dict = None,
 ) -> float:
     """
     Compute the main score of a clustering and its associated subscores
@@ -170,8 +198,12 @@ def compute_subscores(
     :rtype: float
     """
     prefixes = ["", "mean_", "weighted_"]
+    score_tmp = [
+            f_score(X[members], info)
+            for members, info in zip(clusters, clusters_info)
+        ]
     if (pg._score_type in [p + main_score for p in prefixes] ):
-        score = sum([f_score(X[members]) for members in clusters])
+        score = sum(score_tmp)
         # Take the mean score by cluster
         if pg._score_type  == "mean_" + main_score:
             score /= len(clusters)
@@ -181,16 +213,16 @@ def compute_subscores(
     # ------------------------------------------------------------------
     # Take the median score among all clusters
     elif pg._score_type == 'median_' + main_score:
-        score = np.median([f_score(X[members]) for members in clusters])
+        score = np.median(score_tmp)
     # ------------------------------------------------------------------
     # Take the max score among all clusters
     elif pg._score_type == 'max_' + main_score:
-        score = max([f_score(X[members]) for members in clusters])
+        score = max(score_tmp)
     # ------------------------------------------------------------------
     # Shouldn't be used: taking min makes no sense
     # Take the min score among all clusters
     elif pg._score_type == 'min_' + main_score:
-        score = min([f_score(X[members]) for members in clusters])
+        score = min(score_tmp)
     else:
         raise ValueError(
                 pg._score_type + " has an invalid prefix."
@@ -205,7 +237,8 @@ def compute_score(
     model=None,
     X: np.ndarray = None,
     clusters: List[List[int]] = None,
-    t: int = None
+    t: int = None,
+    clusters_info: Dict = None,
 ) -> float :
     """
     Compute the score of a given clustering
@@ -237,7 +270,9 @@ def compute_score(
         ):
             score = model.inertia_
         else:
-            score = compute_subscores(pg, X, clusters, "inertia", f_inertia)
+            score = compute_subscores(
+                pg, X, clusters, "inertia", f_inertia,
+                clusters_info=clusters_info)
     # ------------------------------------------------------------------
     # Variance based scores
     # Shouldn't be used: use inertia or distortion instead
@@ -245,22 +280,31 @@ def compute_score(
     # Here it's generalized variance
     elif pg._score_type.endswith("variance"):
         score = compute_subscores(
-            pg, X, clusters, "variance", f_generalized_var
+            pg, X, clusters, "variance", f_generalized_var,
+            clusters_info=clusters_info
         )
     # ------------------------------------------------------------------
     # Median around mean based scores
     elif pg._score_type.endswith("MedDevMean"):
-        score = compute_subscores(pg, X, clusters, "MedDevMean", f_med_dev_mean)
+        score = compute_subscores(
+            pg, X, clusters, "MedDevMean", f_med_dev_mean,
+            clusters_info=clusters_info)
     # Median around mean based scores
     elif pg._score_type.endswith("MeanDevMed"):
-        score = compute_subscores(pg, X, clusters, "MeanDevMed", f_mean_dev_med)
+        score = compute_subscores(
+            pg, X, clusters, "MeanDevMed", f_mean_dev_med,
+            clusters_info=clusters_info)
     # Median around median based scores
     # Shouldn't be used, see f_med_dev_med
     elif pg._score_type.endswith("MedDevMed"):
-        score = compute_subscores(pg, X, clusters, "MedDevMed", f_med_dev_med)
+        score = compute_subscores(
+            pg, X, clusters, "MedDevMed", f_med_dev_med,
+            clusters_info=clusters_info)
     # ------------------------------------------------------------------
     elif pg._score_type.endswith("diameter"):
-        score = compute_subscores(pg, X, clusters, "diameter", f_diameter)
+        score = compute_subscores(
+            pg, X, clusters, "diameter", f_diameter,
+            clusters_info=clusters_info)
     # ------------------------------------------------------------------
     else:
         raise ValueError(

@@ -90,8 +90,8 @@ def generate_zero_component(
     if pg._zero_type == 'bounds':
 
         # Get the parameters of the uniform distrib using min and max
-        mins = np.amin(X, axis=0)
-        maxs = np.amax(X, axis=0)
+        mins = np.amin(X, axis=0, keepdims=True)
+        maxs = np.amax(X, axis=0, keepdims=True)
 
     else:
         # I'm not sure if this type should be used at all actually.....
@@ -172,6 +172,7 @@ def _data_to_cluster(pg) -> np.ndarray:
     X = np.copy(pg._members)
 
     if pg._squared_radius:
+        # X of shape (N, d, T)
         # r = sqrt(RMM1**2 + RMM2**2)
         # r of shape (N, 1, T)
         r = np.sqrt(np.sum(np.square(X), axis=1, keepdims=True))
@@ -185,8 +186,10 @@ def _data_to_cluster(pg) -> np.ndarray:
         X_clus = np.zeros((pg.N, pg.d*pg.w, T_clus))
     for t in range(T_clus):
         if pg._DTW:
+            # X_clus: (N, w, d, T_clus),
             X_clus[:, :, :, t] = np.swapaxes(X[:,:,t:t+pg.w], 1, 2)
         else:
+            # X_clus: (N, w*d, T_clus),
             X_clus[:, :, t] = X[:,:,t:t+pg.w].reshape(pg.N, pg.d*pg.w)
     return X_clus
 
@@ -280,32 +283,34 @@ def generate_all_clusters(
 
         # Take the data used for clustering while taking into account the
         # difference between time step indices with/without sliding window
-        X = members_clus[:, :, T_ind["to_clus"][t]]
+        if pg._DTW:
+            # members_clus: (N, w, d, T_clus),
+            # X: (N, w, d)
+            X = members_clus[:, :, :, T_ind["to_clus"][t]]
+        else:
+            # members_clus: (N, w*d, T_clus)
+            # X: (N, w*d)
+            X = members_clus[:, :, T_ind["to_clus"][t]]
         for n_clusters in pg._n_clusters_range:
 
             # Find cluster membership of each member
             clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
+            if n_clusters == 0:
+                X = generate_zero_component(pg, pg.members[:,:,t])
 
             # -------- Cluster infos for each cluster ---------
             clusters_info = [compute_cluster_params(X[c]) for c in clusters]
 
             # -------- Score corresponding to 'n_clusters' ---------
-
+            score = compute_score(
+                pg,
+                X = X,
+                clusters = clusters,
+                t = t,
+                clusters_info = clusters_info,
+            )
             if n_clusters == 0:
-                score = compute_score(
-                    pg,
-                    X = generate_zero_component(pg, X),
-                    clusters = clusters,
-                    t = t,
-                )
                 pg._zero_scores[t] = score
-            else:
-                score = compute_score(
-                    pg,
-                    X = X,
-                    clusters = clusters,
-                    t = t,
-                )
             step_info = {"score" : score}
 
             # ---------------- Finalize local step -----------------

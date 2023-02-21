@@ -108,7 +108,6 @@ def test_DTW():
             if not (is_dtw and CLUSTERING_METHODS["classes-dtw"][i] is None):
                 print(m, is_dtw)
                 g = PersistentGraph(members, time, model_class=m, DTW=is_dtw)
-                print(g.parameters)
                 g.construct_graph()
                 fig, ax = graph(g)
                 fname = "test_" + "method_" + str(m) + "_" + str(is_dtw)
