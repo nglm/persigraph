@@ -7,10 +7,8 @@ from bisect import insort
 from math import isnan
 import numpy as np
 from sklearn.metrics import pairwise_distances
-# import dtaidistance
-# from dtaidistance.clustering import medoids
-# from dtaidistance.clustering.hierarchical import Hierarchical
-# from dtaidistance.clustering.kmeans import KMeans
+from tslearn.metrics import dtw_path
+from tslearn.barycenters import softdtw_barycenter
 from typing import List, Sequence, Union, Any, Dict
 
 from .sorted_lists import insert_no_duplicate
@@ -99,21 +97,58 @@ def compute_cluster_params(
     """
     Compute the mean, std, std_sup, inf, etc of a given cluster
 
+    If `cluster` has shape `(N_clus, w, d)`, uses DTW. Otherwise,
+    it must have a shape `(N_clus, w*d)` and the regular mean is used.
+
+    If DTW is used, uses barycentric average to compute mean and uses it as
+    a reference to compute the standard deviation. Only the midpoint of the
+    barycenter is used to compute the mean and to find matching time steps in
+    each time series of the cluster.
+    Otherwise, uses the regular mean.
+
     :param cluster: Values of the members belonging to that cluster
-    :type cluster: np.ndarray, shape (N_members, d)
+    :type cluster: np.ndarray, shape (N_members, d) or (N_members, w, d)
     :return: Dict of summary statistics
     :rtype: Dict
     """
-    d = cluster.shape[1]
-    mean = np.mean(cluster, axis=0).reshape(-1)  # shape: (d)
-    std = np.std(cluster, axis=0).reshape(-1)    # shape: (d)
+    dims = cluster.shape
+
+    # Regular case
+    if len(dims) == 2:
+        (N_clus, d) = dims
+        mean = np.mean(cluster, axis=0).reshape(-1)  # shape: (d)
+        X = np.copy(cluster)
+
+    # DTW case
+    elif len(dims) == 3:
+        (N_clus, w, d) = dims
+        # Take the barycenter as reference
+        barycenter = softdtw_barycenter(cluster)
+        # center of the time series, used as reference
+        mid = w // 2
+        # Here we can have len(X) > N_clus! Each element of X is of shape (d)
+        X = []
+        # For each time series in the dataset... compare to the barycenter
+        for ts in cluster:
+            path, _ = dtw_path(barycenter, ts)
+            # Find time steps that match with the midpoint of the barycenter
+            ind = [path[i][1] for i in range(len(path)) if path[i][0] == mid]
+            X += [ts[i] for i in ind]
+        X = np.array(X)
+        mean = barycenter[mid]
+    else:
+        msg = (
+            "Clusters should be of dimension (N, d*w) or (N, w, d)."
+            + "and not " + str(dims)
+        )
+        raise ValueError(msg)
+
     std_inf = np.zeros(d)                        # shape: (d)
     std_sup = np.zeros(d)                        # shape: (d)
-
-    # Get the members below/above the average
     for i in range(d):
-        X_inf = [m for m in cluster[:, i] if m < mean[i]]
-        X_sup = [m for m in cluster[:, i] if m > mean[i]]
+        # Get the members below/above the average
+        X_inf = [m for m in X[:, i] if m < mean[i]]
+        X_sup = [m for m in X[:, i] if m > mean[i]]
         # Because otherwise the std goes up to the member if there is just
         # one member
         X_inf.append(mean[i])
@@ -123,9 +158,9 @@ def compute_cluster_params(
         n_sup = len(X_sup)
         X_inf = np.array(X_inf)
         X_sup = np.array(X_sup)
+        std = np.std(X, axis=0).reshape(-1)    # shape: (d)
         std_inf[i] = np.sqrt( np.sum((X_inf - mean[i])**2) / n_inf )
         std_sup[i] = np.sqrt( np.sum((X_sup - mean[i])**2) / n_sup )
-
 
     cluster_params = {}
     cluster_params['mean'] = mean

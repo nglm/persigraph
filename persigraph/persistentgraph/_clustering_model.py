@@ -26,7 +26,7 @@ CLUSTERING_METHODS = {
         AgglomerativeClustering,
     ],
     "classes-dtw": [
-        TimeSeriesKMeans, None, None, None,
+        TimeSeriesKMeans, None, None,
         None,
     ],
 }
@@ -146,16 +146,24 @@ def clustering_model(
 
 def _data_to_cluster(pg) -> np.ndarray:
     """
-    Data to be clustered using sliding window.
+    Data to be clustered `X_clus` using sliding window.
 
-    Note that if `pg.w` is even, it takes `t` and `t+1` time steps to cluster
-    data at `t`. It is recommended to use odd numbers for `pg.w`. There is
-    no padding for the sliding window and `stride=1`.
-    So `T_clus = T - w + 1`, and `T_origin_to_clust[0..t//2] = T_clus[0]`
+    Note that if `pg.w` is even, it takes one more time steps in the future
+    than in the past: [`t - (pg.w // 2), ... t, ..., t + ((pg.w+1) // 2)`].
+    It is recommended to use odd numbers for `pg.w`.
+
+    The index that should be used to compute scores and cluster params
+    of clustering that were computed using `X_clus` is `(pg.w // 2)`
+
+    There is no padding for the sliding window and `stride=1`, so:
+
+    - `T_clus = T - w + 1`
+    - `T_origin_to_clust[0..t//2] = T_clus[0]`
 
     :param pg: Persistent Graph
     :type pg: _type_
-    :return: The data that will be clustered as a (N, d*w, T_clus) array
+    :return: The data that will be clustered as a (N, d*w, T_clus) array if
+    euclidean distance is used, otherwise (N, w, d, T_clus)
     :rtype: np.ndarray
     """
     # Correspondence of indices between T and T_clus
@@ -170,10 +178,16 @@ def _data_to_cluster(pg) -> np.ndarray:
         # r*X gives the same angle but a squared radius
         X = r*X
 
-    X_clus = np.zeros((pg.N, pg.d*pg.w, T_clus))
+    if pg._DTW:
+        # We keep the time dimension if we use DTW
+        X_clus = np.zeros((pg.N, pg.w, pg.d, T_clus))
+    else:
+        X_clus = np.zeros((pg.N, pg.d*pg.w, T_clus))
     for t in range(T_clus):
-        X_clus[:, :, t] = X[:,:,t:t+pg.w].reshape(pg.N, pg.d*pg.w)
-
+        if pg._DTW:
+            X_clus[:, :, :, t] = np.swapaxes(X[:,:,t:t+pg.w], 1, 2)
+        else:
+            X_clus[:, :, t] = X[:,:,t:t+pg.w].reshape(pg.N, pg.d*pg.w)
     return X_clus
 
 def _time_indices(pg):
@@ -214,7 +228,14 @@ def generate_all_clusters(
     for t in range(T_clus):
 
         # ------ clustering method specific parameters -------------
-        X = members_clus[:, :, t]
+        if pg._DTW:
+            # members_clus: (N, w, d, T_clus),
+            # X: (N, w, d)
+            X = members_clus[:, :, :,t]
+        else:
+            # members_clus: (N, w*d, T_clus)
+            # X: (N, w*d)
+            X = members_clus[:, :, t]
         # Get clustering model parameters required by the
         # clustering model
         model_kw, fit_predict_kw, model_class_kw = get_model_parameters(
@@ -257,10 +278,12 @@ def generate_all_clusters(
 
     for t in range(pg.T):
 
-        X = pg._members[:, :, t]
+        # Take the data used for clustering while taking into account the
+        # difference between time step indices with/without sliding window
+        X = members_clus[:, :, T_ind["to_clus"][t]]
         for n_clusters in pg._n_clusters_range:
 
-            # Difference between time step indices with/without sliding window
+            # Find cluster membership of each member
             clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
 
             # -------- Cluster infos for each cluster ---------

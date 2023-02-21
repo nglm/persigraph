@@ -36,7 +36,7 @@ def _set_members(pg, members):
 
 def _set_model_class(pg, model_class, DTW: bool = False):
     """
-    Set _model_class, and `_DTW` allowing strings instead of sklearn class
+    Set `_model_class`, `_mean` and `_DTW` allowing for strings and classes
 
     Note that custom classes are still possible
     """
