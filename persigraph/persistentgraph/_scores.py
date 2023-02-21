@@ -54,7 +54,6 @@ def f_inertia(cluster: np.ndarray, cluster_info: dict = None) -> float:
     """
     dims = cluster.shape
     if len(dims) == 2:
-        print(np.shape(cluster),  np.shape(cluster_info["mean"].reshape(1, -1)))
         return np.sum(cdist(
             cluster,
             cluster_info["mean"].reshape(1, -1),

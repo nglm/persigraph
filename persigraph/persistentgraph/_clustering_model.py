@@ -87,11 +87,17 @@ def generate_zero_component(
     :rtype: np.ndarray
     """
     # ====================== Fit & predict part ========================
+    # If a a time window was used, we go back to the "middle" point
+    # if pg.w > 1:
+    #     X = X.reshape(pg.N, pg.d, pg.w)[:, ]
     if pg._zero_type == 'bounds':
 
         # Get the parameters of the uniform distrib using min and max
-        mins = np.amin(X, axis=0, keepdims=True)
-        maxs = np.amax(X, axis=0, keepdims=True)
+        # We keep all the dims except the first one (Hence the 0) because
+        # The number of members dimension will be added in X_zero in the
+        # List comprehension
+        mins = np.amin(X, axis=0, keepdims=True)[0]
+        maxs = np.amax(X, axis=0, keepdims=True)[0]
 
     else:
         # I'm not sure if this type should be used at all actually.....
@@ -286,17 +292,17 @@ def generate_all_clusters(
         if pg._DTW:
             # members_clus: (N, w, d, T_clus),
             # X: (N, w, d)
-            X = members_clus[:, :, :, T_ind["to_clus"][t]]
+            X = np.copy(members_clus[:, :, :, T_ind["to_clus"][t]])
         else:
             # members_clus: (N, w*d, T_clus)
             # X: (N, w*d)
-            X = members_clus[:, :, T_ind["to_clus"][t]]
+            X = np.copy(members_clus[:, :, T_ind["to_clus"][t]])
         for n_clusters in pg._n_clusters_range:
 
             # Find cluster membership of each member
             clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
             if n_clusters == 0:
-                X = generate_zero_component(pg, pg.members[:,:,t])
+                X = generate_zero_component(pg, X)
 
             # -------- Cluster infos for each cluster ---------
             clusters_info = [compute_cluster_params(X[c]) for c in clusters]
