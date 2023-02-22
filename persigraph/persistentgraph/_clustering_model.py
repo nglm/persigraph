@@ -307,9 +307,11 @@ def generate_all_clusters(
             clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
             if n_clusters == 0:
                 X = generate_zero_component(pg, X)
+                X_params = generate_zero_component(pg, X_params)
 
             # -------- Cluster infos for each cluster ---------
             clusters_info = [compute_cluster_params(X_params[c]) for c in clusters]
+            clusters_info_score = [compute_cluster_params(X[c]) for c in clusters]
 
             # -------- Score corresponding to 'n_clusters' ---------
             score = compute_score(
@@ -317,7 +319,7 @@ def generate_all_clusters(
                 X = X,
                 clusters = clusters,
                 t = t,
-                clusters_info = clusters_info,
+                clusters_info = clusters_info_score,
             )
             if n_clusters == 0:
                 pg._zero_scores[t] = score
