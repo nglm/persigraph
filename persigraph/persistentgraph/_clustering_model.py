@@ -241,17 +241,11 @@ def generate_all_clusters(
         if pg._DTW:
             # members_clus: (N, w, d, T_clus),
             # X: (N, w, d)
-            if False:
-                X = members_clus0[:, :, :,t]
-            else:
-                X = members_clus[:, :, :,t]
+            X = members_clus[:, :, :,t]
         else:
             # members_clus: (N, w*d, T_clus)
             # X: (N, w*d)
-            if False:
-                X = members_clus0[:, :, t]
-            else:
-                X = members_clus[:, :, t]
+            X = members_clus[:, :, t]
         # Get clustering model parameters required by the
         # clustering model
         model_kw, fit_predict_kw, model_class_kw = get_model_parameters(
@@ -295,20 +289,9 @@ def generate_all_clusters(
 
     for t in range(pg.T):
 
-        # Take the data used for clustering while taking into account the
-        # difference between time step indices with/without sliding window
-        if pg._DTW:
-            # members_clus: (N, w, d, T_clus),
-            # X: (N, w, d)
-            X = np.copy(members_clus[:, :, :, T_ind["to_clus"][t]])
-            X_params = np.copy(members_params[:, :, :, T_ind["to_clus"][t]])
-        else:
-            # members_clus: (N, w*d, T_clus)
-            # X: (N, w*d)
-            X = np.copy(members_clus[:, :, T_ind["to_clus"][t]])
-            X_params = np.copy(members_params[:, :, T_ind["to_clus"][t]])
-
         for n_clusters in pg._n_clusters_range:
+            # Take the data used for clustering while taking into account the
+            # difference between time step indices with/without sliding window
             if n_clusters == 0:
                 if pg._DTW:
                     X = np.copy(members_clus0[:, :, :, T_ind["to_clus"][t]])
@@ -317,8 +300,6 @@ def generate_all_clusters(
                     X = np.copy(members_clus0[:, :, T_ind["to_clus"][t]])
                     X_params = np.copy(members_params0[:, :, T_ind["to_clus"][t]])
             else:
-                # Take the data used for clustering while taking into account the
-                # difference between time step indices with/without sliding window
                 if pg._DTW:
                     # members_clus: (N, w, d, T_clus),
                     # X: (N, w, d)
@@ -332,9 +313,6 @@ def generate_all_clusters(
 
                     # Find cluster membership of each member
                     clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
-                    # if n_clusters == 0:
-                    #     X = generate_zero_component(pg, X)
-                    #     X_params = generate_zero_component(pg, X_params)
 
             # -------- Cluster infos for each cluster ---------
             clusters_info = [compute_cluster_params(X_params[c]) for c in clusters]
