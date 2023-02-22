@@ -150,7 +150,7 @@ def clustering_model(
 
     return clusters
 
-def _data_to_cluster(pg) -> np.ndarray:
+def _data_to_cluster(pg, transform_data=True) -> np.ndarray:
     """
     Data to be clustered `X_clus` using sliding window.
 
@@ -177,7 +177,7 @@ def _data_to_cluster(pg) -> np.ndarray:
 
     X = np.copy(pg._members)
 
-    if pg._squared_radius:
+    if pg._squared_radius and transform_data:
         # X of shape (N, d, T)
         # r = sqrt(RMM1**2 + RMM2**2)
         # r of shape (N, 1, T)
@@ -227,6 +227,7 @@ def generate_all_clusters(
         sort_fc = bisect_left
 
     members_clus = _data_to_cluster(pg)
+    members_params = _data_to_cluster(pg, transform_data=False)
     T_clus = members_clus.shape[-1]
 
     # temporary variable to help remember clusters before merging
@@ -259,6 +260,7 @@ def generate_all_clusters(
 
             if n_clusters == 0:
                 clusters_t_n[t][n_clusters] = [[i for i in range(pg.N)]]
+                # Go directly to the next iteration
                 continue
 
             # Update model_kw
@@ -293,10 +295,12 @@ def generate_all_clusters(
             # members_clus: (N, w, d, T_clus),
             # X: (N, w, d)
             X = np.copy(members_clus[:, :, :, T_ind["to_clus"][t]])
+            X_params = np.copy(members_params[:, :, :, T_ind["to_clus"][t]])
         else:
             # members_clus: (N, w*d, T_clus)
             # X: (N, w*d)
             X = np.copy(members_clus[:, :, T_ind["to_clus"][t]])
+            X_params = np.copy(members_params[:, :, T_ind["to_clus"][t]])
         for n_clusters in pg._n_clusters_range:
 
             # Find cluster membership of each member
@@ -305,7 +309,7 @@ def generate_all_clusters(
                 X = generate_zero_component(pg, X)
 
             # -------- Cluster infos for each cluster ---------
-            clusters_info = [compute_cluster_params(X[c]) for c in clusters]
+            clusters_info = [compute_cluster_params(X_params[c]) for c in clusters]
 
             # -------- Score corresponding to 'n_clusters' ---------
             score = compute_score(
