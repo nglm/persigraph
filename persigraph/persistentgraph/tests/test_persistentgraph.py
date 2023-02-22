@@ -74,7 +74,7 @@ def test_time_window():
         g = PersistentGraph(members, time, time_window=w)
         g.construct_graph()
         fig, ax = graph(g)
-        fname = "test_" + "time_window_" + str(w)
+        fname = "test_time_window_" + "time_window_" + str(w)
         fig.savefig('tmp/'+fname)
         g.save('tmp/'+fname)
 
@@ -93,7 +93,7 @@ def test_squared_radius():
             g.construct_graph()
             fig, ax = graph(g)
             fname = (
-                "test_" + "time_window_" + str(w)
+                "test_squared_radius_" + "time_window_" + str(w)
                 + "squared_radius_" + str(squared_radius)
             )
             fig.savefig('tmp/'+fname)
@@ -110,7 +110,7 @@ def test_DTW():
                 g = PersistentGraph(members, time, model_class=m, DTW=is_dtw)
                 g.construct_graph()
                 fig, ax = graph(g)
-                fname = "test_" + "method_" + str(m) + "_" + str(is_dtw)
+                fname = "test_DTW_" + "method_" + str(m) + "_" + str(is_dtw)
                 fig.savefig('tmp/'+fname)
                 g.save('tmp/'+fname)
 
@@ -122,7 +122,7 @@ def test_clustering_methods():
         g = PersistentGraph(members, time, model_class=m)
         g.construct_graph()
         fig, ax = graph(g)
-        fname = "test_" + "method_" + str(m)
+        fname = "test_clustering_methods_" + "method_" + str(m)
         fig.savefig('tmp/'+fname)
         g.save('tmp/'+fname)
 

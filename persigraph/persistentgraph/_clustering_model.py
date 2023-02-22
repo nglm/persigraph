@@ -74,7 +74,7 @@ def get_model_parameters(
 
 def generate_zero_component(
     pg,
-    X: np.ndarray,
+    X: np.ndarray = None,
 ) -> np.ndarray:
     """
     Generate values to emulate the case k=0
@@ -82,14 +82,12 @@ def generate_zero_component(
     :param pg: PersistentGraph
     :type pg: PersistentGraph
     :param X: Values of all members, defaults to None
-    :type X: np.ndarray, shape: (N, d) optional
+    :type X: np.ndarray, shape: (N, d, T)
     :return: Data emulating the k=0 based on X
     :rtype: np.ndarray
     """
     # ====================== Fit & predict part ========================
-    # If a a time window was used, we go back to the "middle" point
-    # if pg.w > 1:
-    #     X = X.reshape(pg.N, pg.d, pg.w)[:, ]
+    X = np.copy(pg._members)
     if pg._zero_type == 'bounds':
 
         # Get the parameters of the uniform distrib using min and max
@@ -100,6 +98,7 @@ def generate_zero_component(
         maxs = np.amax(X, axis=0, keepdims=True)[0]
 
     else:
+        raise NotImplementedError("Only 'bounds' is implemented as `zero_type`")
         # I'm not sure if this type should be used at all actually.....
         # Get the parameters of the uniform distrib using mean and variance
         var = np.var(X, axis=0)
@@ -110,9 +109,8 @@ def generate_zero_component(
 
     # Generate a perfect uniform distribution
     steps = (maxs-mins) / (pg.N-1)
-    X_zero = np.array([mins + i*steps for i in range(pg.N)])
-
-    return X_zero
+    members_0 = np.array([mins + i*steps for i in range(pg.N)])
+    pg._members_zero = members_0
 
 def clustering_model(
     pg,
@@ -150,7 +148,7 @@ def clustering_model(
 
     return clusters
 
-def _data_to_cluster(pg, transform_data=True) -> np.ndarray:
+def _data_to_cluster(pg, X, transform_data=True) -> np.ndarray:
     """
     Data to be clustered `X_clus` using sliding window.
 
@@ -174,8 +172,6 @@ def _data_to_cluster(pg, transform_data=True) -> np.ndarray:
     """
     # Correspondence of indices between T and T_clus
     T_clus = pg.T - pg.w + 1
-
-    X = np.copy(pg._members)
 
     if pg._squared_radius and transform_data:
         # X of shape (N, d, T)
@@ -226,8 +222,12 @@ def generate_all_clusters(
     else:
         sort_fc = bisect_left
 
-    members_clus = _data_to_cluster(pg)
-    members_params = _data_to_cluster(pg, transform_data=False)
+    generate_zero_component(pg)
+    members_clus = _data_to_cluster(pg, pg.members)
+    members_clus0 = _data_to_cluster(pg, pg.members_zero)
+    members_params = _data_to_cluster(pg, pg.members, transform_data=False)
+    members_params0 = _data_to_cluster(pg, pg.members_zero, False)
+
     T_clus = members_clus.shape[-1]
 
     # temporary variable to help remember clusters before merging
@@ -241,11 +241,17 @@ def generate_all_clusters(
         if pg._DTW:
             # members_clus: (N, w, d, T_clus),
             # X: (N, w, d)
-            X = members_clus[:, :, :,t]
+            if False:
+                X = members_clus0[:, :, :,t]
+            else:
+                X = members_clus[:, :, :,t]
         else:
             # members_clus: (N, w*d, T_clus)
             # X: (N, w*d)
-            X = members_clus[:, :, t]
+            if False:
+                X = members_clus0[:, :, t]
+            else:
+                X = members_clus[:, :, t]
         # Get clustering model parameters required by the
         # clustering model
         model_kw, fit_predict_kw, model_class_kw = get_model_parameters(
@@ -258,7 +264,7 @@ def generate_all_clusters(
 
         for n_clusters in pg._n_clusters_range:
 
-            if n_clusters == 0:
+            if n_clusters <= 1:
                 clusters_t_n[t][n_clusters] = [[i for i in range(pg.N)]]
                 # Go directly to the next iteration
                 continue
@@ -301,13 +307,34 @@ def generate_all_clusters(
             # X: (N, w*d)
             X = np.copy(members_clus[:, :, T_ind["to_clus"][t]])
             X_params = np.copy(members_params[:, :, T_ind["to_clus"][t]])
-        for n_clusters in pg._n_clusters_range:
 
-            # Find cluster membership of each member
-            clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
+        for n_clusters in pg._n_clusters_range:
             if n_clusters == 0:
-                X = generate_zero_component(pg, X)
-                X_params = generate_zero_component(pg, X_params)
+                if pg._DTW:
+                    X = np.copy(members_clus0[:, :, :, T_ind["to_clus"][t]])
+                    X_params = np.copy(members_params0[:, :, :, T_ind["to_clus"][t]])
+                else:
+                    X = np.copy(members_clus0[:, :, T_ind["to_clus"][t]])
+                    X_params = np.copy(members_params0[:, :, T_ind["to_clus"][t]])
+            else:
+                # Take the data used for clustering while taking into account the
+                # difference between time step indices with/without sliding window
+                if pg._DTW:
+                    # members_clus: (N, w, d, T_clus),
+                    # X: (N, w, d)
+                    X = np.copy(members_clus[:, :, :, T_ind["to_clus"][t]])
+                    X_params = np.copy(members_params[:, :, :, T_ind["to_clus"][t]])
+                else:
+                    # members_clus: (N, w*d, T_clus)
+                    # X: (N, w*d)
+                    X = np.copy(members_clus[:, :, T_ind["to_clus"][t]])
+                    X_params = np.copy(members_params[:, :, T_ind["to_clus"][t]])
+
+                    # Find cluster membership of each member
+                    clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
+                    # if n_clusters == 0:
+                    #     X = generate_zero_component(pg, X)
+                    #     X_params = generate_zero_component(pg, X_params)
 
             # -------- Cluster infos for each cluster ---------
             clusters_info = [compute_cluster_params(X_params[c]) for c in clusters]
