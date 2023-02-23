@@ -71,47 +71,6 @@ def get_model_parameters(
 
     return m_kw, ft_kw, mc_kw
 
-
-def generate_zero_component(
-    pg,
-    X: np.ndarray = None,
-) -> np.ndarray:
-    """
-    Generate values to emulate the case k=0
-
-    :param pg: PersistentGraph
-    :type pg: PersistentGraph
-    :param X: Values of all members, defaults to None
-    :type X: np.ndarray, shape: (N, d, T)
-    :return: Data emulating the k=0 based on X
-    :rtype: np.ndarray
-    """
-    # ====================== Fit & predict part ========================
-    X = np.copy(pg._members)
-    if pg._zero_type == 'bounds':
-
-        # Get the parameters of the uniform distrib using min and max
-        # We keep all the dims except the first one (Hence the 0) because
-        # The number of members dimension will be added in X_zero in the
-        # List comprehension
-        mins = np.amin(X, axis=0, keepdims=True)[0]
-        maxs = np.amax(X, axis=0, keepdims=True)[0]
-
-    else:
-        raise NotImplementedError("Only 'bounds' is implemented as `zero_type`")
-        # I'm not sure if this type should be used at all actually.....
-        # Get the parameters of the uniform distrib using mean and variance
-        var = np.var(X, axis=0)
-        mean = np.mean(X, axis=0)
-
-        mins = (2*mean - np.sqrt(12*var)) / 2
-        maxs = (2*mean + np.sqrt(12*var)) / 2
-
-    # Generate a perfect uniform distribution
-    steps = (maxs-mins) / (pg.N-1)
-    members_0 = np.array([mins + i*steps for i in range(pg.N)])
-    pg._members_zero = members_0
-
 def clustering_model(
     pg,
     model_kw : Dict = {},
@@ -304,8 +263,6 @@ def generate_all_clusters(
         sort_fc = bisect_left
 
     wind = _sliding_window(pg.T, pg.w)
-    # Generate pg.members_zero
-    generate_zero_component(pg)
     # all members_clus/params are lists of length T of arrays of
     # shape (N, w_t, d)
     members_clus = _data_to_cluster(pg, pg.members, wind)
