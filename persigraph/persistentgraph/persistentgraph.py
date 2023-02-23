@@ -9,7 +9,7 @@ from typing import List, Sequence, Tuple, Union, Any, Dict
 from . import Vertex
 from . import Edge
 from ._set_default_properties import (
-    _set_members, _set_model_class, _set_score_type
+    _set_members, _set_zero, _set_model_class, _set_score_type
 )
 from ._clustering_model import generate_all_clusters
 from ._scores import _compute_ratio_scores, _compute_score_bounds
@@ -94,7 +94,7 @@ class PersistentGraph():
 
         if members is not None:
             _set_members(self, members)
-            self._w = min( max(int(time_window), 0), self.T)
+            _set_zero(self, zero_type)
 
             # Shared x-axis values among the members
             if time_axis is None:
@@ -110,30 +110,37 @@ class PersistentGraph():
                     self._weights = np.expand_dims(self._weights, axis=0)
 
             # --------------------------------------------------------------
-            # --------- About the graph:   graph's attributes --------------
+            # ---------------- About the clustering method  ----------------
             # --------------------------------------------------------------
 
+            # Max number of cluster considered
             if k_max is None:
                 self._k_max = self.N
             else:
                 self._k_max = min(max(int(k_max), 1), self.N)
+
+            # Length of the time window
+            self._w = min( max(int(time_window), 0), self.T)
             # Determines how to cluster the members
-            _set_model_class(self, model_class, DTW)
-            self._model_type = str(self._model_class())[:-2]
-            # To know how X and n_clusters args are called in this model class
-            self._model_class_kw = model_class_kw
-            # Key-words related to the clustering model instantiation
-            self._model_kw = model_kw
-            # Key-words related to the clustering model fit_predict method
-            self._fit_predict_kw = fit_predict_kw
+            _set_model_class(
+                self, model_class, DTW, model_kw, fit_predict_kw,
+                model_class_kw)
             # Ordered number of clusters that will be tried
             self._n_clusters_range = range(self.k_max + 1)
             # Score type, determines how to measure how good a model is
             _set_score_type(self, score_type)
             # Should we use a squared radius when clustering data?
             self._squared_radius = squared_radius
-            # Determines how to measure the score of the 0th component
-            self._zero_type = zero_type
+
+            if name is None:
+                self._name = self._model_type + "_" + self._score_type
+            else:
+                self._name = name
+
+            # --------------------------------------------------------------
+            # --------- About the graph:   graph's attributes --------------
+            # --------------------------------------------------------------
+
             # Total number of iteration of the algorithm
             self._nb_steps = 0
             # Local number of iteration of the algorithm
@@ -168,11 +175,6 @@ class PersistentGraph():
                 raise ValueError("precision must be a > 0 int")
             else:
                 self._precision = int(precision)
-
-            if name is None:
-                self._name = self._model_type + "_" + self._score_type
-            else:
-                self._name = name
 
             # --------------------------------------------------------------
             # --------- About the graph:   algo's helpers ------------------
