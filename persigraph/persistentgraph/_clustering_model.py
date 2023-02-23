@@ -294,7 +294,9 @@ def _sliding_window(T, w):
 def generate_all_clusters(
     pg
 ):
+    # --------------------------------------------------------------
     # --------------------- Preliminary ----------------------------
+    # --------------------------------------------------------------
     # Use bisect left in order to favor the lowest number of clusters
     if pg._maximize:
         sort_fc = reverse_bisect_left
@@ -302,6 +304,7 @@ def generate_all_clusters(
         sort_fc = bisect_left
 
     wind = _sliding_window(pg.T, pg.w)
+    # Generate pg.members_zero
     generate_zero_component(pg)
     # all members_clus/params are lists of length T of arrays of
     # shape (N, w_t, d)
@@ -310,6 +313,10 @@ def generate_all_clusters(
     members_params = _data_to_cluster(pg, pg.members, wind, transform_data=False)
     members_params0 = _data_to_cluster(pg, pg.members_zero, wind, False)
 
+    # --------------------------------------------------------------
+    # --------------------- Find clusters --------------------------
+    # --------------------------------------------------------------
+
     # temporary variable to help remember clusters before merging
     # clusters_t_n[t][k][i] is a list of members indices contained in cluster i
     # for the clustering assuming k cluster at time step t.
@@ -317,7 +324,7 @@ def generate_all_clusters(
 
     for t in range(pg.T):
 
-        # ------ clustering method specific parameters -------------
+        # ---- clustering method specific parameters --------
         # members_clus: list of length T of arrays of shape (N, w_t, d)
         # X: (N, w_t, d)
         X = members_clus[t]
@@ -338,29 +345,34 @@ def generate_all_clusters(
 
         for n_clusters in pg._n_clusters_range:
 
+            # All members in the same cluster. Go to next iteration
             if n_clusters <= 1:
                 clusters_t_n[t][n_clusters] = [[i for i in range(pg.N)]]
-                # Go directly to the next iteration
-                continue
+            # General case
+            else:
 
-            # Update model_kw
-            model_kw[model_class_kw["k_arg_name"]] = n_clusters
+                # Update model_kw
+                model_kw[model_class_kw["k_arg_name"]] = n_clusters
 
-            # ---------- Fit & predict using clustering model-------
-            try :
-                clusters = clustering_model(
-                    pg,
-                    model_kw = model_kw,
-                    fit_predict_kw = fit_predict_kw,
-                    model_class_kw = model_class_kw,
-                )
-            except ValueError as ve:
-                if not pg._quiet:
-                    print(str(ve))
-                clusters_t_n[t][n_clusters] = None
-                continue
+                # ---------- Fit & predict using clustering model-------
+                try :
+                    clusters = clustering_model(
+                        pg,
+                        model_kw = model_kw,
+                        fit_predict_kw = fit_predict_kw,
+                        model_class_kw = model_class_kw,
+                    )
+                except ValueError as ve:
+                    if not pg._quiet:
+                        print(str(ve))
+                    clusters_t_n[t][n_clusters] = None
+                    continue
 
-            clusters_t_n[t][n_clusters] = clusters
+                clusters_t_n[t][n_clusters] = clusters
+
+    # --------------------------------------------------------------
+    # -------- Compute score, cluster params, etc. -----------------
+    # --------------------------------------------------------------
 
     # temporary variable to help sort the local steps
     # cluster_data[t] contains (clusters, clusters_info)
@@ -394,6 +406,8 @@ def generate_all_clusters(
 
             # Find cluster membership of each member
             clusters = clusters_t_n[t][n_clusters]
+
+            # Go to next iteration if the model didn't converge
             if clusters is None:
                 continue
 
