@@ -76,18 +76,23 @@ def clustering_model(
     model_kw : Dict = {},
     fit_predict_kw : Dict = {},
     model_class_kw : Dict = {},
-) -> Tuple[List[List[int]], List[Dict], Dict, Dict]:
+) -> List[List[int]]:
     """
     Generate a clustering instance with the given model/fit parameters
 
     :param pg: PersistentGraph
     :type pg: PersistentGraph
-    :param model_kw: Dict of kw for the model initialization, defaults to {}
+    :param model_kw: Dict of kw for the model initialization, defaults
+    to {}
     :type model_kw: dict, optional
-    :param fit_predict_kw: Dict of kw for the fit_predict method, defaults to {}
+    :param fit_predict_kw: Dict of kw for the fit_predict method,
+    defaults to {}
     :type fit_predict_kw: dict, optional
-    :return: All data corresponding to the generated clustering
-    :rtype: Tuple[List[List[int]], List[Dict], Dict, Dict]
+    :param model_class_kw: To know how X and n_clusters args are called in this
+    model class, defaults to {}
+    :type model_class_kw: dict, optional
+    :return: Members affiliation to the generated clustering
+    :rtype: List[List[int]]
     """
     n_clusters = model_kw[model_class_kw["k_arg_name"]]
     X = fit_predict_kw[model_class_kw["X_arg_name"]]
@@ -115,11 +120,7 @@ def _data_to_cluster(
 ) -> List[np.ndarray]:
     """
 
-    Data to be clustered `X_clus` using sliding window.
-
-    Note that if `pg.w` is even, it takes one more time steps in the
-    future than in the past (see _sliding_window)
-    It is recommended to use odd numbers for `pg.w`.
+    Data to be used for cluster scores and params, using sliding window.
 
     The index that should be used to compute cluster params
     of clustering that were computed using `X_clus` is called
@@ -154,7 +155,7 @@ def _data_to_cluster(
         X_clus.append(np.swapaxes(X[:,:,ind], 1, 2))
     return X_clus
 
-def _sliding_window(T, w):
+def _sliding_window(T: int, w: int) -> dict:
     """
     Assuming that we consider an array of length T, and with indices
     [0, ..., T-1].
@@ -252,7 +253,16 @@ def _sliding_window(T, w):
 
 def generate_all_clusters(
     pg
-):
+) -> List:
+    """
+    Generate all clustering data
+
+    :param pg: Persistent Graph
+    :type pg: _type_
+    :return: All data corresponding to the generated clustering in a nested list
+    clusters_t_n. each element of the nested list contain [clusters, clusters_info]
+    :rtype: List[Dict[int, Tuple[]]]
+    """
     # --------------------------------------------------------------
     # --------------------- Preliminary ----------------------------
     # --------------------------------------------------------------
