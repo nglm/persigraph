@@ -148,30 +148,38 @@ def clustering_model(
 
     return clusters
 
-def _data_to_cluster(pg, X, transform_data=True) -> np.ndarray:
+def _data_to_cluster(
+    pg,
+    X: np.ndarray,
+    window: dict,
+    transform_data: bool = True
+) -> List[np.ndarray]:
     """
+
     Data to be clustered `X_clus` using sliding window.
 
-    Note that if `pg.w` is even, it takes one more time steps in the future
-    than in the past: [`t - (pg.w // 2), ... t, ..., t + ((pg.w+1) // 2)`].
+    Note that if `pg.w` is even, it takes one more time steps in the
+    future than in the past (see _sliding_window)
     It is recommended to use odd numbers for `pg.w`.
 
-    The index that should be used to compute scores and cluster params
-    of clustering that were computed using `X_clus` is `(pg.w // 2)`
-
-    There is no padding for the sliding window and `stride=1`, so:
-
-    - `T_clus = T - w + 1`
-    - `T_origin_to_clust[0..t//2] = T_clus[0]`
+    The index that should be used to compute cluster params
+    of clustering that were computed using `X_clus` is called
+    "midpoint_w" in the window dictionary
 
     :param pg: Persistent Graph
     :type pg: _type_
-    :return: The data that will be clustered as a (N, d*w, T_clus) array if
-    euclidean distance is used, otherwise (N, w, d, T_clus)
-    :rtype: np.ndarray
+    :param X: _description_
+    :type X: np.ndarray
+    :param window: _description_
+    :type window: dict
+    :param transform_data: _description_, defaults to True
+    :type transform_data: bool, optional
+    :return: The data that will be clustered as a list of (N, w_t, d)
+    arrays
+    :rtype: List[np.ndarray]
     """
-    # Correspondence of indices between T and T_clus
-    T_clus = pg.T - pg.w + 1
+    # We keep the time dimension if we use DTW
+    X_clus = []
 
     if pg._squared_radius and transform_data:
         # X of shape (N, d, T)
@@ -181,12 +189,10 @@ def _data_to_cluster(pg, X, transform_data=True) -> np.ndarray:
         # r*X gives the same angle but a squared radius
         X = r*X
 
-    # We keep the time dimension if we use DTW
-    X_clus = np.zeros((pg.N, pg.w, pg.d, T_clus))
-
-    for t in range(T_clus):
-        # X_clus: (N, w, d, T_clus),
-        X_clus[:, :, :, t] = np.swapaxes(X[:,:,t:t+pg.w], 1, 2)
+    for t in range(pg.T):
+        # X_clus: List of (N, w_t, d) arrays
+        ind = window["origin"][t]
+        X_clus.append(np.swapaxes(X[:,:,ind], 1, 2))
     return X_clus
 
 def _sliding_window(T, w):
@@ -211,7 +217,7 @@ def _sliding_window(T, w):
     - [0, ..., t + w//2], until t = (w-1)//2
     - [t - (w-1)//2, ..., t, ..., t + w//2] for datapoints in
     [(w-1)//2, ..., T-1 - w//2]
-    - [T-1-t + (w+1)//2, ..., T-1] from t = T-1 - w//2
+    - [T-1-t - (w+1)//2, ..., T-1] from t = T-1 - w//2
     - Note that for t = (w-1)//2 or t = (T-1 - w//2), both formulas apply.
 
     Window sizes:
@@ -277,7 +283,7 @@ def _sliding_window(T, w):
     ]
     window["origin"][ind_end:] = [
         # add a +1 to the range to include last original index
-        list(range( (T-1-t + (w+1)//2),  (T-1) + 1 ))
+        list(range( (T-1-t - (w+1)//2),  (T-1) + 1 ))
         for t in range(ind_end, T)
     ]
     return window
@@ -293,29 +299,30 @@ def generate_all_clusters(
     else:
         sort_fc = bisect_left
 
+    wind = _sliding_window(pg.T, pg.w)
     generate_zero_component(pg)
-    members_clus = _data_to_cluster(pg, pg.members)
-    members_clus0 = _data_to_cluster(pg, pg.members_zero)
-    members_params = _data_to_cluster(pg, pg.members, transform_data=False)
-    members_params0 = _data_to_cluster(pg, pg.members_zero, False)
-
-    T_clus = members_clus.shape[-1]
+    # all members_clus/params are lists of length T of arrays of
+    # shape (N, w_t, d)
+    members_clus = _data_to_cluster(pg, pg.members, wind)
+    members_clus0 = _data_to_cluster(pg, pg.members_zero, wind)
+    members_params = _data_to_cluster(pg, pg.members, wind, transform_data=False)
+    members_params0 = _data_to_cluster(pg, pg.members_zero, wind, False)
 
     # temporary variable to help remember clusters before merging
     # clusters_t_n[t][k][i] is a list of members indices contained in cluster i
     # for the clustering assuming k cluster at time step t.
-    clusters_t_n = [{} for _ in range(T_clus)]
+    clusters_t_n = [{} for _ in range(pg.T)]
 
-    for t in range(T_clus):
+    for t in range(pg.T):
 
         # ------ clustering method specific parameters -------------
-        # members_clus: (N, w, d, T_clus),
-        # X: (N, w, d)
-        X = members_clus[:, :, :, t]
-        (N, w, d) = X.shape
+        # members_clus: list of length T of arrays of shape (N, w_t, d)
+        # X: (N, w_t, d)
+        X = members_clus[t]
+        (N, w_t, d) = X.shape
         if not pg._DTW:
-            # X: (N, w*d)
-            X = X.reshape(N, w*d)
+            # X: (N, w_t*d)
+            X = X.reshape(N, w_t*d)
 
         # Get clustering model parameters required by the
         # clustering model
@@ -348,6 +355,7 @@ def generate_all_clusters(
             except ValueError as ve:
                 if not pg._quiet:
                     print(str(ve))
+                clusters_t_n[t][n_clusters] = None
                 continue
 
             clusters_t_n[t][n_clusters] = clusters
@@ -356,7 +364,6 @@ def generate_all_clusters(
     # cluster_data[t] contains (clusters, clusters_info)
     cluster_data = [[] for _ in range(pg.T)]
     local_scores = [[] for _ in range(pg.T)]
-    T_ind = _time_indices(pg)
 
     for t in range(pg.T):
 
@@ -364,27 +371,29 @@ def generate_all_clusters(
             # Take the data used for clustering while taking into account the
             # difference between time step indices with/without sliding window
             if n_clusters == 0:
-                # members_clus: (N, w, d, T_clus),
-                # X: (N, w, d)
-                X = np.copy(members_clus0[:, :, :, T_ind["to_clus"][t]])
-                X_params = np.copy(members_params0[:, :, :, T_ind["to_clus"][t]])
+                # members_clus: list of length T of arrays of shape (N, w_t, d)
+                # X: (N, w_t, d)
+                X = np.copy(members_clus0[t])
+                X_params = np.copy(members_params0[t])
             else:
-                X = np.copy(members_clus[:, :, :, T_ind["to_clus"][t]])
-                X_params = np.copy(members_params[:, :, :, T_ind["to_clus"][t]])
+                X = np.copy(members_clus[t])
+                X_params = np.copy(members_params[t])
 
-            (N, w, d) = X.shape
+            (N, w_t, d) = X.shape
             if not pg._DTW:
                 # We take the entire time window into consideration for the
                 # scores of the clusters
-                # X: (N, d*w)
-                X = X.reshape(N, w*d)
+                # X: (N, d*w_t)
+                X = X.reshape(N, w_t*d)
                 # We take only the midpoint into consideration for the
                 # parameters of the clusters
                 # X_params: (N, d)
-                X_params = X_params[:, (w-1)//2, :]
+                X_params = X_params[:, wind["midpoint_w"][t], :]
 
             # Find cluster membership of each member
-            clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
+            clusters = clusters_t_n[t][n_clusters]
+            if clusters is None:
+                continue
 
             # -------- Cluster infos for each cluster ---------
             clusters_info = [compute_cluster_params(X_params[c]) for c in clusters]
