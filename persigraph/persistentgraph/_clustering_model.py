@@ -296,9 +296,14 @@ def generate_all_clusters(
                 X_params = np.copy(members_params[:, :, :, T_ind["to_clus"][t]])
 
             if not pg._DTW:
-                # X: (N, w*d)
+                # We take the entire time window into consideration for the
+                # scores of the clusters
+                # X: (N, d*w)
                 X = X.reshape(N, w*d)
-                X_params = X_params.reshape(N, w*d)
+                # We take only the midpoint into consideration for the
+                # parameters of the clusters
+                # X_params: (N, d)
+                X_params = X_params[:, w//2, :]
             # Find cluster membership of each member
             clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
 
