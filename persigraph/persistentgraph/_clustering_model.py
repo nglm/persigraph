@@ -181,18 +181,12 @@ def _data_to_cluster(pg, X, transform_data=True) -> np.ndarray:
         # r*X gives the same angle but a squared radius
         X = r*X
 
-    if pg._DTW:
-        # We keep the time dimension if we use DTW
-        X_clus = np.zeros((pg.N, pg.w, pg.d, T_clus))
-    else:
-        X_clus = np.zeros((pg.N, pg.d*pg.w, T_clus))
+    # We keep the time dimension if we use DTW
+    X_clus = np.zeros((pg.N, pg.w, pg.d, T_clus))
+
     for t in range(T_clus):
-        if pg._DTW:
-            # X_clus: (N, w, d, T_clus),
-            X_clus[:, :, :, t] = np.swapaxes(X[:,:,t:t+pg.w], 1, 2)
-        else:
-            # X_clus: (N, w*d, T_clus),
-            X_clus[:, :, t] = X[:,:,t:t+pg.w].reshape(pg.N, pg.d*pg.w)
+        # X_clus: (N, w, d, T_clus),
+        X_clus[:, :, :, t] = np.swapaxes(X[:,:,t:t+pg.w], 1, 2)
     return X_clus
 
 def _time_indices(pg):
@@ -238,14 +232,14 @@ def generate_all_clusters(
     for t in range(T_clus):
 
         # ------ clustering method specific parameters -------------
-        if pg._DTW:
-            # members_clus: (N, w, d, T_clus),
-            # X: (N, w, d)
-            X = members_clus[:, :, :,t]
-        else:
-            # members_clus: (N, w*d, T_clus)
+        # members_clus: (N, w, d, T_clus),
+        # X: (N, w, d)
+        X = members_clus[:, :, :, t]
+        (N, w, d) = X.shape
+        if not pg._DTW:
             # X: (N, w*d)
-            X = members_clus[:, :, t]
+            X = X.reshape(N, w*d)
+
         # Get clustering model parameters required by the
         # clustering model
         model_kw, fit_predict_kw, model_class_kw = get_model_parameters(
@@ -293,26 +287,20 @@ def generate_all_clusters(
             # Take the data used for clustering while taking into account the
             # difference between time step indices with/without sliding window
             if n_clusters == 0:
-                if pg._DTW:
-                    X = np.copy(members_clus0[:, :, :, T_ind["to_clus"][t]])
-                    X_params = np.copy(members_params0[:, :, :, T_ind["to_clus"][t]])
-                else:
-                    X = np.copy(members_clus0[:, :, T_ind["to_clus"][t]])
-                    X_params = np.copy(members_params0[:, :, T_ind["to_clus"][t]])
+                # members_clus: (N, w, d, T_clus),
+                # X: (N, w, d)
+                X = np.copy(members_clus0[:, :, :, T_ind["to_clus"][t]])
+                X_params = np.copy(members_params0[:, :, :, T_ind["to_clus"][t]])
             else:
-                if pg._DTW:
-                    # members_clus: (N, w, d, T_clus),
-                    # X: (N, w, d)
-                    X = np.copy(members_clus[:, :, :, T_ind["to_clus"][t]])
-                    X_params = np.copy(members_params[:, :, :, T_ind["to_clus"][t]])
-                else:
-                    # members_clus: (N, w*d, T_clus)
-                    # X: (N, w*d)
-                    X = np.copy(members_clus[:, :, T_ind["to_clus"][t]])
-                    X_params = np.copy(members_params[:, :, T_ind["to_clus"][t]])
+                X = np.copy(members_clus[:, :, :, T_ind["to_clus"][t]])
+                X_params = np.copy(members_params[:, :, :, T_ind["to_clus"][t]])
 
-                    # Find cluster membership of each member
-                    clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
+            if not pg._DTW:
+                # X: (N, w*d)
+                X = X.reshape(N, w*d)
+                X_params = X_params.reshape(N, w*d)
+            # Find cluster membership of each member
+            clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
 
             # -------- Cluster infos for each cluster ---------
             clusters_info = [compute_cluster_params(X_params[c]) for c in clusters]
