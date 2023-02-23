@@ -190,6 +190,39 @@ def _data_to_cluster(pg, X, transform_data=True) -> np.ndarray:
     return X_clus
 
 def _time_indices(pg):
+    """
+    Assuming that we consider an array of length T, and with indices
+    [0, ..., T-1].
+
+    Windows extracted are shorter when considering the beginning and the
+    end of the array. Which means that a padding is implicitly included.
+
+    When the time window is an even number, favor future time steps, i.e.,
+    when extracting a time window around the datapoint t, the time window
+    indices are [t - w//2 - 1, ... t, ..., t + w//2].
+
+    Which means that the padding is as follows:
+
+    - beginning: (w-1)//2
+    - end: w//2
+
+    Window sizes:
+
+    - (1 + w//2) at t=0, then t + (1 + w//2) until t = (w-1)//2
+    - All datapoints from [(w-1)//2, ..., T-1 - w//2] have a normal
+    window size.
+    - (w+1)//2 at t=T-1, then T-1 + (w+1)//2 until t = T-1 - w//2
+    - Note that for t = (w-1)//2 or t = (T-1 - w//2), both formulas apply
+
+    Midpoint of the time window (i.e. the index that correspond to the
+    datapoint around which the time window was extracted) is:
+
+    - beginning
+    - regular
+    - end
+    """
+    # Sliding window formula: floor( (T + 2*pad - w)/stride + 1)
+    pad = pg.w // 2
     T_clus = pg.T - pg.w + 1
     T_ind = {'to_clus' : {}, 'to_origin' : {}}
     # From origin to cluster, length T
@@ -295,6 +328,7 @@ def generate_all_clusters(
                 X = np.copy(members_clus[:, :, :, T_ind["to_clus"][t]])
                 X_params = np.copy(members_params[:, :, :, T_ind["to_clus"][t]])
 
+            (N, w, d) = X.shape
             if not pg._DTW:
                 # We take the entire time window into consideration for the
                 # scores of the clusters
@@ -303,7 +337,8 @@ def generate_all_clusters(
                 # We take only the midpoint into consideration for the
                 # parameters of the clusters
                 # X_params: (N, d)
-                X_params = X_params[:, w//2, :]
+                X_params = X_params[:, (w-1)//2, :]
+
             # Find cluster membership of each member
             clusters = clusters_t_n[T_ind["to_clus"][t]][n_clusters]
 
