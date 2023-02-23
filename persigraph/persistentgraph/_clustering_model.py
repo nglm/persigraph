@@ -189,7 +189,7 @@ def _data_to_cluster(pg, X, transform_data=True) -> np.ndarray:
         X_clus[:, :, :, t] = np.swapaxes(X[:,:,t:t+pg.w], 1, 2)
     return X_clus
 
-def _time_indices(pg):
+def _sliding_window(T, w):
     """
     Assuming that we consider an array of length T, and with indices
     [0, ..., T-1].
@@ -199,44 +199,88 @@ def _time_indices(pg):
 
     When the time window is an even number, favor future time steps, i.e.,
     when extracting a time window around the datapoint t, the time window
-    indices are [t - w//2 - 1, ... t, ..., t + w//2].
+    indices are [t - (w-1)//2, ... t, ..., t + w//2].
 
     Which means that the padding is as follows:
 
     - beginning: (w-1)//2
     - end: w//2
 
+    And that the original indices are as follows:
+
+    - [0, ..., t + w//2], until t = (w-1)//2
+    - [t - (w-1)//2, ..., t, ..., t + w//2] for datapoints in
+    [(w-1)//2, ..., T-1 - w//2]
+    - [T-1-t + (w+1)//2, ..., T-1] from t = T-1 - w//2
+    - Note that for t = (w-1)//2 or t = (T-1 - w//2), both formulas apply.
+
     Window sizes:
 
     - (1 + w//2) at t=0, then t + (1 + w//2) until t = (w-1)//2
     - All datapoints from [(w-1)//2, ..., T-1 - w//2] have a normal
     window size.
-    - (w+1)//2 at t=T-1, then T-1 + (w+1)//2 until t = T-1 - w//2
+    - (w+1)//2 at t=T-1, then T-1-t + (w+1)//2 from t = T-1 - w//2
     - Note that for t = (w-1)//2 or t = (T-1 - w//2), both formulas apply
 
-    Midpoint of the time window (i.e. the index that correspond to the
-    datapoint around which the time window was extracted) is:
+    Consider an extracted time window of length w_real (with w_real <= w,
+    if the window was extracted at the beginning or the end of the array).
+    The midpoint of the extracted window (i.e. the index in that window
+    that corresponds to the datapoint around which the time window was
+    extracted in the original array is:
 
-    - beginning
-    - regular
-    - end
+    - 0 at t=0, then t, until t = pad_left, i.e. t = (w-1)//2
+    - For all datapoints between, [(w-1)//2, ..., (T-1 - w//2)], the
+    midpoint is (w-1)//2 (so it is the same as the base case)
+    - w_real-1 at t=T-1, then w_real - (T-t), from t=T-1-pad_right, i.e.
+    from t = (T-1 - w//2)
+    - Note that for t = (w-1)//2 or t = (T-1 - w//2), both formulas apply.
+
+    The midpoint in the original array is actually simply t
     """
-    # Sliding window formula: floor( (T + 2*pad - w)/stride + 1)
-    pad = pg.w // 2
-    T_clus = pg.T - pg.w + 1
-    T_ind = {'to_clus' : {}, 'to_origin' : {}}
-    # From origin to cluster, length T
-    T_ind["to_clus"].update({t: 0 for t in range(pg.w)})
-    T_ind["to_clus"].update({int(t+pg.w): t+1 for t in range(T_clus-1)})
-    T_ind["to_clus"].update({t: T_clus-1 for t in range(T_clus-1, pg.T)})
+    # Boundaries between regular cases and extreme ones
+    ind_start = (w-1)//2
+    ind_end = T-1 - w//2
+    pad_l = (w-1)//2
+    pad_r = (w//2)
+    window = {}
+    window["padding_left"] = pad_l
+    window["padding_right"] = pad_r
 
-    # From cluster to origin, length T_clus but the first and last elements
-    # could have multiple indices
-    T_ind["to_origin"].update({0: [t for t in range(pg.w)]})
-    T_ind["to_origin"].update({t+1: int(t+pg.w) for t in range(T_clus-1)})
-    T_ind["to_origin"].update({T_clus-1 :t for t in range(T_clus-1, pg.T)})
 
-    return T_ind
+    # For each t in [0, ..., T-1]...
+    # ------- Real length of the time window -------
+    window["length"] = [w for t in range(T)]
+    window["length"][:ind_start] = [
+        t + (1 + w//2)
+        for t in range(0, ind_start)
+    ]
+    window["length"][ind_end:] = [
+        T-1-t + (w+1)//2
+        for t in range(ind_end, T)
+    ]
+    # ------- Midpoint in the window reference -------
+    # Note that the end case is the same as the base case
+    window["midpoint_w"] = [(w-1)//2 for t in range(T)]
+    window["midpoint_w"][:ind_start]  = [ t for t in range(0, ind_start) ]
+    # ------- Midpoint in the origin reference -------
+    window["midpoint_o"] = [t for t in range(T)]
+    # ------- Original indices -------
+    window["origin"] = [
+        # add a +1 to the range to include last original index
+        list(range( (t - (w-1)//2),  (t + w//2) + 1))
+        for t in range(T)
+    ]
+    window["origin"][:ind_start]  = [
+        # add a +1 to the range to include last original index
+        list(range(0, (t + w//2) + 1))
+        for t in range(0, ind_start)
+    ]
+    window["origin"][ind_end:] = [
+        # add a +1 to the range to include last original index
+        list(range( (T-1-t + (w+1)//2),  (T-1) + 1 ))
+        for t in range(ind_end, T)
+    ]
+    return window
 
 
 def generate_all_clusters(
