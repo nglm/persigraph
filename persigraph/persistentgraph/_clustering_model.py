@@ -217,8 +217,10 @@ def _sliding_window(T, w):
     - [0, ..., t + w//2], until t = (w-1)//2
     - [t - (w-1)//2, ..., t, ..., t + w//2] for datapoints in
     [(w-1)//2, ..., T-1 - w//2]
-    - [T-1-t - (w+1)//2, ..., T-1] from t = T-1 - w//2
+    - [t - (w-1)//2, ..., T-1] from t = T-1 - w//2
     - Note that for t = (w-1)//2 or t = (T-1 - w//2), both formulas apply.
+    - Note also that the left side of the end case is the same as the left
+    side of the base case
 
     Window sizes:
 
@@ -282,8 +284,8 @@ def _sliding_window(T, w):
         for t in range(0, ind_start)
     ]
     window["origin"][ind_end:] = [
-        # add a +1 to the range to include last original index
-        list(range( (T-1-t - (w+1)//2),  (T-1) + 1 ))
+        # Note that the left side is the same as the base case
+        list(range( (t - (w-1)//2),  (T-1) + 1 ))
         for t in range(ind_end, T)
     ]
     return window
