@@ -932,7 +932,7 @@ class PersistentGraph():
     ):
 
         self._verbose = verbose
-        self._quiet = quiet
+        self._quiet = (quiet or not verbose)
         self._pre_prune = pre_prune
         self._pre_prune_threshold = pre_prune_threshold
         self._post_prune = post_prune
