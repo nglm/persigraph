@@ -329,7 +329,7 @@ def revelant_components(
     g,
     t = None,
     relevant_components = None,
-    relevant_k = None,
+    selected_k: List[int] = None,
     k_max = 8,
     fig = None,
     axs = None,
@@ -348,7 +348,7 @@ def revelant_components(
     # For each time step, get the most relevant number of clusters
     if relevant_components is None:
         vertices, edges = g.get_relevant_components(
-            relevant_k=relevant_k, k_max=k_max)
+            selected_k=selected_k, k_max=k_max)
     else:
         vertices, edges = relevant_components
 
@@ -377,7 +377,7 @@ def overview(
     g,
     t = None,
     relevant_components = None,
-    relevant_k = None,
+    selected_k: List[int] = None,
     k_max = 8,
     fig = None,
     axs = None,
@@ -449,7 +449,7 @@ def overview(
         g,
         t = t,
         relevant_components = relevant_components,
-        relevant_k = relevant_k,
+        selected_k = selected_k,
         k_max = k_max,
         fig = fig,
         axs = axs02,
