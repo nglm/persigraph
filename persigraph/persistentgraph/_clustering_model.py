@@ -62,8 +62,15 @@ def get_model_parameters(
         mc_kw['k_arg_name'] = "n_components"
         mc_kw.update(model_class_kw)
     elif model_class == TimeSeriesKMeans:
+        # m_kw = {
+        #     'metric' : 'softdtw',
+        # }
         m_kw = {
-            'metric' : 'softdtw',
+            'metric' : 'dtw',
+            'metric_params' : {
+                'global_constraint': "sakoe_chiba",
+                'sakoe_chiba_radius' : 10,
+                }
         }
         m_kw.update(model_kw)
     elif model_class == "Naive":
