@@ -62,7 +62,7 @@ def f_inertia(cluster: np.ndarray, cluster_info: dict = None) -> float:
     if len(dims) == 3:
         return np.sum(cdist_soft_dtw(
             cluster,
-            cluster_info["mean"],
+            cluster_info["mean"].reshape(1, 1, -1),
         ))
 
 def f_generalized_var(cluster: np.ndarray, cluster_info: dict = None) -> float:
@@ -108,7 +108,7 @@ def f_med_dev_mean(cluster: np.ndarray, cluster_info: dict = None) -> float:
         if len(dims) == 3:
             return np.median(cdist_soft_dtw(
                 cluster,
-                cluster_info["mean"],
+                cluster_info["mean"].reshape(1, 1, -1),
             ))
 
 def f_mean_dev_med(cluster: np.ndarray, cluster_info: dict = None) -> float:
@@ -135,7 +135,7 @@ def f_mean_dev_med(cluster: np.ndarray, cluster_info: dict = None) -> float:
         if len(dims) == 3:
             return np.mean(cdist_soft_dtw(
                 cluster,
-                cluster_info["mean"],
+                cluster_info["mean"].reshape(1, 1, -1),
             ))
 
 

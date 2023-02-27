@@ -68,7 +68,7 @@ def test_construct_graph():
         assert_array_equal(out, out_exp)
 
 def test_time_window():
-    members, time = mini()
+    members, time = mini(multivariate=True)
     list_w = [t for t in range(1, len(time))]
     for w in list_w:
         g = PersistentGraph(members, time, time_window=w)
@@ -100,19 +100,24 @@ def test_squared_radius():
             g.save('tmp/'+fname)
 
 def test_DTW():
-    members, time = mini()
+    members, time = mini(multivariate=True)
     methods = CLUSTERING_METHODS["names"]
     DTWs = [False, True]
+    list_squared_radius = [True, False]
     for i, m in enumerate(methods):
         for is_dtw in DTWs:
-            if not (is_dtw and CLUSTERING_METHODS["classes-dtw"][i] is None):
-                print(m, is_dtw)
-                g = PersistentGraph(members, time, model_class=m, DTW=is_dtw)
-                g.construct_graph()
-                fig, ax = graph(g)
-                fname = "test_DTW_" + "method_" + str(m) + "_" + str(is_dtw)
-                fig.savefig('tmp/'+fname)
-                g.save('tmp/'+fname)
+            for squared_radius in list_squared_radius:
+                if not (is_dtw and CLUSTERING_METHODS["classes-dtw"][i] is None):
+                    print(m, is_dtw)
+                    g = PersistentGraph(
+                        members, time, model_class=m, DTW=is_dtw,
+                        squared_radius=squared_radius,
+                        )
+                    g.construct_graph()
+                    fig, ax = graph(g)
+                    fname = "test_DTW_" + str(m) + "_" + str(is_dtw) + "_squared_" + str(squared_radius)
+                    fig.savefig('tmp/'+fname)
+                    g.save('tmp/'+fname)
 
 def test_clustering_methods():
     members, time = mini()
@@ -159,7 +164,7 @@ def test_gmm():
         graph(g)
 
 def test_scores():
-    members, time = mini()
+    members, time = mini(multivariate=True)
     scores = SCORES_TO_MINIMIZE
     for s in scores:
         print(s)
