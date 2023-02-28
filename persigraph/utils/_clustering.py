@@ -130,7 +130,10 @@ def compute_cluster_params(
         X = []
         # For each time series in the dataset... compare to the barycenter
         for ts in cluster:
-            path, _ = dtw_path(barycenter, ts)
+            path, _ = dtw_path(
+                barycenter, ts,
+                global_constraint="sakoe_chiba", sakoe_chiba_radius=5
+            )
             # Find time steps that match with the midpoint of the barycenter
             ind = [path[i][1] for i in range(len(path)) if path[i][0] == mid]
             X += [ts[i] for i in ind]

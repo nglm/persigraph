@@ -69,7 +69,7 @@ def get_model_parameters(
             'metric' : 'dtw',
             'metric_params' : {
                 'global_constraint': "sakoe_chiba",
-                'sakoe_chiba_radius' : 10,
+                'sakoe_chiba_radius' : 5,
                 }
         }
         m_kw.update(model_kw)
