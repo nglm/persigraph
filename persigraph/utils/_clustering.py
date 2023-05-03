@@ -112,6 +112,7 @@ def compute_cluster_params(
     :rtype: Dict
     """
     dims = cluster.shape
+    cluster_params = {}
 
     # Regular case
     if len(dims) == 2:
@@ -124,6 +125,7 @@ def compute_cluster_params(
         (N_clus, w, d) = dims
         # Take the barycenter as reference
         barycenter = softdtw_barycenter(cluster)
+        cluster_params['barycenter'] = barycenter
         # center of the time series, used as reference
         mid = w // 2
         # Here we can have len(X) > N_clus! Each element of X is of shape (d)
@@ -165,7 +167,6 @@ def compute_cluster_params(
         std_inf[i] = np.sqrt( np.sum((X_inf - mean[i])**2) / n_inf )
         std_sup[i] = np.sqrt( np.sum((X_sup - mean[i])**2) / n_sup )
 
-    cluster_params = {}
     cluster_params['mean'] = mean
     cluster_params['std'] = std
     cluster_params['std_inf'] = std_inf

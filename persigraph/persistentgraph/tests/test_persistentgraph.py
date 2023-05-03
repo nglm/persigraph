@@ -104,7 +104,7 @@ def test_DTW():
     methods = CLUSTERING_METHODS["names"]
     DTWs = [False, True]
     list_squared_radius = [True, False]
-    list_w = [t for t in range(1, len(time), 2)]
+    list_w = [1, max(1, len(time)//2), max(1, len(time)-1)]
     for i, m in enumerate(methods):
         for is_dtw in DTWs:
             for squared_radius in list_squared_radius:
@@ -112,12 +112,11 @@ def test_DTW():
                     if not (
                         is_dtw and CLUSTERING_METHODS["classes-dtw"][i] is None
                     ):
-                        if not is_dtw and w != 1:
+                        if not is_dtw:
                             continue
-                        print(m, is_dtw)
                         g = PersistentGraph(
                             members, time, model_class=m, DTW=is_dtw,
-                            squared_radius=squared_radius,
+                            squared_radius=squared_radius, time_window=w
                             )
                         g.construct_graph()
                         fig, ax = graph(g)

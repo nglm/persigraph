@@ -47,7 +47,7 @@ def f_inertia(cluster: np.ndarray, cluster_info: dict = None) -> float:
     """
     Compute the inertia of ONE cluster
 
-    :param cluster: (N_c, d) array, representing a cluster of size N_c
+    :param cluster: (N_c, d) array, representing a cluster of size N_c, or (N_c, w, d) if DTW is used
     :type cluster: np.ndarray
     :return: inertia of that cluster
     :rtype: float
@@ -60,9 +60,11 @@ def f_inertia(cluster: np.ndarray, cluster_info: dict = None) -> float:
             metric='sqeuclidean'
         ))
     if len(dims) == 3:
+        print(cluster.shape)
+        print(cluster_info["barycenter"].shape)
         return np.sum(cdist_soft_dtw(
             cluster,
-            cluster_info["mean"].reshape(1, 1, -1),
+            np.expand_dims(cluster_info["barycenter"], 0)
         ))
 
 def f_generalized_var(cluster: np.ndarray, cluster_info: dict = None) -> float:
@@ -108,7 +110,7 @@ def f_med_dev_mean(cluster: np.ndarray, cluster_info: dict = None) -> float:
         if len(dims) == 3:
             return np.median(cdist_soft_dtw(
                 cluster,
-                cluster_info["mean"].reshape(1, 1, -1),
+                cluster_info["barycenter"],
             ))
 
 def f_mean_dev_med(cluster: np.ndarray, cluster_info: dict = None) -> float:
@@ -135,7 +137,7 @@ def f_mean_dev_med(cluster: np.ndarray, cluster_info: dict = None) -> float:
         if len(dims) == 3:
             return np.mean(cdist_soft_dtw(
                 cluster,
-                cluster_info["mean"].reshape(1, 1, -1),
+                cluster_info["barycenter"],
             ))
 
 
