@@ -60,8 +60,6 @@ def f_inertia(cluster: np.ndarray, cluster_info: dict = None) -> float:
             metric='sqeuclidean'
         ))
     if len(dims) == 3:
-        print(cluster.shape)
-        print(cluster_info["barycenter"].shape)
         return np.sum(cdist_soft_dtw(
             cluster,
             np.expand_dims(cluster_info["barycenter"], 0)
