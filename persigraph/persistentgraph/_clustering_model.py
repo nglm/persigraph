@@ -164,15 +164,16 @@ def _data_to_cluster(
 
 def _sliding_window(T: int, w: int) -> dict:
     """
-    Assuming that we consider an array of length T, and with indices
-    [0, ..., T-1].
+    Assuming that we consider an array of length `T`, and with indices
+    `[0, ..., T-1]`.
 
     Windows extracted are shorter when considering the beginning and the
     end of the array. Which means that a padding is implicitly included.
 
-    When the time window is an even number, favor future time steps, i.e.,
+    When the time window `w` is an *even* number, favor future time steps, i.e.,
     when extracting a time window around the datapoint t, the time window
-    indices are [t - (w-1)//2, ... t, ..., t + w//2].
+    indices are [t - (w-1)//2, ... t, ..., t + w/2].
+    When `w` is odd then the window is [t - (w-1)/2, ... t, ..., t + (w-1)/2]
 
     Which means that the padding is as follows:
 
@@ -368,6 +369,7 @@ def generate_all_clusters(
                 X_params = np.copy(members_params[t])
 
             (N, w_t, d) = X.shape
+            midpoint_w = wind["midpoint_w"][t]
             if not pg._DTW:
                 # We take the entire time window into consideration for the
                 # scores of the clusters
@@ -376,7 +378,7 @@ def generate_all_clusters(
                 # We take only the midpoint into consideration for the
                 # parameters of the clusters
                 # X_params: (N, d)
-                X_params = X_params[:, wind["midpoint_w"][t], :]
+                X_params = X_params[:, midpoint_w, :]
 
             # Find cluster membership of each member
             clusters = clusters_t_n[t][n_clusters]
@@ -386,8 +388,12 @@ def generate_all_clusters(
                 continue
 
             # -------- Cluster infos for each cluster ---------
-            clusters_info = [compute_cluster_params(X_params[c]) for c in clusters]
-            clusters_info_score = [compute_cluster_params(X[c]) for c in clusters]
+            clusters_info = [
+                compute_cluster_params(X_params[c], midpoint_w) for c in clusters
+            ]
+            clusters_info_score = [
+                compute_cluster_params(X[c], midpoint_w) for c in clusters
+            ]
 
             # -------- Score corresponding to 'n_clusters' ---------
             score = compute_score(
