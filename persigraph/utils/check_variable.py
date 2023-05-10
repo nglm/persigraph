@@ -7,8 +7,7 @@ def check_condition(
     msg_cond: str = '',
     ):
     if not condition(variable):
-        print(var_name, ': ', variable)
-        msg_err = var_name + msg_cond
+        msg_err = var_name + msg_cond + ": " + str(variable)
         raise ValueError(msg_err)
 
 def check_all(

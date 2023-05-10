@@ -46,10 +46,11 @@ class PersistentGraph():
         """
         Initialize an empty graph
 
-        :param members: (N, T)-array. Original data, ensemble of time series
+        :param members: (N, d, T)-array. Original data, ensemble of time series
 
         - N: number of members
-        - T: length of the time series
+        - d: number of variables (default: 1)
+        - T: length of the time series (default: 1)
 
         :type members: np.ndarray
 
@@ -93,6 +94,8 @@ class PersistentGraph():
         # --------------------------------------------------------------
 
         if members is not None:
+            # After that pg._members is of shape (N, d, T) even if
+            # d and T were initially omitted
             _set_members(self, members)
             _set_zero(self, zero_type)
 
@@ -732,6 +735,10 @@ class PersistentGraph():
             )
 
     def _sort_steps(self):
+        """
+        Sort all local steps into global steps based on the ratio score,
+        from the smallest to the greatest
+        """
 
         # ====================== Initialization ==============================
         # Current local step (i.e step_t[i] represents the ith step at t)
@@ -1354,7 +1361,12 @@ class PersistentGraph():
     @property
     def sorted_steps(self) -> Dict[str, List]:
         """
-        Sorted scores as used for each step of the algorithm
+        Sorted steps as used for each step of the algorithm
+        available keys (with values being lists of length nb_steps)
+        - time_steps
+        - local_step_nums
+        - ratio_scores
+        - scores
 
         :rtype: dict[str, List]
         """

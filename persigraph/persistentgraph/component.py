@@ -83,25 +83,32 @@ class Component():
         if score_bounds is None or self.scores is None:
             self.__ratio_scores = None
         else:
-            # Normalizer so that ratios are within 0-1 range
-            norm = np.abs(score_bounds[0] - score_bounds[1])
-
-            # BIRTH
-            # If score_birth is ``None`` or 0 it means that the component is
-            # alive since the very beginning
-            if self.scores[0] is None:
-                ratio_birth = 0.
+            # SPECIAL CASE, if all score are equal, favor the case k=1
+            if score_bounds[0] == score_bounds[1]:
+                ratio_birth = 0
+                if self.ratio_members == 1:
+                    ratio_death = 1
+                else:
+                    ratio_death = 0
             else:
-                ratio_birth = np.abs(self.scores[0] - score_bounds[0]) / norm
+                # Normalizer so that ratios are within 0-1 range
+                norm = np.abs(score_bounds[0] - score_bounds[1])
 
+                # BIRTH
+                # If score_birth is ``None`` or 0 it means that the component is
+                # alive since the very beginning
+                if self.scores[0] is None:
+                    ratio_birth = 0.
+                else:
+                    ratio_birth = np.abs(self.scores[0]-score_bounds[0]) / norm
 
-            # DEATH
-            # If score_death is ``None`` it means that the component is not
-            # dead at the end
-            if self.scores[1] is None:
-                ratio_death = 1.
-            else:
-                ratio_death = np.abs(self.scores[1] - score_bounds[0]) / norm
+                # DEATH
+                # If score_death is ``None`` it means that the component is not
+                # dead at the end
+                if self.scores[1] is None:
+                    ratio_death = 1.
+                else:
+                    ratio_death = np.abs(self.scores[1]-score_bounds[0]) / norm
 
             self.score_ratios = [ratio_birth, ratio_death]
 

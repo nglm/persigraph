@@ -7,7 +7,7 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.spatial.distance import sqeuclidean, cdist, pdist
 from sklearn.metrics import pairwise_distances
-from tslearn.metrics import cdist_soft_dtw
+from tslearn.metrics import cdist_soft_dtw_normalized
 from typing import List, Sequence, Union, Any, Dict
 
 SCORES = [
@@ -54,16 +54,22 @@ def f_inertia(cluster: np.ndarray, cluster_info: dict = None) -> float:
     """
     dims = cluster.shape
     if len(dims) == 2:
-        return np.sum(cdist(
+        score = cdist(
             cluster,
             cluster_info["mean"].reshape(1, -1),
             metric='sqeuclidean'
-        ))
+        )
     if len(dims) == 3:
-        return np.sum(cdist_soft_dtw(
+        barycenter = np.expand_dims(cluster_info["barycenter"], 0)
+        score = cdist_soft_dtw_normalized(
             cluster,
-            np.expand_dims(cluster_info["barycenter"], 0)
-        ))
+            barycenter,
+            gamma=0.1
+        )
+    # cdist_soft_dtw_normalized should return positive values but
+    # somehow doesn't, so here we go...
+    score = np.maximum(score, 0)
+    return np.sum(score)
 
 def f_generalized_var(cluster: np.ndarray, cluster_info: dict = None) -> float:
     """
@@ -106,9 +112,10 @@ def f_med_dev_mean(cluster: np.ndarray, cluster_info: dict = None) -> float:
                 metric='sqeuclidean'
             ))
         if len(dims) == 3:
-            return np.median(cdist_soft_dtw(
+            return np.median(cdist_soft_dtw_normalized(
                 cluster,
                 cluster_info["barycenter"],
+                gamma=0.1
             ))
 
 def f_mean_dev_med(cluster: np.ndarray, cluster_info: dict = None) -> float:
@@ -133,9 +140,10 @@ def f_mean_dev_med(cluster: np.ndarray, cluster_info: dict = None) -> float:
                 metric='sqeuclidean'
             ))
         if len(dims) == 3:
-            return np.mean(cdist_soft_dtw(
+            return np.mean(cdist_soft_dtw_normalized(
                 cluster,
                 cluster_info["barycenter"],
+                gamma=0.1
             ))
 
 
@@ -311,7 +319,10 @@ def compute_score(
                 + " is invalid. Please choose a valid score_type: "
                 + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
             )
-
+    if score < 0:
+        raise ValueError(
+            "Score can't be negative: " + str(score)
+        )
     return np.around(score, pg._precision)
 
 
@@ -355,7 +366,6 @@ def _compute_score_bounds(
     pg._are_bounds_known = True
 
 
-
 def _compute_ratio(
     score,
     score_bounds=None,
@@ -369,11 +379,13 @@ def _compute_ratio(
         if score is None:
             ratio_score = 1
         else:
-            ratio_score = (
-                np.abs(score - score_bounds[0])
-                / np.abs(score_bounds[0] - score_bounds[1])
-            )
-    return ratio_score
+            # SPECIAL CASE
+            if score_bounds[0] == score_bounds[1]:
+                return 0
+            else:
+                # Normalizer so that ratios are within 0-1 range
+                norm = np.abs(score_bounds[0] - score_bounds[1])
+                return np.abs(score-score_bounds[0]) / norm
 
 def _compute_ratio_scores(
     pg,

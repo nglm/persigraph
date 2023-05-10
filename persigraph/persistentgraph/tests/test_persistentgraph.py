@@ -24,11 +24,13 @@ def test_init():
         g.members,
         g.time_axis,
         (g.N, g.d, g.T),
+        g.members_zero.shape,
     ]
     output_np_exp = [
         members_exp,
         time_exp,
         members_exp.shape,
+        (g.N, g.d, g.T),
 
     ]
     output = []

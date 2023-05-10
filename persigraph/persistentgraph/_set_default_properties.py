@@ -15,6 +15,12 @@ def _set_members(pg, members):
     # Variable dimension
     shape = pg._members.shape
 
+
+    pg._N = shape[0]  # Number of members (time series)
+    if pg._N < 2:
+        raise ValueError(
+            "At least members should be given (N>=2)" + str(shape[0])
+        )
     # Assume that both d and T are "missing"
     if len(shape) == 1:
         pg._d = int(1)
@@ -25,7 +31,7 @@ def _set_members(pg, members):
         pg._d = int(1)
         pg._members = np.expand_dims(pg._members, axis=1)
     elif len(shape) == 3:
-        pg._N = shape[0]  # Number of members (time series)
+
         pg._d = shape[1]  # Number of variables
         pg._T = shape[2]  # Length of the time series
     else:
@@ -60,6 +66,8 @@ def _set_zero(pg, zero_type: str = "bounds"):
     # We keep all the dims except the first one (Hence the 0) because
     # The number of members dimension will be added in members_0 in the
     # List comprehension
+    # pg._members of shape (N, d, T) even if d and T were initially omitted
+    # mins and max of shape (d, T) (the [0] is to get rid of the N dim)
     mins = np.amin(pg._members, axis=0, keepdims=True)[0]
     maxs = np.amax(pg._members, axis=0, keepdims=True)[0]
 
