@@ -134,28 +134,52 @@ def get_k_life_span(
     """
     k_max = min(k_max, g.k_max)
 
+    # By default all life span are 0 (even if their corresponding step was
+    # ignored). They might remain 0 in case of equal r_scores
     life_span = {k : [0. for _ in range(g.T)] for k in g._n_clusters_range}
 
     # Extract ratio scores for each k and each t
     for t in range(g.T):
 
-        # init
-        r_scores = []
+        # to keep track of the last step and make sure smaller k are favored
         k_prev = None
+        r_prev = 0
+        k_eq = []
 
         for i, step in enumerate(g._local_steps[t]):
+            # k_curr are not necessarily in increasing order
             k_curr = step['param']['n_clusters']
-            # Note: there might be some 'holes' when steps are ignored
-            # their r_score will then all be 0
-            r_scores.append(step['ratio_score'])
+            r_curr = step['ratio_score']
 
             # Compute life span of the previous k visited
             if i>0:
-                life_span[k_prev][t] = r_scores[-1] - r_scores[-2]
+                # If r_scores are equal, don't update life span,
+                # just stack k values that share the same r_score
+                if r_curr == r_prev:
+                    if k_eq == []:
+                        k_eq = [k_prev, k_curr]
+                    else:
+                        k_eq.append(k_curr)
+                # Else compute life span of k_prev, with r_prev != r_curr
+                else:
+                    life_span[k_prev][t] = r_curr - r_prev
+                    # If same ks were sharing the same r_score, keep their
+                    # life span to 0 as initialized...
+                    if k_eq:
+                        sorted_k_eq = sorted(k_eq)
+                        # ...except the smallest k after 0, that will be updated
+                        # at the next iteration (as being next k_prev)
+                        k_curr = sorted_k_eq[0]
+                        if (k_curr == 0):
+                            k_curr = sorted_k_eq[1]
+                    k_eq = []
+
+            # Prepare next iteration
+            r_prev = r_curr
             k_prev = k_curr
 
         # Last step
-        life_span[k_prev][t] = 1 - r_scores[-1]
+        life_span[k_prev][t] = 1 - r_prev
     life_span.pop(0)
     return life_span
 

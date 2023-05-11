@@ -742,7 +742,7 @@ class PersistentGraph():
 
         # ====================== Initialization ==============================
         # Current local step (i.e step_t[i] represents the ith step at t)
-        step_t = -1 * np.ones(self.T, dtype=int)
+        step_t = np.zeros(self.T, dtype=int)
 
         # Find the ratio of the first algorithm step at each time step
         candidate_ratios = np.array([
@@ -755,20 +755,18 @@ class PersistentGraph():
         # Now candidate_ratios are sorted in increasing order
         candidate_ratios = list(candidate_ratios[candidate_time_steps])
 
-        i = 0
+        global_step = 0
         while candidate_ratios:
 
             # ==== Find the candidate score with its associated time step ====
             idx_candidate = 0
-            t = candidate_time_steps[idx_candidate]
-
-            # Only for the first local step
-            if step_t[t] == -1:
-                step_t[t] += 1
+            # it's already an int, but it's somehow a shallow copy without using
+            # int()
+            t = int(candidate_time_steps[idx_candidate])
 
             if self._verbose:
                 print(
-                    "Step", i, '  ||  '
+                    "Step", global_step, '  ||  '
                     't: ', t, '  ||  ',
                     'n_clusters: ',
                     self._local_steps[t][step_t[t]]["param"]['n_clusters'],
@@ -777,7 +775,7 @@ class PersistentGraph():
                 )
 
             # ==================== Update sorted_steps =======================
-            self._sorted_steps['time_steps'].append(int(t))
+            self._sorted_steps['time_steps'].append(t)
             self._sorted_steps['local_step_nums'].append(int(step_t[t]))
             self._sorted_steps['ratio_scores'].append(
                 candidate_ratios[idx_candidate]
@@ -790,9 +788,8 @@ class PersistentGraph():
             )
 
             # ==================== Update local_steps =======================
-            self._local_steps[t][step_t[t]]["global_step_num"] = i
-            self._v_at_step[t]['global_step_nums'][step_t[t]] = i
-
+            self._local_steps[t][step_t[t]]["global_step_num"] = global_step
+            self._v_at_step[t]['global_step_nums'][step_t[t]] = global_step
 
             # ======= Update candidates: deletion and insertion ==============
 
@@ -808,12 +805,12 @@ class PersistentGraph():
                 candidate_ratios.insert(idx_insert, next_ratio)
                 candidate_time_steps.insert(idx_insert, t)
 
-            i += 1
+            global_step += 1
 
-        if i != self._nb_steps:
+        if global_step != self._nb_steps:
             if not self._quiet:
                 print(
-                    "WARNING: number of steps sorted: ", i,
+                    "WARNING: number of steps sorted: ", global_step,
                     " But number of steps done: ", self._nb_steps
                 )
 
@@ -825,10 +822,10 @@ class PersistentGraph():
         local_step_nums = -1 * np.ones(self.T, dtype = int)
         for s in range(self.nb_steps):
             # Find the next time step
-            t = int(self._sorted_steps['time_steps'][s])
+            t = self._sorted_steps['time_steps'][s]
             ratio =  self._sorted_steps['ratio_scores'][s]
             # Find the next local step at this time step
-            local_step_nums[t] = int(self._sorted_steps['local_step_nums'][s])
+            local_step_nums[t] = self._sorted_steps['local_step_nums'][s]
             local_s = local_step_nums[t]
 
             # Find the new vertices (so vertices created at this step)
