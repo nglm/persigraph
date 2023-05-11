@@ -110,7 +110,20 @@ def get_k_life_span(
     k_max: int = 5,
 ) -> Dict[int, List[float]]:
     """
-    Get the life span for all k and each t
+    Get the life span for all k [1, ..., k_max] and each t.
+    To summarize:
+    life_span[k_prev][t] = r_curr - r_prev
+
+    Note:
+    - there might be some 'holes' when steps are ignored
+    their life span will then all be 0.
+    - In case of equal r_scores, the smallest k value (except for k=0),
+    will be favored, the other ones keep their life span of value 0.
+
+    e.g. if k=2,3 have the same r_score, then
+    - life span[3] = 0
+    - life span[2] = r_curr - r_prev where r_prev is the last r_score found
+    without being equal to r_curr
 
     :param g: [description]
     :type g: [type]

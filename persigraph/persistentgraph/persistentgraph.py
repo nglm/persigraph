@@ -988,7 +988,10 @@ class PersistentGraph():
         if self._verbose:
             print('Edges constructed in %.2f s' %(t_end - t_start))
 
+        # =================== Compute statistics =======================
         self._compute_statistics()
+
+        # =================== defaukt k values =========================
         self._life_span = get_k_life_span(self)
         relevant_k = get_relevant_k(self, self._life_span, self.k_max)
         dict_relevant_k = {}
@@ -1375,7 +1378,7 @@ class PersistentGraph():
     @property
     def n_clusters_range(self) -> Sequence[int]:
         """
-        Range of number of clusters studied
+        Ordered range of number of clusters studied: [0, .., k_max]
 
         :rtype: Sequence[int]
         """
