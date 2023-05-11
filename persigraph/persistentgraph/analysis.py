@@ -141,7 +141,7 @@ def get_k_life_span(
 
     # By default all life span are 0 (even if their corresponding step was
     # ignored). They might remain 0 in case of equal r_scores
-    life_span = {k : [0. for _ in range(g.T)] for k in g._n_clusters_range}
+    life_span = { k : [0. for _ in range(g.T)] for k in range(1, k_max+1) }
 
     # Extract ratio scores for each k and each t
     for t in range(g.T):
@@ -172,20 +172,21 @@ def get_k_life_span(
                     # life span to 0 as initialized...
                     if k_eq:
                         sorted_k_eq = sorted(k_eq)
-                        # ...except the smallest k after 0, that will be updated
+                        # ...except the smallest k, that will be updated
                         # at the next iteration (as being next k_prev)
                         k_curr = sorted_k_eq[0]
-                        if (k_curr == 0):
-                            k_curr = sorted_k_eq[1]
                     k_eq = []
 
             # Prepare next iteration
             r_prev = r_curr
             k_prev = k_curr
 
-        # Last step
+        # ------- Last step ---------
+        # If we were in a series of equal scores, find the "good" k_prev
+        if k_eq != []:
+            k_prev = sorted(k_eq)[0]
         life_span[k_prev][t] = 1 - r_prev
-    life_span.pop(0)
+
     return life_span
 
 def get_relevant_k(
