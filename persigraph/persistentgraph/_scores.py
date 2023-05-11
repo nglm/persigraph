@@ -330,7 +330,17 @@ def _compute_score_bounds(
     pg,
 ) -> None:
     """
-    Compare local_scores and zero_scores at t to find score bounds at t
+    Compare local_scores and zero_scores at t to find score bounds at t.
+    The case k=0 is used only to be used as a potential score bound.
+    It is never used to create a vertex in the graph.
+
+    The score bounds are used to compute the ratio scores.
+    By convention:
+    - k_worst has life_span=0, r_birth=0 and r_death=0
+    - k_best has r_death=1
+
+    If all scores are equal, life_span=0, r_birth=0 and r_death=0 for all k
+    except for k=1, where life_span=1, r_birth=0 and r_death=1
 
     :param pg: [description]
     :type pg: [type]

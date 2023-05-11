@@ -818,6 +818,8 @@ class PersistentGraph():
 
     def _construct_edges(self):
 
+        # The "-1" is useful as we can't draw edges if the time steps around
+        # have not started having vertices yet....
         last_v_at_t = -1 * np.ones(self.T, dtype = int)
         local_step_nums = -1 * np.ones(self.T, dtype = int)
         for s in range(self.nb_steps):
