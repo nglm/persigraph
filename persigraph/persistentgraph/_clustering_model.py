@@ -405,27 +405,30 @@ def generate_all_clusters(
             )
             if n_clusters == 0:
                 pg._zero_scores[t] = score
-            step_info = {"score" : score}
+                # don't insert the case k=0 in cluster_data
+                # nor in local_steps, go straight to the next iteration
+            else:
+                step_info = {"score" : score}
 
-            # ---------------- Finalize local step -----------------
-            # Find where should we insert this future local step
-            idx = sort_fc(local_scores[t], score)
-            local_scores[t].insert(idx, score)
-            cluster_data[t].insert(idx, [clusters, clusters_info])
-            pg._local_steps[t].insert(
-                idx,
-                {**{'param' : {"n_clusters" : n_clusters}},
-                    **step_info
-                }
-            )
-            pg._nb_steps += 1
-            pg._nb_local_steps[t] += 1
+                # ---------------- Finalize local step -----------------
+                # Find where should we insert this future local step
+                idx = sort_fc(local_scores[t], score)
+                local_scores[t].insert(idx, score)
+                cluster_data[t].insert(idx, [clusters, clusters_info])
+                pg._local_steps[t].insert(
+                    idx,
+                    {**{'param' : {"n_clusters" : n_clusters}},
+                        **step_info
+                    }
+                )
+                pg._nb_steps += 1
+                pg._nb_local_steps[t] += 1
 
-            if pg._verbose:
-                print(" ========= ", t, " ========= ")
-                msg = "n_clusters: " + str(n_clusters)
-                for (key,item) in step_info.items():
-                    msg += '  ||  ' + key + ":  " + str(item)
-                print(msg)
+                if pg._verbose:
+                    print(" ========= ", t, " ========= ")
+                    msg = "n_clusters: " + str(n_clusters)
+                    for (key,item) in step_info.items():
+                        msg += '  ||  ' + key + ":  " + str(item)
+                    print(msg)
 
     return cluster_data
