@@ -10,6 +10,9 @@ from ..persistentgraph import PersistentGraph
 from ..plots import graph
 from ...datasets import mini
 
+def assert_sorted(l, msg=""):
+    assert np.all([l[i] <= l[i+1] for i in range(len(l) - 1)]), msg
+
 
 def test_init():
     members, time = mini()
@@ -60,14 +63,60 @@ def test_construct_graph():
     ]
     output = [
         sum(g.nb_local_steps),
+        len(g.sorted_steps["scores"])
     ]
     output_exp = [
         g.nb_steps,
+        g.nb_steps
     ]
     for out, out_exp in zip(output, output_exp):
         assert out == out_exp , "out: " + str(out) + " expected " + str(out_exp)
     for out, out_exp in zip(output_np, output_np_exp):
         assert_array_equal(out, out_exp)
+
+    # ------------------------------------------------------------------
+    # Test vertices and edges sorted
+    # ------------------------------------------------------------------
+    for t in range(g.T):
+        v_t = g._v_at_step[t]['v']
+        msg = "t: {:d} | vertices not sorted {}".format(t, v_t)
+        (assert_sorted(v_t_s, msg) for v_t_s in v_t)
+
+        e_t = g._e_at_step[t]['e']
+        msg = "t: {:d} | edges not sorted {}".format(t, e_t)
+        (assert_sorted(e_t_s, msg) for e_t_s in e_t)
+    fig, ax = graph(g)
+    fname = "test_construct_graph"
+    fig.savefig('tmp/'+fname)
+    g.save('tmp/'+fname, type="json")
+
+def test_sorted_steps():
+    """
+    Test that sorted steps is sorted in increasing order of ratio scores.
+    """
+    members, time = mini(multivariate=True)
+    w = 3
+    list_squared_radius = [True, False]
+    DTWs = [False, True]
+    for squared_radius in list_squared_radius:
+        for DTW in DTWs:
+            g = PersistentGraph(
+                members, time, time_window=w,
+                DTW=DTW, squared_radius=squared_radius)
+            g.construct_graph()
+            fig, ax = graph(g)
+            fname = (
+                "test_sorted_steps_" + "DTWs_" + str(DTW)
+                + "squared_radius_" + str(squared_radius)
+            )
+            fig.savefig('tmp/'+fname)
+            g.save('tmp/'+fname, type="json")
+
+            sorted_steps = g.sorted_steps
+            scores = sorted_steps["scores"]
+            r_scores = sorted_steps["ratio_scores"]
+            msg = "r_scores: " + str(r_scores)
+            assert_sorted(r_scores, msg)
 
 def test_time_window():
     members, time = mini(multivariate=True)
@@ -78,7 +127,7 @@ def test_time_window():
         fig, ax = graph(g)
         fname = "test_time_window_" + "time_window_" + str(w)
         fig.savefig('tmp/'+fname)
-        g.save('tmp/'+fname)
+        g.save('tmp/'+fname, type="json")
 
 def test_squared_radius():
     members, time = mini(multivariate=True)
@@ -99,7 +148,7 @@ def test_squared_radius():
                 + "squared_radius_" + str(squared_radius)
             )
             fig.savefig('tmp/'+fname)
-            g.save('tmp/'+fname)
+            g.save('tmp/'+fname, type="json")
 
 def test_DTW():
     members, time = mini(multivariate=True)
@@ -124,7 +173,7 @@ def test_DTW():
                         fig, ax = graph(g)
                         fname = "test_DTW_" + str(m) + "_" + str(is_dtw) + "_squared_" + str(squared_radius) + "_w_" + str(w)
                         fig.savefig('tmp/'+fname)
-                        g.save('tmp/'+fname)
+                        g.save('tmp/'+fname, type="json")
 
 def test_clustering_methods():
     members, time = mini()
@@ -136,7 +185,7 @@ def test_clustering_methods():
         fig, ax = graph(g)
         fname = "test_clustering_methods_" + "method_" + str(m)
         fig.savefig('tmp/'+fname)
-        g.save('tmp/'+fname)
+        g.save('tmp/'+fname, type="json")
 
 def test_agglomerative():
     members, time = mini()
