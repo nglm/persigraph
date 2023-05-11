@@ -332,7 +332,8 @@ def _compute_score_bounds(
     """
     Compare local_scores and zero_scores at t to find score bounds at t.
     The case k=0 is used only to be used as a potential score bound.
-    It is never used to create a vertex in the graph.
+    It is never used to create a vertex in the graph and it doesn't have
+    a life span.
 
     The score bounds are used to compute the ratio scores.
     By convention:
@@ -349,6 +350,9 @@ def _compute_score_bounds(
         pg._worst_scores[t] = worst_score(
             pg, pg._zero_scores[t], pg._local_steps[t][-1]['score']
         )
+        if pg._worst_scores[t] != pg._zero_scores[t]:
+            # k that will automatically get a life span of 0
+            pg._worst_k[t] = pg._local_steps[t][-1]['param']["n_clusters"]
         pg._best_scores[t] = best_score(
             pg, pg._zero_scores[t], pg._local_steps[t][0]['score']
         )
