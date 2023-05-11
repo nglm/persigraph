@@ -117,10 +117,15 @@ def get_k_life_span(
     Note:
     - there might be some 'holes' when steps are ignored
     their life span will then all be 0.
-    - In case of equal r_scores, the smallest k value (except for k=0),
+    - In case of equal r_scores, the smallest k value
     will be favored, the other ones keep their life span of value 0.
+    - The case k=0 is used only to be used as a potential score bound.
+    It is never used to create a vertex in the graph and it doesn't have
+    a life span.
+    - If all scores are equal, life_span=0, r_birth=0 and r_death=0 for all k
+    except for k=1, where life_span=1, r_birth=0 and r_death=1
 
-    e.g. if k=2,3 have the same r_score, then
+    e.g. if k=2,3 have the same r_score, thend
     - life span[3] = 0
     - life span[2] = r_curr - r_prev where r_prev is the last r_score found
     without being equal to r_curr
