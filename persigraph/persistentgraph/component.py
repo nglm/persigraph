@@ -1,8 +1,10 @@
-from scipy.spatial.distance import euclidean
 import numpy as np
 from typing import List, Sequence
 
-from ..utils.check_variable import check_O1_range, check_int_positive, check_all_int_positive
+from ..utils.check_variable import (
+    check_O1_range, check_int_positive, check_all_int_positive,
+    check_is_leq,
+)
 from ..utils.sorted_lists import has_element, get_common_elements, bisect_search
 
 
@@ -279,6 +281,7 @@ class Component():
 
             check_O1_range(score_ratios[0], 'Ratio birth')
             check_O1_range(score_ratios[1], 'Ratio death')
+            check_is_leq(score_ratios, '[ratio_birth, ratio_death]')
 
             self.__score_ratios = score_ratios
 
