@@ -378,28 +378,6 @@ def _compute_score_bounds(
     pg._norm_bounds = np.abs(pg._worst_scores - pg._best_scores)
     pg._are_bounds_known = True
 
-
-def _compute_ratio(
-    score,
-    score_bounds=None,
-):
-    """
-    Inspired by the similar method in component
-    """
-    if score_bounds is None:
-        ratio_score = None
-    else:
-        if score is None:
-            ratio_score = 1
-        else:
-            # SPECIAL CASE
-            if score_bounds[0] == score_bounds[1]:
-                return 0
-            else:
-                # Normalizer so that ratios are within 0-1 range
-                norm = np.abs(score_bounds[0] - score_bounds[1])
-                return np.abs(score-score_bounds[0]) / norm
-
 def _compute_ratio_scores(
     pg,
 ):
@@ -416,15 +394,25 @@ def _compute_ratio_scores(
     :type pg: [type]
     """
     for t in range(pg.T):
-        score_bounds = (pg._best_scores[t], pg._worst_scores[t])
+        score_bounds = (pg._worst_scores[t], pg._best_scores[t])
+        norm_bounds = np.abs(score_bounds[0] - score_bounds[1])
 
-        # Ratios for local step scores
-        for step in range(pg._nb_local_steps[t]):
-            score = pg._local_steps[t][step]['score']
-            ratio = _compute_ratio(score, score_bounds)
-            pg._local_steps[t][step]['ratio_score'] = ratio
+        # ------------------ ratio scores of local steps ---------------
+        # Special case, all ratio score and life spans of that step will be
+        # 0 expect for the case k=1, where
+        # ratio_score=0 and life_span=1
+        # See `get_k_life_span` for more info.
+        if pg._worst_scores[t] == pg._best_scores[t]:
+            for step in range(pg._nb_local_steps[t]):
+                pg._local_steps[t][step]['ratio_score'] = 0
+        else:
 
-        # Compute score ratio of vertices that are still alive at the end
+            for step in range(pg._nb_local_steps[t]):
+                score = pg._local_steps[t][step]['score']
+                ratio = np.abs(score - score_bounds[0]) / norm_bounds
+                pg._local_steps[t][step]['ratio_score'] = ratio
+
+        # -- ratio scores of vertices that are still alive at the end --
         for v in pg._v_at_step[t]['v'][-1]:
             pg._vertices[t][v]._compute_ratio_scores(
                 score_bounds = score_bounds
