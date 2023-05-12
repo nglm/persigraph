@@ -79,7 +79,29 @@ class Component():
     def _compute_ratio_scores(
         self,
         score_bounds = None,
-        ):
+    ):
+        """
+        On scores:
+        - By convention, `score_bound = (score_worst, score_best)`
+        - By convention, `score_birth` is worse than `score_death`.
+        - Note that if a score is better when maximized (respectively
+        minimized), `score_birth` is lower (resp higher) than
+        `score_death`.
+        - Note that, depending on the type of score used, `score_birth`
+        and / or `score_death` could be negative.
+
+        On ratios:
+        - By convention, `ratio_score_birth` is worse (in terms of
+        corresponding scores) than `ratio_score_death`.
+        - By convention, `ratio_score_birth` is lower than
+        `ratio_score_death` (in terms of ratio).
+        - Both `ratio_score_birth` and`ratio_score_death` are within [0, 1]
+        range.
+
+        This means that `ratio_score_birth` <= `ratio_score_death` even
+        when `score_birth` > `score_death`.
+
+        """
         if score_bounds is None or self.scores is None:
             self.__ratio_scores = None
         else:
@@ -112,13 +134,10 @@ class Component():
 
             self.score_ratios = [ratio_birth, ratio_death]
 
-
-
-
     @property
     def key(self) -> int:
         """
-        Number of the component
+        Number of the component (unique in the entire graph).
 
         :rtype: int
         """
@@ -127,7 +146,7 @@ class Component():
     @property
     def num(self) -> int :
         """
-        Number of the component (unique at that time step)
+        Number of the component (unique at that time step).
 
         :rtype: int
         """
@@ -136,7 +155,7 @@ class Component():
     @num.setter
     def num(self, num: int):
         """
-        Number of the component (unique at that time step)
+        Number of the component (unique at that time step).
 
         :type num: int
         :raises ValueError: If ``num`` is not > 0
@@ -150,7 +169,7 @@ class Component():
     @property
     def time_step(self) -> int:
         """
-        Time step at which Component exists
+        Time step at which Component exists.
 
         :rtype: int
         """
@@ -164,7 +183,7 @@ class Component():
     @property
     def members(self) -> List[int]:
         """
-        Ordered list of members indices belonging to Component
+        Ordered list of members indices belonging to Component.
 
         :rtype: List[int]
         """
@@ -179,11 +198,11 @@ class Component():
         else:
             self.__members = []
 
-
     @property
     def ratio_members(self) -> float:
         """
-        Ratio of members belonging to Component: ``nb_members`` / N
+        Ratio of members belonging to Component: ``nb_members`` / N.
+        By definition, `ratio_members` is within [0, 1] range.
 
         :rtype: float
         """
@@ -192,7 +211,7 @@ class Component():
     @property
     def nb_members(self) -> int:
         """
-        Number of members belonging to Component
+        Number of members belonging to Component.
 
         :rtype: int
         """
@@ -202,14 +221,19 @@ class Component():
     def nb_members(self, nb_members):
         self.__nb_members = int(nb_members)
 
-
     @property
     def scores(self) -> Sequence[float]:
         """
-        Sequence (score_birth, score_death) "scores" depends on the method used.
+        Sequence (`score_birth`, `score_death`).
 
-        Naive method: max distance between members
-        GMM: average log-likelihood of the members
+        By convention, `score_birth` is worse than `score_death`.
+
+        Note that if a score is better when maximized (respectively
+        minimized), `score_birth` is lower (resp higher) than
+        `score_death`.
+
+        Note that, depending on the type of score used, `score_birth`
+        and / or `score_death` could be negative.
 
         :rtype: Sequence[float]
         """
@@ -228,11 +252,17 @@ class Component():
     @property
     def score_ratios(self) -> Sequence[float]:
         """
-        Sequence (ratio_score_birth, ratio_score_death) "scores" depends on
-        the method used.
+        Sequence (`ratio_score_birth`, `ratio_score_death`).
 
-        Naive method: max distance between members
-        GMM: average log-likelihood of the members
+        By convention, `ratio_score_birth` is worse (in terms of
+        corresponding scores) than `ratio_score_death`.
+        By convention, `ratio_score_birth` is lower than
+        `ratio_score_death` (in terms of ratio).
+
+        This means that `ratio_score_birth` <= `ratio_score_death` even
+        when `score_birth` > `score_death`.
+        Both `ratio_score_birth` and`ratio_score_death` are within [0, 1]
+        range.
 
         :rtype: Sequence[float]
         """
