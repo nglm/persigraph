@@ -429,13 +429,28 @@ def _compute_ratio_scores(
 
 
 
-def better_score(pg, score1, score2, or_equal=False):
-    # None means that the score has not been reached yet
-    # So None is better if score is improving
-    if score1 is None:
-        return score1
+def better_score(
+    pg,
+    score1: float,
+    score2: float,
+    or_equal: bool = False
+) -> bool:
+    """
+    Determines whether `score1` is indeed better than `score2`.
+
+    If both scores are None, return a ValueError.
+
+    It is assumed that if one (and only one) score is `None` it means
+    that it hasn't been reached yet, which means that it is probably
+    the best.
+    """
+    if score1 is None and score2 is None:
+        msg = "Better score not determined, both scores are None."
+        raise ValueError(msg)
+    elif score1 is None:
+        return True
     elif score2 is None:
-        return score2
+        return False
     elif score1 == score2:
         return or_equal
     elif score1 > score2:
@@ -443,31 +458,55 @@ def better_score(pg, score1, score2, or_equal=False):
     elif score1 < score2:
         return not pg._maximize
     else:
-        print(score1, score2)
-        raise ValueError("Better score not determined")
+        msg = "Better score could not be determined: {} | {}".format(
+            score1, score2
+        )
+        raise ValueError(msg)
 
 
-def argbest(pg, score1, score2):
+def argbest(
+    pg,
+    score1: float,
+    score2: float,
+) -> int:
+    """
+    Returns index of best score
+    """
     if better_score(pg, score1, score2):
         return 0
     else:
         return 1
 
-def best_score(pg, score1, score2):
-    if argbest(pg, score1, score2) == 0:
-        return score1
-    else:
-        return score2
+def best_score(
+    pg,
+    score1: float,
+    score2: float,
+) -> float:
+    """
+    Returns best score
+    """
+    return [score1, score2][argbest(pg, score1, score2)]
 
-def argworst(pg, score1, score2):
-    if argbest(pg, score1, score2) == 0:
+def argworst(
+    pg,
+    score1: float,
+    score2: float,
+) -> int:
+    """
+    Returns index of worst score
+    """
+    if better_score(pg, score1, score2):
         return 1
     else:
         return 0
 
-def worst_score(pg, score1, score2):
-    if argworst(pg, score1, score2) == 0:
-        return score1
-    else:
-        return score2
+def worst_score(
+    pg,
+    score1: float,
+    score2: float,
+) -> float:
+    """
+    Returns worst score
+    """
+    return [score1, score2][argworst(pg, score1, score2)]
 
