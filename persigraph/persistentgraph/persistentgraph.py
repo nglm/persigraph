@@ -397,7 +397,7 @@ class PersistentGraph():
             for v in vertices:
                 self._vertices[t][v].scores[1] = score_death
                 self._vertices[t][v]._compute_ratio_scores(
-                    (self._best_scores[t], self._worst_scores[t])
+                    (self._worst_scores[t], self._best_scores[t])
                 )
 
             if vertices:
