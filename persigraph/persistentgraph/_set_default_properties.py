@@ -159,13 +159,14 @@ def _set_score_type(pg, score_type):
 
     default_names = [None, ""]
     default_score = "inertia"
+    default_maximize = False
 
     if score_type in SCORES_TO_MAXIMIZE:
         pg._maximize = True
     elif score_type in SCORES_TO_MINIMIZE:
         pg._maximize = False
     elif score_type in default_names:
-        pg._maximize = True
+        pg._maximize = default_maximize
         score_type = default_score
     else:
         raise ValueError(
