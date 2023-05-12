@@ -276,9 +276,9 @@ def generate_all_clusters(
     # --------------------------------------------------------------
     # Use bisect left in order to favor the lowest number of clusters
     if pg._maximize:
-        sort_fc = reverse_bisect_left
-    else:
         sort_fc = bisect_left
+    else:
+        sort_fc = reverse_bisect_left
 
     wind = _sliding_window(pg.T, pg.w)
     # all members_clus/params are lists of length T of arrays of

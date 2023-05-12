@@ -347,13 +347,13 @@ def _compute_score_bounds(
     """
     for t in range(pg.T):
         pg._worst_scores[t] = worst_score(
-            pg, pg._zero_scores[t], pg._local_steps[t][-1]['score']
+            pg._zero_scores[t], pg._local_steps[t][0]['score'], pg._maximize
         )
         if pg._worst_scores[t] != pg._zero_scores[t]:
             # k that will automatically get a life span of 0
-            pg._worst_k[t] = pg._local_steps[t][-1]['param']["n_clusters"]
+            pg._worst_k[t] = pg._local_steps[t][0]['param']["n_clusters"]
         pg._best_scores[t] = best_score(
-            pg, pg._zero_scores[t], pg._local_steps[t][0]['score']
+            pg._zero_scores[t], pg._local_steps[t][-1]['score'], pg._maximize
         )
     if pg._global_bounds:
         worst_score_global = pg._worst_scores[0]
@@ -362,15 +362,15 @@ def _compute_score_bounds(
             pg._worst_scores[1:],
             pg._best_scores[1:]
         ):
-            worst_score_global = worst_score(
-                pg,
-                worst_score_global,
-                worst_t
+            best_score_global = best_score(
+                best_score_global,
+                best_t,
+                pg._maximize
             )
             worst_score_global = worst_score(
-                pg,
                 worst_score_global,
-                worst_t
+                worst_t,
+                pg._maximize
             )
         pg._worst_scores[:] = worst_score_global
         pg._best_scores[:] = best_score_global
@@ -427,12 +427,10 @@ def _compute_ratio_scores(
                 ))
 
 
-
-
 def better_score(
-    pg,
     score1: float,
     score2: float,
+    maximize: bool,
     or_equal: bool = False
 ) -> bool:
     """
@@ -454,59 +452,58 @@ def better_score(
     elif score1 == score2:
         return or_equal
     elif score1 > score2:
-        return pg._maximize
+        return maximize
     elif score1 < score2:
-        return not pg._maximize
+        return not maximize
     else:
         msg = "Better score could not be determined: {} | {}".format(
             score1, score2
         )
         raise ValueError(msg)
 
-
 def argbest(
-    pg,
     score1: float,
     score2: float,
+    maximize: bool,
 ) -> int:
     """
     Returns index of best score
     """
-    if better_score(pg, score1, score2):
+    if better_score(score1, score2, maximize):
         return 0
     else:
         return 1
 
 def best_score(
-    pg,
     score1: float,
     score2: float,
+    maximize: bool,
 ) -> float:
     """
     Returns best score
     """
-    return [score1, score2][argbest(pg, score1, score2)]
+    return [score1, score2][argbest(score1, score2, maximize)]
 
 def argworst(
-    pg,
     score1: float,
     score2: float,
+    maximize: bool,
 ) -> int:
     """
     Returns index of worst score
     """
-    if better_score(pg, score1, score2):
+    if better_score(score1, score2, maximize):
         return 1
     else:
         return 0
 
 def worst_score(
-    pg,
     score1: float,
     score2: float,
+    maximize: bool,
 ) -> float:
     """
     Returns worst score
     """
-    return [score1, score2][argworst(pg, score1, score2)]
+    return [score1, score2][argworst(score1, score2, maximize)]
 
