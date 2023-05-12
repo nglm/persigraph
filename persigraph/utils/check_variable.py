@@ -22,6 +22,18 @@ def check_all(
             msg_err = var_name + msg_cond
             raise ValueError(msg_err)
 
+def check_is_less_than(variable, var_name: str = 'Variable'):
+    [v1, v2] = variable
+    condition = lambda x : (v1 < v2)
+    msg_cond =  "a should be (strictly) less than b, with [a,b]= "
+    check_condition(condition, [v1, v2], var_name, msg_cond)
+
+def check_is_leq(variable, var_name: str = 'Variable'):
+    [v1, v2] = variable
+    condition = lambda x : (v1 <= v2)
+    msg_cond =  "a should be less than (or equal to) b, with [a,b]= "
+    check_condition(condition, [v1, v2], var_name, msg_cond)
+
 def check_O1_range(variable, var_name: str = 'Variable'):
     condition = lambda x : (x >= 0 and x <= 1)
     msg_cond =  " should be within 0-1 range"
