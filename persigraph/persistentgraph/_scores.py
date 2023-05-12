@@ -5,9 +5,9 @@ It is totally clustering model independent
 
 import numpy as np
 from numpy.linalg import norm
-from scipy.spatial.distance import sqeuclidean, cdist, pdist
+from scipy.spatial.distance import cdist, pdist
 from sklearn.metrics import pairwise_distances
-from tslearn.metrics import cdist_soft_dtw_normalized
+from tslearn.metrics import cdist_soft_dtw
 from typing import List, Sequence, Union, Any, Dict
 
 SCORES = [
@@ -61,14 +61,13 @@ def f_inertia(cluster: np.ndarray, cluster_info: dict = None) -> float:
         )
     if len(dims) == 3:
         barycenter = np.expand_dims(cluster_info["barycenter"], 0)
-        score = cdist_soft_dtw_normalized(
+        score = cdist_soft_dtw(
             cluster,
             barycenter,
             gamma=0.1
         )
-    # cdist_soft_dtw_normalized should return positive values but
-    # somehow doesn't, so here we go...
-    score = np.maximum(score, 0)
+    # Note cdist_soft_dtw_normalized should return positive values but
+    # somehow doesn't!
     return np.sum(score)
 
 def f_generalized_var(cluster: np.ndarray, cluster_info: dict = None) -> float:
@@ -112,7 +111,7 @@ def f_med_dev_mean(cluster: np.ndarray, cluster_info: dict = None) -> float:
                 metric='sqeuclidean'
             ))
         if len(dims) == 3:
-            return np.median(cdist_soft_dtw_normalized(
+            return np.median(cdist_soft_dtw(
                 cluster,
                 cluster_info["barycenter"],
                 gamma=0.1
@@ -140,7 +139,7 @@ def f_mean_dev_med(cluster: np.ndarray, cluster_info: dict = None) -> float:
                 metric='sqeuclidean'
             ))
         if len(dims) == 3:
-            return np.mean(cdist_soft_dtw_normalized(
+            return np.mean(cdist_soft_dtw(
                 cluster,
                 cluster_info["barycenter"],
                 gamma=0.1
