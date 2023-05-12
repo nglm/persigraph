@@ -1,6 +1,6 @@
 """
 This module deals with the score function and score ratio
-It is totally clustering model independant
+It is totally clustering model independent
 """
 
 import numpy as np

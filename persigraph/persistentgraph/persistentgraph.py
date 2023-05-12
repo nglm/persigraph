@@ -1355,7 +1355,15 @@ class PersistentGraph():
     @property
     def local_steps(self) -> List[List[dict]]:
         """
-        Nested list (time and steps) of scores
+        Sorted nested list (time and steps) of scores.
+
+        Steps are sorted in increasing order of ratio_scores.
+
+        Available keys of self._local_steps[t][s]:
+        - `params`
+        - `scores`
+        - `ratio_scores`
+        - `global_step_nums`
 
         :rtype: List[List[dict]]
         """
@@ -1366,10 +1374,13 @@ class PersistentGraph():
         """
         Sorted steps as used for each step of the algorithm
         available keys (with values being lists of length nb_steps)
-        - time_steps
-        - local_step_nums
-        - ratio_scores
-        - scores
+        - `time_steps`
+        - `local_step_nums`
+        - `ratio_scores`
+        - `scores`
+        - `params`
+
+        Steps are sorted in increasing order of ratio_scores.
 
         :rtype: dict[str, List]
         """
