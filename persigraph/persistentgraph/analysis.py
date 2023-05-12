@@ -125,7 +125,7 @@ def get_k_life_span(
     - If all scores are equal, life_span=0, r_birth=0 and r_death=0 for all k
     except for k=1, where life_span=1, r_birth=0 and r_death=1
 
-    e.g. if k=2,3 have the same r_score, thend
+    e.g. if k=2,3 have the same r_score, then
     - life span[3] = 0
     - life span[2] = r_curr - r_prev where r_prev is the last r_score found
     without being equal to r_curr

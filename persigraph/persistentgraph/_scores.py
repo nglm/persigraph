@@ -405,7 +405,11 @@ def _compute_ratio_scores(
     pg,
 ):
     """
-    Compute the ratio scores and life span of local scores and vertices
+    Compute the ratio scores and life span of local scores and vertices.
+
+    Note that 'ratio_score' of steps refer to the birth ratio score.
+    For more information on how life spans of steps are computed based on
+    the ratio_score of steps, see `get_k_life_span`.
 
     Update the pg._max_life_span if relevant
 

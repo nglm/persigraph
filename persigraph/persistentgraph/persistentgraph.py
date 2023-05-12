@@ -1365,6 +1365,10 @@ class PersistentGraph():
         - `ratio_scores`
         - `global_step_nums`
 
+        Note that `ratio_scores` refers to the birth ratio of the step,
+        see `get_k_life_span` for more information on how `ratio_scores`
+        is used to compute life spans of steps.
+
         :rtype: List[List[dict]]
         """
         return self._local_steps
