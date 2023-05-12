@@ -318,10 +318,6 @@ def compute_score(
                 + " is invalid. Please choose a valid score_type: "
                 + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
             )
-    if score < 0:
-        raise ValueError(
-            "Score can't be negative: " + str(score)
-        )
     return np.around(score, pg._precision)
 
 
