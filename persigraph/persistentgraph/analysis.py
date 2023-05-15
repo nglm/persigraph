@@ -115,6 +115,8 @@ def get_k_life_span(
     life_span[k_prev][t] = r_curr - r_prev
 
     Note:
+    - g._local_steps[t][s]['ratio_score'] refers to the score of birth of
+    the local step.
     - there might be some 'holes' when steps are ignored
     their life span will then all be 0.
     - In case of equal r_scores, the smallest k value
