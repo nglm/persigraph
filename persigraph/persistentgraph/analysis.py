@@ -151,7 +151,7 @@ def get_k_life_span(
     for t in range(g.T):
 
         # to keep track of the last step and make sure smaller k are favored
-        k_prev = k_max+1 #initialize to something comparable but than never wins
+        k_prev = 0
         r_prev = 0
         k_eq = []
 
@@ -173,9 +173,8 @@ def get_k_life_span(
                 # If same ks were sharing the same r_score, keep their
                 # life span to 0 as initialized...
                 if k_eq:
-                    sorted_k_eq = sorted(k_eq)
                     # ...except for the smallest k
-                    k_curr = sorted_k_eq[0]
+                    k_curr = max(sorted(k_eq)[0], 1)
                 life_span[k_curr][t] = r_curr - r_prev
                 k_eq = []
 
@@ -186,7 +185,7 @@ def get_k_life_span(
         # ------- Last step ---------
         # If we were in a series of equal scores, find the "good" k_prev
         if k_eq != []:
-            k_curr = sorted(k_eq)[0]
+            k_curr = max(sorted(k_eq)[0], 1)
         life_span[k_curr][t] = 1 - r_prev
 
     return life_span
@@ -213,7 +212,7 @@ def get_relevant_k(
         life_span = get_k_life_span(g, k_max)
 
     # list of t (k, life_span_k)
-    relevant_k = [[0, 0.] for _ in range(g.T)]
+    relevant_k = [[1, 0.] for _ in range(g.T)]
     for t in range(g.T):
         for k, life_span_k in life_span.items():
             # Strict comparison to prioritize smaller k values
