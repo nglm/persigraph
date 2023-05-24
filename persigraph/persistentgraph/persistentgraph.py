@@ -1224,7 +1224,8 @@ class PersistentGraph():
     @property
     def life_span(self) -> Dict[int, List[float]]:
         """
-        life span for all k and each t
+        Dict of life span for all k and each t. Each key `k` is associated
+        with a list of length T.
 
         :rtype: Dict[int, List[float]]
         """
@@ -1251,9 +1252,11 @@ class PersistentGraph():
     @property
     def relevant_k(self) -> Dict[str, List]:
         """
-        Dict of lists with 2 keys, "k" and "life_span"
+        Dict of lists with 2 keys, "k" and "life_span", both lists
+        are of length T and represent respectively the most relevant k
+        and its life span at each time step.
 
-        :rtype:
+        :rtype: Dict[str, List]
         """
         return self._relevant_k
 
@@ -1295,8 +1298,7 @@ class PersistentGraph():
         """
         List of edge num and global step for each t and each pseudo local step
 
-        Local steps don't really refer to the algo's local steps since they
-        will be new edges at t whenever there is a new local step at t
+        Pseudo-local steps don't really refer to the algo's local steps since they will be new edges at t whenever there is a new local step at t
         OR at t+1
 
         :rtype: List[dict]
@@ -1355,7 +1357,7 @@ class PersistentGraph():
     @property
     def local_steps(self) -> List[List[dict]]:
         """
-        Sorted nested list (time and steps) of scores.
+        Sorted nested list (time and steps) of information on local steps.
 
         Steps are sorted in increasing order of ratio_scores.
 
@@ -1365,9 +1367,19 @@ class PersistentGraph():
         - `ratio_scores`
         - `global_step_nums`
 
-        Note that `ratio_scores` refers to the birth ratio of the step,
-        see `get_k_life_span` for more information on how `ratio_scores`
-        is used to compute life spans of steps.
+        Let's denote $k_{t,s}$ the assumption on the number of clusters at time
+        step `t` and local step `s`; and $r_{t,s}$ its corresponding score
+        ratio.
+
+        - The "improvement" of assuming $k_t,s$ is defined as
+        $r_{t,s} - r_{t,s-1}$
+        - The "cost" of assuming $k_t,s$ is defined as
+        $r_{t,s+1} - r_{t,s}$
+        - By default, the "life span" of the assumption $k_t,s$ is defined as
+        its improvement. Note that according to this definition of life span,
+        `ratio_scores` refers to the death ratio of the step. See
+        `get_k_life_span` for more information on how `ratio_scores` is used
+        to compute life spans of steps.
 
         :rtype: List[List[dict]]
         """

@@ -115,15 +115,17 @@ def get_k_life_span(
     life_span[k_prev][t] = r_curr - r_prev
 
     Note:
-    - g._local_steps[t][s]['ratio_score'] refers to the score of birth of
+    - g._local_steps[t][s]['ratio_score'] refers to the score of death of
     the local step.
     - there might be some 'holes' when steps are ignored
     their life span will then all be 0.
     - In case of equal r_scores, the smallest k value
     will be favored, the other ones keep their life span of value 0.
     - The case k=0 is used only to be used as a potential score bound.
-    It is never used to create a vertex in the graph and it doesn't have
-    a life span.
+    It is never used to create a vertex in the graph and it doesn't
+    really have a life span. However if k=0 is indeed the worst score
+    (as it should in a unimodal case) then, it helps define the second to
+    the worst score.
     - If all scores are equal, life_span=0, r_birth=0 and r_death=0 for all k
     except for k=1, where life_span=1, r_birth=0 and r_death=1
 
