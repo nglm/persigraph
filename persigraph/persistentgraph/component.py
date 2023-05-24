@@ -237,6 +237,24 @@ class Component():
         Note that, depending on the type of score used, `score_birth`
         and / or `score_death` could be negative.
 
+        Referring to the definition of score ratios and life spans in graph
+        local steps:
+
+        - The "improvement" of assuming $k_t,s$ is defined as
+        $r_{t,s} - r_{t,s-1}$
+        - The "cost" of assuming $k_t,s$ is defined as
+        $r_{t,s+1} - r_{t,s}$
+        - By default, the "life span" of the assumption $k_t,s$ is defined as
+        its improvement. Note that according to this definition of life span,
+        `ratio_scores` refers to the death ratio of the step. See
+        `PersistentGraph.local_steps` for more information on scores,
+        ratios and life spans.
+
+        For a vertex `v`, the life span is defined as the improvement of
+        ratio between the last assumption before `v` was created and the
+        ratio of the best assumption where `v` is still alive, that means
+        ratio at which `v` dies.
+
         :rtype: Sequence[float]
         """
         return self.__scores
@@ -265,6 +283,9 @@ class Component():
         when `score_birth` > `score_death`.
         Both `ratio_score_birth` and`ratio_score_death` are within [0, 1]
         range.
+
+        See `PersistentGraph.local_steps` for more information on scores,
+        ratios and life spans.
 
         :rtype: Sequence[float]
         """
@@ -296,6 +317,9 @@ class Component():
     def life_span(self) -> float:
         """
         Life span of Component: ``ratio_death`` - ``ratio_birh``
+
+        See `PersistentGraph.local_steps` for more information on scores,
+        ratios and life spans.
 
         :rtype: float
         """

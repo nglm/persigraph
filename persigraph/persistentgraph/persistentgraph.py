@@ -292,7 +292,7 @@ class PersistentGraph():
         members: List[int],
     ):
         """
-        Add an adge to the current graph
+        Add an edge to the current graph
 
         Return None if the edge is malformed
 
