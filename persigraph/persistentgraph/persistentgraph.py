@@ -325,13 +325,13 @@ class PersistentGraph():
             return None
 
         # Create the edge
-        # ------------ Old policy: common life span --------------------
+        # ------------ policy 1: common life span --------------------
         argbirth = np.argmax([v_start.score_ratios[0], v_end.score_ratios[0]])
         argdeath = np.argmin([v_start.score_ratios[1], v_end.score_ratios[1]])
 
-        # ------------ New policy: min of life span --------------------
-        argbirth = np.argmin([v_start.life_span, v_end.life_span])
-        argdeath = argbirth
+        # ------------ policy 2: min of life span --------------------
+        # argbirth = np.argmin([v_start.life_span, v_end.life_span])
+        # argdeath = argbirth
 
         # Note that score birth and death might not be consistent but
         # The most important thing is the ratios which must be consistent
