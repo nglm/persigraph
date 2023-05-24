@@ -309,18 +309,20 @@ class PersistentGraph():
         t = v_start.time_step
         # If v_start is dead before v_end is even born
         # Or if v_end is dead before v_start is even born
-        if not self._quiet:
-            if (
-                v_start.score_ratios[1] < v_end.score_ratios[0]
-                or v_end.score_ratios[1] < v_start.score_ratios[0]
-            ):
+
+        if (
+            v_start.score_ratios[1] <= v_end.score_ratios[0]
+            or v_end.score_ratios[1] <= v_start.score_ratios[0]
+        ):
+            if not self._quiet:
                 print("v_start scores: ", v_start.score_ratios)
                 print("v_end scores: ", v_end.score_ratios)
                 print("WARNING: Vertices are not contemporaries")
-                return None
-            if not members:
+            return None
+        if not members:
+            if not self._quiet:
                 print("WARNING: No members in edge")
-                return None
+            return None
 
         # Create the edge
         argbirth = np.argmax([v_start.score_ratios[0], v_end.score_ratios[0]])
@@ -333,13 +335,14 @@ class PersistentGraph():
 
         ratio_birth = [v_start.score_ratios[0], v_end.score_ratios[0]][argbirth]
         ratio_death = [v_start.score_ratios[1], v_end.score_ratios[1]][argdeath]
-        if not self._quiet:
-            if (ratio_death < ratio_birth):
+
+        if (ratio_death < ratio_birth):
+            if not self._quiet:
                 print(
                     "WARNING: ratio death smaller than ratio birth!",
                     ratio_death, ratio_birth
                 )
-                return None
+            return None
 
         # Compute info (mean, std inf/sup at start and end)
         X_start = self._members[members, :, t]
@@ -637,6 +640,7 @@ class PersistentGraph():
 
     def _construct_vertices(self, cluster_data):
         for t in range(self.T):
+            score_prev = self._worst_scores[t]
             for step, (clusters, clusters_info) in enumerate(cluster_data[t]):
                 n_clusters = len(clusters)
                 score = self._local_steps[t][step]['score']
@@ -715,7 +719,7 @@ class PersistentGraph():
                             info = info,
                             t = t,
                             members = members,
-                            scores = [score, None],
+                            scores = [score_prev, None],
                             local_step = step,
                         )
 
@@ -723,11 +727,14 @@ class PersistentGraph():
                 self._kill_vertices(
                     t = t,
                     vertices = v_to_kill,
-                    score_death = score,
+                    score_death = score_prev,
                 )
                 if self._verbose == 2:
                     print("  ", nb_v_created, ' vertices created\n  ',
                             v_to_kill, ' killed')
+
+                # ----------------  Prepare next iteration -------------
+                score_prev = score
 
         if self._verbose:
             print(
