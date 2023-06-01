@@ -97,8 +97,8 @@ class Component():
         corresponding scores) than `ratio_score_death`.
         - By convention, `ratio_score_birth` is lower than
         `ratio_score_death` (in terms of ratio).
-        - Both `ratio_score_birth` and`ratio_score_death` are within [0, 1]
-        range.
+        - Both `ratio_score_birth` and`ratio_score_death` are within
+        $[0, 1]$ range.
 
         This means that `ratio_score_birth` <= `ratio_score_death` even
         when `score_birth` > `score_death`.
@@ -228,7 +228,8 @@ class Component():
         """
         Sequence (`score_birth`, `score_death`).
 
-        By convention, `score_birth` is worse than `score_death`.
+        For vertices, `score_birth` is worse than `score_death` by
+        convention.
 
         Note that if a score is better when maximized (respectively
         minimized), `score_birth` is lower (resp higher) than
@@ -237,23 +238,8 @@ class Component():
         Note that, depending on the type of score used, `score_birth`
         and / or `score_death` could be negative.
 
-        Referring to the definition of score ratios and life spans in graph
-        local steps:
-
-        - The "improvement" of assuming $k_t,s$ is defined as
-        $r_{t,s} - r_{t,s-1}$
-        - The "cost" of assuming $k_t,s$ is defined as
-        $r_{t,s+1} - r_{t,s}$
-        - By default, the "life span" of the assumption $k_t,s$ is defined as
-        its improvement. Note that according to this definition of life span,
-        `ratio_scores` refers to the death ratio of the step. See
-        `PersistentGraph.local_steps` for more information on scores,
-        ratios and life spans.
-
-        For a vertex `v`, the life span is defined as the improvement of
-        ratio between the last assumption before `v` was created and the
-        ratio of the best assumption where `v` is still alive, that means
-        ratio at which `v` dies.
+        For edges, `scores` is rather irrelevant as different time steps
+        could be mixed.
 
         :rtype: Sequence[float]
         """
@@ -281,11 +267,32 @@ class Component():
 
         This means that `ratio_score_birth` <= `ratio_score_death` even
         when `score_birth` > `score_death`.
-        Both `ratio_score_birth` and`ratio_score_death` are within [0, 1]
-        range.
+        Both `ratio_score_birth` and`ratio_score_death` are within $[0,
+        1]$ range.
 
-        See `PersistentGraph.local_steps` for more information on scores,
-        ratios and life spans.
+        Score ratios for components are derived from score ratios of
+        local steps in the graph $r_{t,s}$. See
+        `PersistentGraph.local_steps` for more information on step score
+        ratios and step life spans.
+
+        Definitions of score ratios and life spans in graph
+        local steps:
+
+        - $r_{t,s}$ = (score_{t,s} - sco / score_bounds_{t]})
+        - The "improvement" of assuming $k_t,s$ is defined as
+        $r_{t,s} - r_{t,s-1}$
+        - The "cost" of assuming $k_t,s$ is defined as
+        $r_{t,s+1} - r_{t,s}$
+        - By default, the "life span" of the assumption $k_t,s$ is
+        defined as its improvement. Note that according to this
+        definition of life span, `ratio_scores` refers to the death
+        ratio of the step. See `PersistentGraph.local_steps` for more
+        information on scores, ratios and life spans.
+
+        For a component `c`, the life span is defined as the
+        improvement of ratio between the last assumption before `c` was
+        created and the ratio of the best assumption where `c` is still
+        alive, that means ratio at which `c` dies.
 
         :rtype: Sequence[float]
         """
@@ -316,10 +323,12 @@ class Component():
     @property
     def life_span(self) -> float:
         """
-        Life span of Component: ``ratio_death`` - ``ratio_birh``
+        Life span of Component: ``ratio_death`` - ``ratio_birth``. This
+        holds regardless of the type of score, convention on the
+        definition of life span and type of component (vertex or edge).
 
-        See `PersistentGraph.local_steps` for more information on scores,
-        ratios and life spans.
+        See `PersistentGraph.local_steps` for more information on
+        scores, ratios and life spans.
 
         :rtype: float
         """

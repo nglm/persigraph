@@ -89,7 +89,7 @@ class Vertex(Component):
         Info related to the cluster Vertex represents
 
         Must contain a 'type' key, representing the type of cluster
-        (uniform, guaussian, etc)
+        (uniform, gaussian, etc)
 
         :rtype: Dict[str, Any]
         """

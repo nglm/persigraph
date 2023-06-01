@@ -623,7 +623,7 @@ class PersistentGraph():
             for s in steps:
                 local_s = self.get_e_local_step_from_global_step(step=s, t=t)
 
-                # If the global step occured before the initialization step at
+                # If the global step occurred before the initialization step at
                 # t then return local_s = -1 and there is no alive edges
                 # to add
                 if local_s != -1:
