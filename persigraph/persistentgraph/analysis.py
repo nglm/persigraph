@@ -163,20 +163,22 @@ def get_k_life_span(
             # If r_scores are equal, don't update life span,
             # just stack k values that share the same r_score
             if r_curr == r_prev:
-                if k_eq == []:
-                    k_eq = [k_prev, k_curr]
-                else:
-                    k_eq.append(k_curr)
+                if k_prev != 0:
+                    k_curr = min(k_curr, k_prev)
+                # if k_eq == []:
+                #     k_eq = [k_prev, k_curr]
+                # else:
+                #     k_eq.append(k_curr)
 
             # Else compute life span of k_curr, with r_prev != r_curr
             else:
                 # If same ks were sharing the same r_score, keep their
                 # life span to 0 as initialized...
-                if k_eq:
-                    # ...except for the smallest k
-                    k_curr = max(sorted(k_eq)[0], 1)
+                # if k_eq:
+                #     # ...except for the smallest k
+                #     k_curr = max(sorted(k_eq)[0], 1)
                 life_span[k_curr][t] = r_curr - r_prev
-                k_eq = []
+                # k_eq = []
 
             # Prepare next iteration
             r_prev = r_curr
@@ -184,8 +186,9 @@ def get_k_life_span(
 
         # ------- Last step ---------
         # If we were in a series of equal scores, find the "good" k_prev
-        if k_eq != []:
-            k_curr = max(sorted(k_eq)[0], 1)
+        # if k_eq != []:
+        #     k_curr = max(sorted(k_eq)[0], 1)
+        k_curr = max(min(k_curr, k_prev), 1)
         life_span[k_curr][t] = 1 - r_prev
 
     return life_span
