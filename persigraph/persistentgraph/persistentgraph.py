@@ -350,10 +350,21 @@ class PersistentGraph():
             return None
 
         # Compute info (mean, std inf/sup at start and end)
+        # Option 1: Re-compute cluster params naively from original members
+        # Note that this is not very consistent with DTW.....
         X_start = self._members[members, :, t]
         info_start = compute_cluster_params(X_start)
         X_end = self._members[members, :, t+1]
         info_end = compute_cluster_params(X_end)
+
+        # Option 2: Use v.info["X"] that we are now storing!
+        # ind_X_start = v_start.index_members(members)
+        # X_start = v_start.info["X"][ind_X_start]
+        # info_start = compute_cluster_params(X_start)
+
+        # ind_X_end = v_end.index_members(members)
+        # X_end = v_end.info["X"][ind_X_end]
+        # info_end = compute_cluster_params(X_end)
 
         e = Edge(
             info_start = info_start,

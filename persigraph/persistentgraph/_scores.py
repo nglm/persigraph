@@ -61,11 +61,16 @@ def f_inertia(cluster: np.ndarray, cluster_info: dict = None) -> float:
         )
     if len(dims) == 3:
         barycenter = np.expand_dims(cluster_info["barycenter"], 0)
+        # Option 1: Pairwise distances on the entire window using DTW
         score = cdist_soft_dtw(
             cluster,
             barycenter,
             gamma=0.1
         )
+
+        # Option 2: Pairwise distances between the midpoint of the barycenter
+        # and the corresponding time step for each member in the cluster
+        # TODO
     # Note cdist_soft_dtw_normalized should return positive values but
     # somehow doesn't!
     return np.sum(score)

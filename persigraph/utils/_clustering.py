@@ -98,21 +98,22 @@ def compute_cluster_params(
     """
     Compute the mean, std, std_sup, inf, etc of a given cluster
 
-    If `cluster` has shape `(N_clus, w_t, d)`, uses DTW. Otherwise,
-    it must have a shape `(N_clus, w_t*d)` and the regular mean is used.
+    If `cluster` has shape `(N_clus, w_t, d)`, uses DTW. Otherwise, it
+    must have a shape `(N_clus, w_t*d)` and the regular mean is used.
 
-    If DTW is used, first compute the barycentric average of the cluster.
-    Then consider only the midpoint of that barycenter to compute the
-    mean and uses it as a reference to compute the standard deviation.
-    Otherwise, uses the regular mean.
+    If DTW is used, first compute the barycentric average of the
+    cluster. Then consider only the midpoint of that barycenter to
+    compute the mean and uses it as a reference to compute the standard
+    deviation. Otherwise, uses the regular mean.
 
     :param cluster: Values of the members belonging to that cluster
     :type cluster: np.ndarray, shape (N_clus, w_t*d)`
     or `(N_clus, w_t, d)`
-    :param t: center point of the time window w_t, used as reference in case of
-    DTW, defaults to None
-    Note that for the first time steps and the last time steps, the "center" of the time window is not necessarily in the middle on the window.
-    E.g. for t=0 and w = 50, we have w_t = 26 and midpoint_w = 0
+    :param t: center point of the time window w_t, used as reference in
+    case of DTW, defaults to None
+    Note that for the first time steps and the last time steps, the
+    "center" of the time window is not necessarily in the middle on the
+    window. E.g. for t=0 and w = 50, we have w_t = 26 and midpoint_w = 0
     :type t: int, optional
     :return: Dict of summary statistics
     :rtype: Dict
@@ -132,23 +133,30 @@ def compute_cluster_params(
         # Take the barycenter as reference
         barycenter = softdtw_barycenter(cluster)
         cluster_params['barycenter'] = barycenter
-        # Here we can have len(X) > N_clus! because for a given time series,
-        # multiple time step can correspond to the midpoint of the barycenter
-        # find finding the dtw_path between that time series and this cluster.
-        # Each element of X is of shape (d)
+        # Here we can have len(X) > N_clus! because for a given time
+        # series, multiple time step can correspond to the midpoint of
+        # the barycenter find finding the dtw_path between that time
+        # series and this cluster. Each element of X is of shape (d)
         X = []
-        # For each time series in the dataset... compare to the barycenter
+        # For each time series in the dataset, compare to the barycenter
         for ts in cluster:
             path, _ = dtw_path(
                 barycenter, ts,
                 global_constraint="sakoe_chiba", sakoe_chiba_radius=5
             )
-            # Find time steps that match with the midpoint of the barycenter
+            # Find time steps that match with the midpoint of the
+            # barycenter
             ind = [
                 path[i][1] for i in range(len(path))
                 if path[i][0] == midpoint_w
             ]
+            # Option 1: take all time steps that match the midpoint of
+            # the barycenter
             X += [ts[i] for i in ind]
+
+            # Option 2: take all the mean value for all time steps that
+            # match the midpoint of the barycenter
+            # X.append(np.mean([ts[i] for i in ind], axis=0))
         X = np.array(X)
         mean = barycenter[midpoint_w]
     else:
