@@ -133,10 +133,6 @@ def compute_cluster_params(
         # Take the barycenter as reference
         barycenter = softdtw_barycenter(cluster)
         cluster_params['barycenter'] = barycenter
-        # Here we can have len(X) > N_clus! because for a given time
-        # series, multiple time step can correspond to the midpoint of
-        # the barycenter find finding the dtw_path between that time
-        # series and this cluster. Each element of X is of shape (d)
         X = []
         # For each time series in the dataset, compare to the barycenter
         for ts in cluster:
@@ -152,6 +148,11 @@ def compute_cluster_params(
             ]
             # Option 1: take all time steps that match the midpoint of
             # the barycenter
+            # Here we can have len(X) > N_clus! because for a given time
+            # series, multiple time step can correspond to the midpoint
+            # of the barycenter find finding the dtw_path between that
+            # time series and this cluster. Each element of X is of
+            # shape (d)
             # X += [ts[i] for i in ind]
 
             # Option 2: take all the mean value for all time steps that
