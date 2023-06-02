@@ -152,11 +152,11 @@ def compute_cluster_params(
             ]
             # Option 1: take all time steps that match the midpoint of
             # the barycenter
-            X += [ts[i] for i in ind]
+            # X += [ts[i] for i in ind]
 
             # Option 2: take all the mean value for all time steps that
             # match the midpoint of the barycenter
-            # X.append(np.mean([ts[i] for i in ind], axis=0))
+            X.append(np.mean([ts[i] for i in ind], axis=0))
         X = np.array(X)
         mean = barycenter[midpoint_w]
     else:
@@ -185,6 +185,8 @@ def compute_cluster_params(
         std_inf[i] = np.sqrt( np.sum((X_inf - mean[i])**2) / n_inf )
         std_sup[i] = np.sqrt( np.sum((X_sup - mean[i])**2) / n_sup )
 
+    # Member values (aligned with the barycenter if DTW was used)
+    cluster_params['X'] = X
     cluster_params['mean'] = mean
     cluster_params['std'] = std
     cluster_params['std_inf'] = std_inf
