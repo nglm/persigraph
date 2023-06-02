@@ -68,6 +68,21 @@ class Vertex(Component):
             res = False
         return res
 
+    def index_members(self, members: Sequence[int]) -> List[int]:
+        """
+        Find indices of `members` in `Vertex.members`
+
+        Assume that `members` is a subset of `Vertex.members`. Useful
+        when computing info of potential edges going to/coming from
+        `Vertex`.
+
+        :param members: _description_
+        :type members: Sequence[int]
+        :return: _description_
+        :rtype: List[int]
+        """
+        return [self.members.index(m) for m in members]
+
 
     def add_edge_to(
         self,
