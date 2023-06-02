@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from .._scores import SCORES, SCORES_TO_MINIMIZE
 from .._clustering_model import CLUSTERING_METHODS
 from ..persistentgraph import PersistentGraph
-from ..plots import graph
+from ..plots import graph, overview
 from ...datasets import mini
 
 def assert_sorted(l, msg=""):
@@ -48,7 +48,7 @@ def test_construct_graph():
     members, time = mini()
     g = PersistentGraph(members, time)
     g.construct_graph()
-    graph(g)
+    overview(g)
 
     # ------------------------------------------------------------------
     # Test numbers of vertices / edges / steps are consistent
@@ -85,7 +85,7 @@ def test_construct_graph():
         e_t = g._e_at_step[t]['e']
         msg = "t: {:d} | edges not sorted {}".format(t, e_t)
         (assert_sorted(e_t_s, msg) for e_t_s in e_t)
-    fig, ax = graph(g)
+    fig, ax = overview(g)
     fname = "test_construct_graph"
     fig.savefig('tmp/'+fname)
     g.save('tmp/'+fname, type="json")
@@ -104,7 +104,7 @@ def test_sorted_steps():
                 members, time, time_window=w,
                 DTW=DTW, squared_radius=squared_radius)
             g.construct_graph()
-            fig, ax = graph(g)
+            fig, ax = overview(g)
             fname = (
                 "test_sorted_steps_" + "DTWs_" + str(DTW)
                 + "squared_radius_" + str(squared_radius)
@@ -124,7 +124,7 @@ def test_time_window():
     for w in list_w:
         g = PersistentGraph(members, time, time_window=w)
         g.construct_graph()
-        fig, ax = graph(g)
+        fig, ax = overview(g)
         fname = "test_time_window_" + "time_window_" + str(w)
         fig.savefig('tmp/'+fname)
         g.save('tmp/'+fname, type="json")
@@ -142,7 +142,7 @@ def test_squared_radius():
                 time_window=w,
             )
             g.construct_graph()
-            fig, ax = graph(g)
+            fig, ax = overview(g)
             fname = (
                 "test_squared_radius_" + "time_window_" + str(w)
                 + "squared_radius_" + str(squared_radius)
@@ -170,7 +170,7 @@ def test_DTW():
                             squared_radius=squared_radius, time_window=w
                             )
                         g.construct_graph()
-                        fig, ax = graph(g)
+                        fig, ax = overview(g)
                         fname = "test_DTW_" + str(m) + "_" + str(is_dtw) + "_squared_" + str(squared_radius) + "_w_" + str(w)
                         fig.savefig('tmp/'+fname)
                         g.save('tmp/'+fname, type="json")
@@ -182,7 +182,7 @@ def test_clustering_methods():
         print(m)
         g = PersistentGraph(members, time, model_class=m)
         g.construct_graph()
-        fig, ax = graph(g)
+        fig, ax = overview(g)
         fname = "test_clustering_methods_" + "method_" + str(m)
         fig.savefig('tmp/'+fname)
         g.save('tmp/'+fname, type="json")
@@ -200,7 +200,7 @@ def test_agglomerative():
             model_kw=model_kw
         )
         g.construct_graph()
-        graph(g)
+        overview(g)
 
 def test_gmm():
     members, time = mini()
@@ -217,7 +217,7 @@ def test_gmm():
             model_class_kw = model_class_kw
         )
         g.construct_graph()
-        graph(g)
+        overview(g)
 
 def test_scores():
     members, time = mini(multivariate=True)
@@ -226,7 +226,7 @@ def test_scores():
         print(s)
         g = PersistentGraph(members, time, score_type=s)
         g.construct_graph()
-        graph(g)
+        overview(g)
 
 # def test_decreasing_distance():
 #     """
