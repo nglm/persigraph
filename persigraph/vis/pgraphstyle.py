@@ -160,14 +160,15 @@ class PGraphStyle():
                 # and distinguish between gaussian and uniform vertices
                 gaussians, uniforms = self.sort_components(g, vertices[t])
 
-                # Collections for gaussian vertices
-                axs_collect = self.vertices.cdraw(
-                    g,
-                    gaussians,
-                    f_collect_kw = {"axs": axs.flat}
-                )
-                for tot_col, part_col in zip(axs_collections, axs_collect):
-                    tot_col.append(part_col)
+                if gaussians:
+                    # Collections for gaussian vertices
+                    axs_collect = self.vertices.cdraw(
+                        g,
+                        gaussians,
+                        f_collect_kw = {"axs": axs.flat}
+                    )
+                    for tot_col, part_col in zip(axs_collections, axs_collect):
+                        tot_col.append(part_col)
 
                 # Collections for uniform vertices if necessary
                 if self.show_uniform:
