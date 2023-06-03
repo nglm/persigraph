@@ -15,6 +15,59 @@ class Component():
 
     key_incr:int = 0
 
+    @staticmethod
+    def contemporaries(c1, c2, verbose=False) -> bool:
+        """
+        Check if two components are contemporaries
+
+        Useful before defining an edge for example
+
+        :param c1: Component 1
+        :type c1: Component
+        :param c2: Component 2
+        :type c2: Component
+        :param verbose: if warnings should be printed, defaults to False
+        :type verbose: bool, optional
+        :return: True if they are contemporaries, False otherwise
+        :rtype: bool
+        """
+        # If c1 is dead before c2 is even born
+        # Or if c2 is dead before c1 is even born
+
+        if (
+            c1.score_ratios[1] <= c2.score_ratios[0]
+            or c2.score_ratios[1] <= c1.score_ratios[0]
+        ):
+            if verbose:
+                print("WARNING: Vertices are not contemporaries")
+                print("c1 scores: ", c1.score_ratios)
+                print("c2 scores:   ", c2.score_ratios)
+            return False
+        else:
+            return True
+
+    @staticmethod
+    def common_members(c1, c2, verbose=False) -> List[int]:
+        """
+        Return common members of 2 components
+
+        Useful before defining an edge for example
+
+        :param c1: Component 1
+        :type c1: Component
+        :param c2: Component 2
+        :type c2: Component
+        :param verbose: if warnings should be printed, defaults to False
+        :type verbose: bool, optional
+        :return: List of common members
+        :rtype:  List[int]
+        """
+        members = c1.get_common_elements(c2)
+
+        if verbose and not members:
+            print("WARNING: No common members")
+        return members
+
     def __init__(
         self,
         t: int = None,

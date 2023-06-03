@@ -1,11 +1,62 @@
-from typing import Sequence, List, Dict, Any
+from typing import Sequence, List, Dict, Any, Tuple
 from . import Component
 from ..utils.check_variable import check_int_positive
+from ..utils._clustering import compute_cluster_params
+
+import numpy as np
 
 class Edge(Component):
     """
     Graph Component that link 2 vertices of a PersistentGraph
     """
+
+
+
+
+
+    @staticmethod
+    def info(v, members: List[int]):
+        """
+        Compute edge params based on v.info["X"]
+
+        v.info["X"] contains aligned X values
+        """
+        ind_X = v.index_members(members)
+        X = v.info["X"][ind_X]
+        info = compute_cluster_params(X)
+        return info
+
+    @staticmethod
+    def ratio_scores(v_start, v_end) -> Tuple[List[float]]:
+        """
+        Compute scores and ratios based on vertices
+
+        :param v_start: v_start
+        :type v_start: Vertex
+        :param v_end: v_end
+        :type v_end: Vertex
+        :return: [score_birth, score_death] and [ratio_birth, ratio_death]
+        :rtype: Tuple[List[float]]
+        """
+        # ------------ policy 1: common life span --------------------
+        argbirth = np.argmax([v_start.score_ratios[0], v_end.score_ratios[0]])
+        argdeath = np.argmin([v_start.score_ratios[1], v_end.score_ratios[1]])
+
+        # ------------ policy 2: min of life span --------------------
+        # argbirth = np.argmin([v_start.life_span, v_end.life_span])
+        # argdeath = argbirth
+
+        # Note that score birth and death might not be consistent but
+        # The most important thing is the ratios which must be consistent
+        score_birth = [v_start.scores[0], v_end.scores[0]][argbirth]
+        score_death = [v_start.scores[1], v_end.scores[1]][argdeath]
+        scores = [score_birth, score_death]
+
+        ratio_birth = [v_start.score_ratios[0], v_end.score_ratios[0]][argbirth]
+        ratio_death = [v_start.score_ratios[1], v_end.score_ratios[1]][argdeath]
+        ratios = [ratio_birth, ratio_death]
+
+        return scores, ratios
 
     def __init__(
         self,

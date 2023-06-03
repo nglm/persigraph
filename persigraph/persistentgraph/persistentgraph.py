@@ -8,6 +8,7 @@ from typing import List, Sequence, Tuple, Union, Any, Dict
 
 from . import Vertex
 from . import Edge
+from . import Component
 from ._set_default_properties import (
     _set_members, _set_zero, _set_model_class, _set_score_type
 )
@@ -307,47 +308,19 @@ class PersistentGraph():
         :rtype: Edge
         """
         t = v_start.time_step
-        # If v_start is dead before v_end is even born
-        # Or if v_end is dead before v_start is even born
 
-        if (
-            v_start.score_ratios[1] <= v_end.score_ratios[0]
-            or v_end.score_ratios[1] <= v_start.score_ratios[0]
-        ):
-            if not self._quiet:
-                print("v_start scores: ", v_start.score_ratios)
-                print("v_end scores: ", v_end.score_ratios)
-                print("WARNING: Vertices are not contemporaries")
+        if not Component.contemporaries(v_start, v_end, self._quiet):
             return None
+
         if not members:
             if not self._quiet:
                 print("WARNING: No members in edge")
             return None
 
-        # Create the edge
-        # ------------ policy 1: common life span --------------------
-        argbirth = np.argmax([v_start.score_ratios[0], v_end.score_ratios[0]])
-        argdeath = np.argmin([v_start.score_ratios[1], v_end.score_ratios[1]])
+        # --------- Compute scores and ratios info --------------
+        scores, ratios = Edge.ratio_scores(v_start, v_end)
 
-        # ------------ policy 2: min of life span --------------------
-        # argbirth = np.argmin([v_start.life_span, v_end.life_span])
-        # argdeath = argbirth
-
-        # Note that score birth and death might not be consistent but
-        # The most important thing is the ratios which must be consistent
-        score_birth = [v_start.scores[0], v_end.scores[0]][argbirth]
-        score_death = [v_start.scores[1], v_end.scores[1]][argdeath]
-
-        ratio_birth = [v_start.score_ratios[0], v_end.score_ratios[0]][argbirth]
-        ratio_death = [v_start.score_ratios[1], v_end.score_ratios[1]][argdeath]
-
-        if (ratio_death < ratio_birth):
-            if not self._quiet:
-                print(
-                    "WARNING: ratio death smaller than ratio birth!",
-                    ratio_death, ratio_birth
-                )
-            return None
+        # -------------- Compute edge info --------------
 
         # Compute info (mean, std inf/sup at start and end)
         # Option 1: Re-compute cluster params naively from original members
@@ -358,13 +331,8 @@ class PersistentGraph():
         # info_end = compute_cluster_params(X_end)
 
         # Option 2: Use v.info["X"] that we are now storing!
-        ind_X_start = v_start.index_members(members)
-        X_start = v_start.info["X"][ind_X_start]
-        info_start = compute_cluster_params(X_start)
-
-        ind_X_end = v_end.index_members(members)
-        X_end = v_end.info["X"][ind_X_end]
-        info_end = compute_cluster_params(X_end)
+        info_start = Edge.info(v_start, members)
+        info_end = Edge.info(v_end, members)
 
         e = Edge(
             info_start = info_start,
@@ -374,8 +342,8 @@ class PersistentGraph():
             t = t,
             num = self._nb_edges[t],
             members = members,
-            scores = [score_birth, score_death],
-            score_ratios = [ratio_birth, ratio_death],
+            scores = scores,
+            score_ratios = ratios,
             total_nb_members = self.N,
         )
 
