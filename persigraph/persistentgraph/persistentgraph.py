@@ -1032,8 +1032,8 @@ class PersistentGraph():
         """
         Return the most relevant vertices and edges
 
-        :param relevant_k: Nested list of [k_relevant, life_span]
-        for each time step, defaults to None
+        Potentially fills holes in edges
+
         :type selected_k: List[int], optional
         :param k_max: Max value of k considered, defaults to 8
         :type k_max: int, optional
@@ -1046,6 +1046,7 @@ class PersistentGraph():
             relevant_k = get_relevant_k(self, k_max=k_max)
             selected_k = [k for [k, _] in relevant_k]
 
+        # ------------ Find vertices that represent such a k -----------
         relevant_vertices = [
             [
                 v for v in self._vertices[t]
@@ -1053,6 +1054,7 @@ class PersistentGraph():
             ] for t in range(self.T)
         ]
 
+        # ------------- Find edges between 2 relevant k ----------------
         relevant_edges = [
             [
                 e for e in self._edges[t]
@@ -1081,6 +1083,8 @@ class PersistentGraph():
                     v_starts = relevant_vertices[t]
                     v_ends = relevant_vertices[t+1]
                     for v_start in v_starts:
+
+                        # Find common members between v_start and v_end
                         v_end_members = [
                             (v, v.get_common_members(v_start)) for v in v_ends
                             if v.get_common_members(v_start) != []
