@@ -310,7 +310,7 @@ class PersistentGraph():
         """
         t = v_start.time_step
 
-        if not Component.contemporaries(v_start, v_end, self._quiet):
+        if not Component.contemporaries(v_start, v_end, not self._quiet):
             return None
 
         if not members:

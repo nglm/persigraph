@@ -39,7 +39,7 @@ class Component():
             or c2.score_ratios[1] <= c1.score_ratios[0]
         ):
             if verbose:
-                print("WARNING: Vertices are not contemporaries")
+                print("WARNING: Components are not contemporaries")
                 print("c1 scores: ", c1.score_ratios)
                 print("c2 scores:   ", c2.score_ratios)
             return False
