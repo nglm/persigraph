@@ -10,10 +10,6 @@ class Edge(Component):
     Graph Component that link 2 vertices of a PersistentGraph
     """
 
-
-
-
-
     @staticmethod
     def info(v, members: List[int]):
         """
