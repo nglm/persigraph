@@ -3,6 +3,7 @@ from bisect import bisect, bisect_right, insort
 import time
 import pickle
 import json
+from copy import deepcopy
 
 from typing import List, Sequence, Tuple, Union, Any, Dict
 
@@ -998,7 +999,7 @@ class PersistentGraph():
         fill_holes: bool = True,
     ) -> Tuple[List[Vertex], List[Edge]]:
         """
-        Return the most relevant vertices and edges
+        Return a deep copy of most relevant vertices and edges
 
         Potentially fills holes in edges
 
@@ -1017,7 +1018,7 @@ class PersistentGraph():
         # ------------ Find vertices that represent such a k -----------
         relevant_vertices = [
             [
-                v for v in self._vertices[t]
+                deepcopy(v) for v in self._vertices[t]
                 if has_element(v.info['brotherhood_size'], selected_k[t])
             ] for t in range(self.T)
         ]
@@ -1025,7 +1026,7 @@ class PersistentGraph():
         # ------------- Find edges between 2 relevant k ----------------
         relevant_edges = [
             [
-                e for e in self._edges[t]
+                deepcopy(e) for e in self._edges[t]
                 if (
                     has_element(
                         self._vertices[e.time_step][e.v_start].info['brotherhood_size'],
@@ -1074,6 +1075,12 @@ class PersistentGraph():
                                 total_nb_members = self.N,
                                 score_ratios = [0, 1],
                             ))
+
+                            # Add edge number to v_start and v_end
+                            # Potentially useful for plotting
+                            v_start.add_edge_from(e_num)
+                            v_end.add_edge_to(e_num)
+
                             e_num += 1
 
         return relevant_vertices, relevant_edges
