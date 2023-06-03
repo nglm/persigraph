@@ -1060,10 +1060,8 @@ class PersistentGraph():
                         for (v_end, members) in v_end_members:
 
                             # Compute info (mean, std inf/sup at start and end)
-                            X_start = self._members[members, :, t]
-                            info_start = compute_cluster_params(X_start)
-                            X_end = self._members[members, :, t+1]
-                            info_end = compute_cluster_params(X_end)
+                            info_start = Edge.info(v_start, members)
+                            info_end = Edge.info(v_end, members)
 
                             edges.append(Edge(
                                 info_start=info_start,
