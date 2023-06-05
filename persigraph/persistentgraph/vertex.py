@@ -114,7 +114,20 @@ class Vertex(Component):
         Info related to the cluster Vertex represents
 
         Must contain a 'type' key, representing the type of cluster
-        (uniform, gaussian, etc)
+        (uniform, gaussian, etc).
+
+        Available keys:
+
+        - `X`: representing $X_{t, comp}[:,:,mid_w]$, that is to say,
+        aligned member values at $t$ if DTW is used, and original
+        member values otherwise.
+        - `mean`: representing the cluster center. If a time window is
+        used, the midpoint of the time window is used to compute the
+        mean. If DTW is used, DBA is used instead of the usual
+        definition of the mean.
+        - `std`: representing the cluster uncertainty.
+        - `std_inf`: representing the cluster uncertainty under `mean`
+        - `std_sup`: representing the cluster uncertainty above `mean`
 
         :rtype: Dict[str, Any]
         """
