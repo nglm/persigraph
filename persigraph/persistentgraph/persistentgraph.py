@@ -1316,11 +1316,11 @@ class PersistentGraph():
         step `t` and local step `s`; and $r_{t,s}$ its corresponding score
         ratio.
 
-        - The "improvement" of assuming $k_t,s$ is defined as
+        - The "improvement" of assuming $k_{t,s}$ is defined as
         $r_{t,s} - r_{t,s-1}$
-        - The "cost" of assuming $k_t,s$ is defined as
+        - The "cost" of assuming $k_{t,s}$ is defined as
         $r_{t,s+1} - r_{t,s}$
-        - By default, the "life span" of the assumption $k_t,s$ is defined as
+        - By default, the "life span" of the assumption $k_{t,s}$ is defined as
         its improvement. Note that according to this definition of life span,
         `ratio_scores` refers to the death ratio of the step. See
         `get_k_life_span` for more information on how `ratio_scores` is used

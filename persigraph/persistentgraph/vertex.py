@@ -77,7 +77,7 @@ class Vertex(Component):
 
         :param members: _description_
         :type members: Sequence[int]
-        :return: _description_
+        :return: Indices of members represented by `Vertex`
         :rtype: List[int]
         """
         return [self.members.index(m) for m in members]
