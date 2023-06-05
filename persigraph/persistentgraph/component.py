@@ -90,7 +90,7 @@ class Component():
         self.time_step = t
         self.members = members
         self.scores = scores
-        self.compute_ratio_members(total_nb_members = total_nb_members)
+        self._compute_ratio_members(total_nb_members = total_nb_members)
         if score_ratios is None:
             self._compute_ratio_scores(score_bounds = score_bounds)
         else:
@@ -156,8 +156,7 @@ class Component():
             self.__ratio_members = None
         else:
             ratio_members = self.nb_members/total_nb_members
-            check_O1_range(ratio_members, 'Ratio members')
-            self.__ratio_members = ratio_members
+            self.ratio_members = ratio_members
 
     def _compute_ratio_scores(
         self,
@@ -189,6 +188,7 @@ class Component():
         """
         if score_bounds is None or self.scores is None:
             self.__score_ratios = None
+            self.__life_span = None
         else:
             # SPECIAL CASE, if all score are equal, favor the case k=1
             if score_bounds[0] == score_bounds[1]:
@@ -292,6 +292,11 @@ class Component():
         :rtype: float
         """
         return self.__ratio_members
+
+    @ratio_members.setter
+    def ratio_members(self, ratio_members):
+        check_O1_range(ratio_members, 'Ratio members')
+        self.__ratio_members = ratio_members
 
     @property
     def nb_members(self) -> int:
