@@ -144,7 +144,14 @@ class Component():
         """
         return get_common_elements(self.__members, cmpt.members)
 
-    def compute_ratio_members(self, total_nb_members):
+    def _compute_ratio_members(self, total_nb_members: int) -> None:
+        """
+        We use this extra auxiliary function on top of the setter
+        to use `total_nb_members`.
+
+        :param total_nb_members: Size of the ensemble
+        :type total_nb_members: int
+        """
         if total_nb_members is None or self.nb_members is None:
             self.__ratio_members = None
         else:
@@ -177,6 +184,8 @@ class Component():
         This means that `ratio_score_birth` <= `ratio_score_death` even
         when `score_birth` > `score_death`.
 
+        We use this extra auxiliary function on top of the setter
+        to use `score_bounds`.
         """
         if score_bounds is None or self.scores is None:
             self.__score_ratios = None

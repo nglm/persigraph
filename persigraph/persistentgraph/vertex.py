@@ -28,7 +28,6 @@ class Vertex(Component):
         self.__e_to = []
         self.__e_from = []
 
-
     def is_equal_to(
         self,
         v = None,
@@ -38,9 +37,9 @@ class Vertex(Component):
         v_type: str = None
     ) -> bool:
         """
-        Check if 2 vertices are equal
+        Check if 2 vertices are equal.
 
-        Assume that ``members`` is an ordered list
+        Assume that ``members`` is an ordered list.
 
         :param v: vertex to compare to
         :type v: Vertex
@@ -83,18 +82,29 @@ class Vertex(Component):
         """
         return [self.members.index(m) for m in members]
 
-
     def add_edge_to(
         self,
         e: int
-    ):
+    ) -> None:
+        """
+        Append `e` to `e_to`, representing an edge coming to `Vertex`
+
+        :param e: num that represents an edge coming to `Vertex`
+        :type e: int
+        """
         check_int_positive(e, 'edge to')
         self.__e_to.append(int(e))
 
     def add_edge_from(
         self,
         e: int
-    ):
+    ) -> None:
+        """
+        Append `e` to `e_from`, representing an edge coming from `Vertex`
+
+        :param e: num that represents an edge coming from `Vertex`
+        :type e: int
+        """
         check_int_positive(e, 'edge from')
         self.__e_from.append(int(e))
 
@@ -117,10 +127,22 @@ class Vertex(Component):
         self.__info = info
 
     @property
-    def e_from(self):
+    def e_from(self) -> List[int]:
+        """
+        List of edges num coming from `Vertex`.
+
+        :return: List of edges num coming from `Vertex`.
+        :rtype: List[int]
+        """
         return self.__e_from
 
     @property
-    def e_to(self):
+    def e_to(self) -> List[int]:
+        """
+        List of edges num coming to `Vertex`.
+
+        :return: List of edges num coming to `Vertex`.
+        :rtype: List[int]
+        """
         return self.__e_to
 

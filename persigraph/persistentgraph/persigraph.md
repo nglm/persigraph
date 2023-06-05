@@ -73,8 +73,7 @@ XXX ? XXX
 
 XXX Is there anything to say here as well? XXX
 
-Cluster data
--------------------------------------------------------------------------------
+## Cluster data
 
 The data that is used to cluster the members is defined is several steps. First transform the original data, then extract windows, and finally consider extracted windows as variables if DTW is not used.
 
@@ -82,7 +81,7 @@ The data that is used to cluster the members is defined is several steps. First 
 
 For each $t$ in $[0, \cdots, T-1]$, transform $\mathbf{X_t}$ into $\mathbf{X}_{t, trans}$, both in $ \in \mathbb{R}^{N \times d}$.
 
-From now on, we referring to the data that should have gone through this transformation step, we will write $\mathbf{X}_{t, trans}$ regardless of whether the user actually wanted a transformation (we consider that the transformation used was then the identity function).
+From now on, to refer to the data that should have gone through this transformation step, we will write $\mathbf{X}_{t, trans}$ regardless of whether the user actually wanted a transformation (we consider that the transformation used was then the identity function).
 
 ### Extract windows
 
@@ -90,7 +89,7 @@ Extract windows from $\mathbf{X}_{t, trans} \in \mathbb{R}^{N \times d}$ to defi
 
 Note that if $w=1$, then it is equivalent to not using windows.
 
-Clustering methods
+Data to cluster and clustering methods
 -------------------------------------------------------------------------------
 
 Any clustering method that has for main parameter $k$, the number of clusters, is suitable.
@@ -99,20 +98,20 @@ When using DTW, clustering methods have to be adapted to compute pairwise distan
 
 The chosen clustering method is applied for all $t \in [0, \cdots, T-1]$ and all $k \in [0, \cdots, N]$. (See the definition of "ensemble zero" for the assumption $k=0$).
 
+Thus at a given time step $t$ and a given assumption on the number of clusters $k$, $k$ clusters are defined, each being a subset of $\mathbf{X}_{t, clus}$,  denoted $\mathbf{X}_{t, clus, k}^{(i)} = \mathbf{X}_{t, clus}[\mathcal{M}_{t,k}^{(i)}, :, t] \in \mathbb{R}^{N_{t,k}^{(i)} \times w_t \times d}$, where $N_{t,k}^{(i)}$ is the number of members in this cluster and $\mathcal{M}_{t,k}^{(i)}$ represents the indices of the members in this cluster. Naturally, $\cup_{i \in [1, \cdots, k]} \mathcal{M}_{t,k}^{(i)}$ is a partition of $[0, N-1]$   and $\cup_{i=1, \cdots, k} \mathbf{X}_{t, clus, k}^{(i)}$ is a partition of $\mathbf{X}_{t, clus}$ for all $k$ and all $t$.
+
 Clustering scores
 -------------------------------------------------------------------------------
 
 There exist natural score functions to evaluate qualities of different clusterings (inertia, variance, diameter, log-likelihood etc.), but none of them is ideal, especially with few datapoints and when the case $k=1$ has to be considered as well.
 
-Some score functions can be applied individually to each cluster (each being a subset of $\mathbf{X}_{t, clus}$) and then combined to give the score of the whole clustering (a partition of $\mathbf{X}_{t, clus}$). For example, compute the inertia of all clusters individually, and then the sum/mean/max of the inertia of all clusters yields the score of the clustering. Alternatively, log-likelihood evaluate the entire clustering at once.
+Some score functions can be applied individually to each cluster $\mathbf{X}_{t, clus, k}^{(i)}$ and then combined to give the score of the whole clustering $\cup_{i=1, \cdots, k} \mathbf{X}_{t, clus, k}^{(i)}$. For example, the inertia of all clusters is computed individually, and then the sum/mean/max of the inertia of all clusters yields the score of the clustering. Alternatively, log-likelihood evaluates the entire clustering at once.
 
 In the context of `PersiGraph`:
 
 - A score doesn't have to be monotonous with respect to $k$ the number of clusters, but empirical results seem better with the ones that are monotonous (e.g. max/mean of cluster variance), or "almost monotonous" (e.g. sum of cluster variance)
 - A score doesn't have to be positive (log-likelihood can be negative for example)
 - If the clustering score doesn't distinguish between the case $k=0$ and $k=1$, another $k>0$ assumption will be used to calibrate the worst score and therefore will never be considered as a relevant option. This can be problematic when the score is monotonous, one $k$ value (typically $k=1$) will never be considered.
-
-We denote $r_{t,}$
 
 ### DTW
 
@@ -135,7 +134,21 @@ Take a smaller time window around the midpoint to compute the pairwise distance 
 Clustering ratios and life spans
 -------------------------------------------------------------------------------
 
-For each time step, PersiGraph compute the clustering scores for all assumptions $k=0, ..., N$.
+For each time step $t$, `PersiGraph` computes the clustering scores for all assumptions $k=0, ..., N$ $\mathtt{score}_{t,k}$. Once all scores have been computed, we can define $\mathtt{worst\_score}_t$ and $\mathtt{best\_score}t$ as being respectively the worst clustering score and the best for each time step $t$. Note that depending on the type of score, "best" can mean "greater" (log likelihood) or "lower" (inertia). This allows scores to be normalized into ratios $r_{t,k} \in [0, 1]$ as follows:
+
+$$r_{t,k} = \frac{|\mathtt{score}_{t,k} - \mathtt{worst\_score}_t|}{|\mathtt{best\_score}_t- \mathtt{worst\_score}_t|}$$
+
+This implies that a ratio closer to $0$ is the worse that a ratio closer to $1$. We can then sort ratios, from the worst to the best. We will denote $r_{t, k_s}$ with $s = 0, \cdots, N$ such that $r_{t, k_s} \le r_{t, k_{s+1}}$.
+
+Once ratios are sorted, we can define 3 concepts:
+
+- The "improvement" of assuming $k_{s}$ at $t$: $r_{t,k_s} - r_{t,k_{s-1}}$
+- The "cost" of assuming $k_{s}$ at $t$: $r_{t,k_{s+1}} - r_{t,s}$
+- The "life span" of the assumption $k_{s}$ at $t$. This can be defined as a combination of the improvement and the cost. From now on, we will assume that it is simply equal to its improvement.
+
+Note that according to this definition of life span, `ratio_scores` refers to the death ratio of the step. See `get_k_life_span` for more information on how `ratio_scores` is used to compute life spans of steps.
+
+Using ratios instead of scores has two advantages: it will allow the definition of life span and it makes it possible to define the concept of contemporary vertices in order to define edges. The ensemble tends to spread with increasing time step, which could mean than there are no contemporaries to
 
 Sum of life spans is 1.
 
@@ -145,6 +158,17 @@ Algorithm steps
 
 Vertices and Edges
 -------------------------------------------------------------------------------
+
+Each vertex represents one cluster $\mathbf{X}_{t, clus}^{(i)}$ and edges represent links between clusters between $t$ and $t+1$. An edge between two consecutive vertices is drawn if vertices have at least one member in common and were contemporaries (i.e. alive for a non-empty score ratio interval).
+
+### Component data
+
+The data used to create the graph components $\mathbf{X}_{t, comp}$ differ from the data used to cluster members $\mathbf{X}_{t, clust}$. First, only a subset of $\mathbf{X}_{t}$ is considered, according to the members that are represented by the component.  The transformation step is skipped, and windows are extracted directly from $\mathbf{X}_{t}$. If DTW is used, these windows
+
+$\mathbf{X}_{t, comp}$, which is based on $\mathbf{X}_{t}$
+
+For vertices, use DBA for the mean, and aligned values X for std_inf/sup. For edges std, use X of v_start/end as well.
+
 
 #### Mean / barycenter
 
