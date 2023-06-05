@@ -542,88 +542,6 @@ class PersistentGraph():
             v_alive = v_alive[0]
         return v_alive
 
-    # def get_alive_vertices_old(
-    #     self,
-    #     scores: Union[Sequence[float], float] = None,
-    #     steps: Union[Sequence[int], int] = None,
-    #     t: Union[Sequence[int],int] = None,
-    #     get_only_num: bool = True
-    # ) -> Union[List[Vertex], List[int]]:
-    #     """
-    #     Extract alive vertices
-
-    #     If ``t`` is not specified then returns a nested list of
-    #     alive vertices for each time steps
-
-    #     :param scores: Scores at which vertices should be alive
-    #     :type scores: float, optional
-    #     :param t: Time step from which the vertices should be extracted
-    #     :type t: int, optional
-    #     :param get_only_num: Return the compononent or its num only?
-    #     :type get_only_num: bool, optional
-    #     """
-    #     # -------------------- Initialization --------------------------
-    #     v_alive = []
-    #     if t is None:
-    #         return_nested_list = True
-    #         t_range = range(self.T)
-    #     else:
-    #         if isinstance(t, int):
-    #             return_nested_list = False
-    #             t_range = [t]
-    #         else:
-    #             return_nested_list = True
-    #             t_range = t
-
-    #     # If Scores and steps are None,
-    #     #  Then return the vertices that are still alive at the end
-    #     if scores is None and steps is None:
-    #         for t in t_range:
-    #             v_alive_t = self._v_at_step[t][-1]
-    #         if not get_only_num:
-    #             v_alive_t = [
-    #                 self._vertices[t][v_num] for v_num in v_alive_t
-    #             ]
-    #         v_alive.append(v_alive_t)
-    #     # Else: scores or steps is specified
-    #     else:
-    #         if steps is None:
-    #             #TODO: not implemented yet:
-    #             #
-    #             # Find the step with a bisect search on the local scores
-    #             # And then proceed normaly as if steps was given
-    #             print("not implemented yet")
-
-    #         # If a single step was given
-    #         if isinstance(steps, int):
-    #             steps = [steps]
-
-    #         # -------------------- Main part ---------------------------
-    #         for t in t_range:
-    #             v_alive_t = []
-    #             for s in steps:
-    #                 local_s = self.get_local_step_from_global_step(step=s, t=t)
-
-    #                 # If the global step occured before the initialization step at
-    #                 # t then return local_s = -1 and there is no alive vertices
-    #                 # to add
-    #                 if local_s != -1:
-    #                     v_alive_t = concat_no_duplicate(
-    #                         v_alive_t,
-    #                         self._v_at_step[t]['v'][local_s],
-    #                         copy = False,
-    #                     )
-    #                 #print("s, t, local_s", s, t, local_s)
-    #             if not get_only_num:
-    #                 v_alive_t = [
-    #                     self._vertices[t][v_num] for v_num in v_alive_t
-    #                 ]
-    #             v_alive.append(v_alive_t)
-
-    #     if not return_nested_list:
-    #         v_alive = v_alive[0]
-    #     return v_alive
-
     def get_alive_edges(
         self,
         ratio: float = None,
@@ -709,78 +627,6 @@ class PersistentGraph():
         if not return_nested_list:
             e_alive = e_alive[0]
         return e_alive
-
-    # def get_alive_edges_old(
-    #     self,
-    #     scores: Union[Sequence[float], float] = None,
-    #     steps: Union[Sequence[int], int] = None,
-    #     t: Union[Sequence[int],int] = None,
-    #     get_only_num: bool = True
-    # ) -> Union[List[Vertex], List[int]]:
-    #     """
-    #     Extract alive edges
-
-    #     If ``t`` is not specified then returns a nested list of
-    #     alive edges for each time steps
-
-    #     If ``scores`` is not specified then it will return edges that
-    #     are still alive at the end of the algorithm
-
-    #     :param scores: Scores at which edges should be alive
-    #     :type s: float
-    #     :param t: Time step from which the edges should be extracted
-    #     :type t: int
-    #     :param get_only_num: Return the compononent or its num only?
-    #     :type get_only_num: bool, optional
-    #     """
-    #     e_alive = []
-    #     if t is None:
-    #         return_nested_list = True
-    #         t_range = range(self.T-1)
-    #     else:
-    #         if isinstance(t, int):
-    #             return_nested_list = False
-    #             t_range = [t]
-    #         else:
-    #             return_nested_list = True
-    #             t_range = t
-
-    #     if steps is None:
-    #         #TODO: not implemented yet:
-    #         #
-    #         # Find the step with a bisect search on the local scores
-    #         # And then proceed normaly as if steps was given
-    #         print("not implemented yet")
-
-    #     # If a single step was given
-    #     if isinstance(steps, int):
-    #         steps = [steps]
-
-    #     # -------------------- Main part ---------------------------
-    #     for t in t_range:
-    #         e_alive_t = []
-    #         for s in steps:
-    #             local_s = self.get_e_local_step_from_global_step(step=s, t=t)
-
-    #             # If the global step occurred before the initialization step at
-    #             # t then return local_s = -1 and there is no alive edges
-    #             # to add
-    #             if local_s != -1:
-    #                 e_alive_t = concat_no_duplicate(
-    #                     e_alive_t,
-    #                     self._e_at_step[t]['e'][local_s],
-    #                     copy = False,
-    #                 )
-    #         if not get_only_num:
-    #             e_alive_t = [
-    #                 self._edges[t][e_num] for e_num in e_alive_t
-    #             ]
-    #         e_alive.append(e_alive_t)
-
-    #     if not return_nested_list:
-    #         e_alive = e_alive[0]
-    #     return e_alive
-
 
     def _construct_vertices(self, cluster_data):
         for t in range(self.T):
@@ -966,8 +812,6 @@ class PersistentGraph():
                     " But number of steps done: ", self._nb_steps
                 )
 
-# Take all vertices at t and all at t-1
-# If they are contemporaries and have common members draw an edge
     def _construct_edges(self):
         for t in range(self.T-1):
             v_starts = self._vertices[t]
@@ -975,6 +819,9 @@ class PersistentGraph():
 
             for v_start in v_starts:
                 nb_new_edges = 0
+                # Take all vertices at t and all at t+1 If they are
+                # contemporaries and have common members then draw an
+                # edge
                 v_ends_contemp = [
                     v_end for v_end in v_ends
                     if (Component.contemporaries(v_start, v_end)
@@ -1004,105 +851,6 @@ class PersistentGraph():
                 self._e_at_step[t]['global_step_nums'].append([
                     step["global_step_num"]
                 ])
-
-
-    # def _construct_edges_old(self):
-
-    #     # The "-1" is useful as we can't draw edges if the time steps around
-    #     # have not started having vertices yet....
-    #     last_v_at_t = -1 * np.ones(self.T, dtype = int)
-    #     local_step_nums = -1 * np.ones(self.T, dtype = int)
-    #     for s in range(self.nb_steps):
-    #         # Find the next time step
-    #         t = self._sorted_steps['time_steps'][s]
-    #         ratio =  self._sorted_steps['ratio_scores'][s]
-    #         # Find the next local step at this time step
-    #         local_step_nums[t] = self._sorted_steps['local_step_nums'][s]
-    #         local_s = local_step_nums[t]
-
-    #         # Find the new vertices (so vertices created at this step)
-    #         new_vertices = [
-    #             self._vertices[t][v] for v in self._v_at_step[t]['v'][local_s]
-    #             if v > last_v_at_t[t]
-    #         ]
-    #         if new_vertices:
-    #             # New vertices are sorted
-    #             last_v_at_t[t] =  new_vertices[-1].num
-    #         else:
-    #             if not self._quiet:
-    #                 print("WARNING NO NEW VERTICES")
-    #             continue
-
-    #         if self._verbose:
-    #             print(
-    #                 "Step ", s, " = ",
-    #                 ' t: ', t,
-    #                 ' local step_num: ', local_s,
-    #                 ' nb new vertices: ', len(new_vertices)
-    #             )
-    #         # Prepare next edges' creation
-    #         nb_new_edges_from = 0
-    #         if ( (t < self.T - 1) and (local_step_nums[t + 1] != -1)):
-    #             self._e_at_step[t]['e'].append(
-    #                 self._keep_alive_edges(
-    #                     t,
-    #                     self.get_alive_edges(steps=s-1,t=int(t)),
-    #                     ratio,
-    #                     )
-    #                 )
-    #             self._e_at_step[t]['global_step_nums'].append(s)
-
-    #         nb_new_edges_to = 0
-    #         if ( (t > 0) and (local_step_nums[t - 1] != -1) ):
-    #             self._e_at_step[t - 1]['e'].append(
-    #                 self._keep_alive_edges(
-    #                     t-1,
-    #                     self.get_alive_edges(steps=s-1,t=int(t-1)),
-    #                     ratio,
-    #                     )
-    #                 )
-    #             self._e_at_step[t - 1]['global_step_nums'].append(s)
-
-    #         for v_new in new_vertices:
-
-    #             # ======== Construct edges from t-1 to t ===============
-    #             if ( (t > 0) and (local_step_nums[t - 1] != -1) ):
-    #                 step_num_start = local_step_nums[t-1]
-    #                 v_starts = set([
-    #                     self._vertices[t-1][self._members_v_distrib[t-1][step_num_start][m]]
-    #                     for m in v_new.members
-    #                 ])
-    #                 for v_start in v_starts:
-    #                     members = v_new.get_common_members(v_start)
-    #                     e = self._add_edge(
-    #                         v_start = v_start,
-    #                         v_end = v_new,
-    #                         members = members,
-    #                     )
-    #                     if e is not None:
-    #                         nb_new_edges_to += 1
-
-    #             # ======== Construct edges from t to t+1 ===============
-    #             if ( (t < self.T - 1) and (local_step_nums[t + 1] != -1)):
-    #                 step_num_end = local_step_nums[t+1]
-    #                 v_ends = set([
-    #                     self._vertices[t+1][self._members_v_distrib[t+1][step_num_end][m]]
-    #                     for m in v_new.members
-    #                 ])
-    #                 for v_end in v_ends:
-    #                     nb_new_edges_from += 1
-    #                     members = v_new.get_common_members(v_end)
-    #                     e = self._add_edge(
-    #                         v_start = v_new,
-    #                         v_end = v_end,
-    #                         members = members,
-    #                     )
-    #                     if e is not None:
-    #                         nb_new_edges_from += 1
-
-    #         if self._verbose == 2:
-    #             print("nb new edges going FROM t: ", nb_new_edges_from)
-    #             print("nb new edges going TO t: ", nb_new_edges_to)
 
     def _compute_statistics(self):
         # Max/min (N, d, t)
