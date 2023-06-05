@@ -47,6 +47,13 @@ class Component():
             return True
 
     @staticmethod
+    def have_common_members(c1, c2) -> bool:
+        """
+        Efficiently checks if two components have common members
+        """
+        return bool(set(c1.members).intersection(set(c2.members)))
+
+    @staticmethod
     def common_members(c1, c2, verbose=False) -> List[int]:
         """
         Return common members of 2 components
@@ -93,6 +100,20 @@ class Component():
 
     def reset_key_incr(self):
         Component.key_incr = 0
+
+    def is_alive(self, ratio: float) -> bool:
+        """
+        Check if the component is alive at that ratio
+
+        :param ratio: _description_
+        :type ratio: float
+        :return: True if the component is alive at that ratio
+        :rtype: bool
+        """
+        return (
+            ratio > self.__score_ratios[0]
+            and ratio <= self.__score_ratios[1]
+        )
 
     def has_member(self, m: int) -> bool:
         """
@@ -158,7 +179,7 @@ class Component():
 
         """
         if score_bounds is None or self.scores is None:
-            self.__ratio_scores = None
+            self.__score_ratios = None
         else:
             # SPECIAL CASE, if all score are equal, favor the case k=1
             if score_bounds[0] == score_bounds[1]:
