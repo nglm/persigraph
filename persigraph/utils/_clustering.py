@@ -1,6 +1,6 @@
 """
 This module deals with clustering-related matters but is totally
-independant of the PersistentGraph as well as the score used and the
+independent of the PersistentGraph as well as the score used and the
 clustering model used
 """
 from bisect import insort
@@ -12,8 +12,6 @@ from tslearn.barycenters import softdtw_barycenter
 from typing import List, Sequence, Union, Any, Dict
 
 from .sorted_lists import insert_no_duplicate
-
-
 
 def sort_dist_matrix(
     pg,
