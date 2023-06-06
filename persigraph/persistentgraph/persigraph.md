@@ -16,7 +16,7 @@ Note that $\mathbf{X}_{t, zero}$ can also be transformed into $\mathbf{X}_{t, ze
 
 ### Multivariate time series
 
-XXX What are the fundamental changes? Not in terms of implementation but in terms of generalization / design choices? XXX
+In purely algorithm terms, going from univariate time series to multivariate, is straightforward as most clustering methods and scores work in a similar way. Visualizing the graph however becomes harder.
 
 ### Transformed ensemble
 
@@ -61,17 +61,9 @@ Inside boundary conditions:
 
 #### Use of sliding window in `PersiGraph`
 
-Extracted windows are used to define $\mathbf{X}_{t, clus} \in \mathbb{R}^{N \times w_t \times d}$ from $\mathbf{X}_{t, trans} \in \mathbb{R}^{N \times d}$
+Extracted windows are used to define $\mathbf{X}_{t, clus} \in \mathbb{R}^{N \times w_t \times d}$ from $\mathbf{X}_{t, trans} \in \mathbb{R}^{N \times d}$.
 
 Midpoints are used to define vertices and edges properties (expected values and uncertainty), as detailed in the "Vertices and Edges" section.
-
-### DTW
-
-XXX ? XXX
-
-### Members zero
-
-XXX Is there anything to say here as well? XXX
 
 ## Cluster data
 
@@ -138,23 +130,19 @@ For each time step $t$, `PersiGraph` computes the clustering scores for all assu
 
 $$r_{t,k} = \frac{|\mathtt{score}_{t,k} - \mathtt{worst\_score}_t|}{|\mathtt{best\_score}_t- \mathtt{worst\_score}_t|}$$
 
-This implies that a ratio closer to $0$ is the worse that a ratio closer to $1$. We can then sort ratios, from the worst to the best. We will denote $r_{t, k_s}$ with $s = 0, \cdots, N$ such that $r_{t, k_s} \le r_{t, k_{s+1}}$.
+This implies that a ratio closer to $0$ is the worse that a ratio closer to $1$. We can then sort ratios, from the worst to the best. We will denote $r_{t, k_s}$ with $s = 0, \cdots, N-1$ such that $r_{t, k_s} \le r_{t, k_{s+1}}$ and $k_s \in [1, N]$.
 
 Once ratios are sorted, we can define 3 concepts:
 
 - The "improvement" of assuming $k_{s}$ at $t$: $r_{t,k_s} - r_{t,k_{s-1}}$
 - The "cost" of assuming $k_{s}$ at $t$: $r_{t,k_{s+1}} - r_{t,s}$
-- The "life span" of the assumption $k_{s}$ at $t$. This can be defined as a combination of the improvement and the cost. From now on, we will assume that it is simply equal to its improvement.
+- The "life span" of the assumption $k_{s}$ at $t$: $\mathtt{ratio\_death}_{t,k_s} - \mathtt{ratio\_birth}_{t,k_s}$, with $\mathtt{ratio\_death}_{t,k_s}$ and $\mathtt{ratio\_birth}_{t,k_s}$ defined as a combination of the improvement and the cost. From now on, we will assume that the life span is simply equal to the improvement, which means that $\mathtt{ratio\_death}_{t,k_s} = r_{t,k_s}$ and $\mathtt{ratio\_birth}_{t,k_s} = r_{t,k_{s-1}}$
 
-Note that according to this definition of life span, `ratio_scores` refers to the death ratio of the step. See `get_k_life_span` for more information on how `ratio_scores` is used to compute life spans of steps.
+The case $k=0$ can be used to define to worst or the best score, but is not among the sorted ratios and is not used to define any of the improvement, cost nor life span of the other assumptions $k_s \in [1, N]$.
 
-Using ratios instead of scores has two advantages: it will allow the definition of life span and it makes it possible to define the concept of contemporary vertices in order to define edges. The ensemble tends to spread with increasing time step, which could mean than there are no contemporaries to
+Note that $\sum_{k=1}^N \mathtt{life\_span}_{t,k} = 1 \; \forall t$.
 
-Sum of life spans is 1.
-
-Algorithm steps
--------------------------------------------------------------------------------
-
+Using ratios instead of scores has two advantages: it allows the definition of life span and it makes it possible to define the concept of contemporary vertices in order to define edges. As the ensemble tends to spread with increasing time step, using raw scores instead of ratios could mean than there are no contemporary vertices between $t$ and $t+1$.
 
 Vertices and Edges
 -------------------------------------------------------------------------------
@@ -163,7 +151,17 @@ Each vertex represents one cluster $\mathbf{X}_{t, clus}^{(i)}$ and edges repres
 
 ### Component data
 
-The data used to create the graph components $\mathbf{X}_{t, comp}$ differ from the data used to cluster members $\mathbf{X}_{t, clust}$. First, only a subset of $\mathbf{X}_{t}$ is considered, according to the members that are represented by the component.  The transformation step is skipped, and windows are extracted directly from $\mathbf{X}_{t}$. If DTW is used, these windows
+The data used to create the graph components $\mathbf{X}_{t, comp}$ differ from the data used to cluster members $\mathbf{X}_{t, clus}$. First, only a subset of $\mathbf{X}_{t}$ is considered, according to the members $\mathcal{M^{(i)}_{t,k}}$ that are represented by the component.
+
+The transformation step is skipped, and if DTW is not used, then we simply have $\mathbf{X}_{t, comp} = \mathbf{X}_{t}[\mathcal{M^{(i)}}_{t,k}] \in \mathbb{R}^{N_{t, k}^{(i)} \times d}$.
+
+If DTW is used, time windows are extracted and aligned one by one with DTW using the barycenter (DBA) of the cluster as alignment reference. Then, given a member of this cluster $\mathbf{X}_{t}[m]_{m \in \mathcal{M^{(i)_{t,k}}}} \in \mathbb{R}^{1 \times w_t \times d}$ several time steps could be aligned with the midpoint of the barycenter. Several options could be possible, and among them:
+
+- Keeping them all.
+- Take their mean.
+- Take the closest aligned point to the barycenter.
+
+In `PersiGraph`, it was decided to take their mean, this is a rather arbitrary decision. Which means that in the DTW case as well, we have $\mathbf{X}_{t, comp} \in \mathbb{R}^{N_{t, k}^{(i)} \times d}$
 
 $\mathbf{X}_{t, comp}$, which is based on $\mathbf{X}_{t}$
 
