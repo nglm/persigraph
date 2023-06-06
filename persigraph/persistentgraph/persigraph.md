@@ -10,9 +10,9 @@ In the earliest versions of the `PersiGraph` method, only univariate time series
 
 However, depending on the application domain, using a transformed version of the time series to cluster members can be preferable. Similarly, considering a time window around each given time step can alleviate issues when working with highly fluctuating time series. Finally, DTW is a very well established tool in time series analysis that shifts the focus towards the global shapes of the times series rather than their differences at each time step. Therefore, `PersiGraph` has now been extended to handle these cases.
 
-From now on, we will refer to the provided data as the *original* data $\mathbf{X_t}$ and the transformed data as the *transformed* data $\mathbf{X}_{t, trans}$. In addition, we distinguish between the data that is used to cluster members and compute clustering scores $\mathbf{X}_{t, clus}$, which is based on $\mathbf{X}_{t, trans}$ and the data that is used to define the graph components $\mathbf{X}_{t, comp}$, which is based on $\mathbf{X}_{t}$.
+From now on, we will refer to the provided data as the *original* data $\mathbf{X_t}$ and the transformed data as the *transformed* data $\mathbf{X}_{t, trans}$. In addition, we distinguish between the data that is used to cluster members and compute clustering scores $\mathbf{X}_{t, clus}$, which is based on $\mathbf{X}_{t, trans}$ and the data that is used to define the graph vertices $\mathbf{X}_{t, vert}$, which is based on $\mathbf{X}_{t}$.
 
-Note that $\mathbf{X}_{t, zero}$ can also be transformed into $\mathbf{X}_{t, zero, clus}$ similarly to $\mathbf{X}_{t, trans}$. Likewise, $\mathbf{X}_{t, zero, clus}$ and $\mathbf{X}_{t, zero, clus}$ are defined.
+Note that $\mathbf{X}_{t, zero}$ can also be transformed into $\mathbf{X}_{t, zero, clus}$ similarly to $\mathbf{X}_{t, trans}$. Likewise, $\mathbf{X}_{t, zero, clus}$ is defined $\mathbf{X}_{t, zero, clus}$ are defined.
 
 ### Multivariate time series
 
@@ -81,7 +81,7 @@ Extract windows from $\mathbf{X}_{t, trans} \in \mathbb{R}^{N \times d}$ to defi
 
 Note that if $w=1$, then it is equivalent to not using windows.
 
-Data to cluster and clustering methods
+Clustering
 -------------------------------------------------------------------------------
 
 Any clustering method that has for main parameter $k$, the number of clusters, is suitable.
@@ -91,6 +91,12 @@ When using DTW, clustering methods have to be adapted to compute pairwise distan
 The chosen clustering method is applied for all $t \in [0, \cdots, T-1]$ and all $k \in [0, \cdots, N]$. (See the definition of "ensemble zero" for the assumption $k=0$).
 
 Thus at a given time step $t$ and a given assumption on the number of clusters $k$, $k$ clusters are defined, each being a subset of $\mathbf{X}_{t, clus}$,  denoted $\mathbf{X}_{t, clus, k}^{(i)} = \mathbf{X}_{t, clus}[\mathcal{M}_{t,k}^{(i)}, :, t] \in \mathbb{R}^{N_{t,k}^{(i)} \times w_t \times d}$, where $N_{t,k}^{(i)}$ is the number of members in this cluster and $\mathcal{M}_{t,k}^{(i)}$ represents the indices of the members in this cluster. Naturally, $\cup_{i \in [1, \cdots, k]} \mathcal{M}_{t,k}^{(i)}$ is a partition of $[0, N-1]$   and $\cup_{i=1, \cdots, k} \mathbf{X}_{t, clus, k}^{(i)}$ is a partition of $\mathbf{X}_{t, clus}$ for all $k$ and all $t$.
+
+It is possible that clusterings obtained with different $k$ values, $k_1$, $k_2$ have one cluster in common. We consider 2 clusters to be identical if they represent the same members at the same time steps, i.e.
+
+$$(\mathbf{X}_{t, clus, k_1}^{(i_1)} = \mathbf{X}_{t, clus, k_2}^{(i_2)}) \iff (\mathcal{M^{(i_2)}_{t,k_2}} = \mathcal{M^{(i_2)}_{t,k_2}})$$
+
+From now on, when referring to a given cluster $\mathbf{X}_{t, clus, k}^{(i)}$ we also include all clusters $\mathbf{X}_{t, clus, k_2}^{(i_2)}$ such that $\mathbf{X}_{t, clus, k_2}^{(i_2)} = \mathbf{X}_{t, clus, k}^{(i)}$ and the cluster used as reference is the one with the smallest $k$ value.
 
 Clustering scores
 -------------------------------------------------------------------------------
@@ -144,29 +150,42 @@ Note that $\sum_{k=1}^N \mathtt{life\_span}_{t,k} = 1 \; \forall t$.
 
 Using ratios instead of scores has two advantages: it allows the definition of life span and it makes it possible to define the concept of contemporary vertices in order to define edges. As the ensemble tends to spread with increasing time step, using raw scores instead of ratios could mean than there are no contemporary vertices between $t$ and $t+1$.
 
-Vertices and Edges
+Graph components: vertices and edges
 -------------------------------------------------------------------------------
 
-Each vertex represents one cluster $\mathbf{X}_{t, clus}^{(i)}$ and edges represent links between clusters between $t$ and $t+1$. An edge between two consecutive vertices is drawn if vertices have at least one member in common and were contemporaries (i.e. alive for a non-empty score ratio interval).
+### Vertices
 
-### Component data
+Each vertex represents one cluster $\mathbf{X}_{t, clus}^{(i)}$ (and all clusters $\mathbf{X}_{t, clus, k_2}^{(i_2)}$ such that $\mathbf{X}_{t, clus, k_2}^{(i_2)} = \mathbf{X}_{t, clus, k}^{(i)}$).
 
-The data used to create the graph components $\mathbf{X}_{t, comp}$ differ from the data used to cluster members $\mathbf{X}_{t, clus}$. First, only a subset of $\mathbf{X}_{t}$ is considered, according to the members $\mathcal{M^{(i)}_{t,k}}$ that are represented by the component.
+#### Vertex data
 
-The transformation step is skipped, and if DTW is not used, then we simply have $\mathbf{X}_{t, comp} = \mathbf{X}_{t}[\mathcal{M^{(i)}}_{t,k}] \in \mathbb{R}^{N_{t, k}^{(i)} \times d}$.
+The data used to create the graph vertices $\mathbf{X}_{t, vert}$ differ from the data used to cluster members $\mathbf{X}_{t, clus}$. First, only a subset of $\mathbf{X}_{t}$ is considered, according to the members $\mathcal{M^{(i)}_{t,k}}$ that are represented by the vertex.
+
+The transformation step is skipped, and if DTW is not used, then we simply have $\mathbf{X}_{t, vert, k}^{(i)} = \mathbf{X}_{t}[\mathcal{M^{(i)}}_{t,k}] \in \mathbb{R}^{N_{t, k}^{(i)} \times d}$ for a given vertex.
 
 If DTW is used, time windows are extracted and aligned one by one with DTW using the barycenter (DBA) of the cluster as alignment reference. Then, given a member of this cluster $\mathbf{X}_{t}[m]_{m \in \mathcal{M^{(i)_{t,k}}}} \in \mathbb{R}^{1 \times w_t \times d}$ several time steps could be aligned with the midpoint of the barycenter. Several options could be possible, and among them:
 
 - Keeping them all.
 - Take their mean.
-- Take the closest aligned point to the barycenter.
+- Take the aligned point that is the closest to the barycenter.
 
-In `PersiGraph`, it was decided to take their mean, this is a rather arbitrary decision. Which means that in the DTW case as well, we have $\mathbf{X}_{t, comp} \in \mathbb{R}^{N_{t, k}^{(i)} \times d}$
+In `PersiGraph`, it was decided to take their mean, this is a rather arbitrary decision. Which means that in the DTW case as well, we have $\mathbf{X}_{t, vert, k}^{(i)} \in \mathbb{R}^{N_{t, k}^{(i)} \times d}$.
 
-$\mathbf{X}_{t, comp}$, which is based on $\mathbf{X}_{t}$
+#### Vertex life span
 
-For vertices, use DBA for the mean, and aligned values X for std_inf/sup. For edges std, use X of v_start/end as well.
+The life span of a vertex is the sum of all the life spans of the clusters it represents.
 
+#### Vertex center and uncertainty
+
+### Edge
+
+#### Edge data
+
+An edge represents a link between two vertices, one at $t$, $v_{t, k_1}^{(i_1)}$ and one at $t+1$, $v_{t+1, k_2}^{(i_2)}$. The edge is well defined if vertices have at least one member in common (i.e. $\mathcal{M^{(i_1)}_{t,k_1}} \cap \mathcal{M^{(i_2)}_{t+1,k_2}} \neq \emptyset$) and were contemporaries (i.e. ). and is well defined. The data used to define the edge is based on
+
+#### Edge life span
+
+An edge is alive as long as both its start and end vertices are alive, i.e. $\mathtt{ratio\_birth} = \max(\mathtt{ratio\_birth_{v\_start}}, \mathtt{ratio\_birth_{v\_end}})$ and $\mathtt{ratio\_death} = \min(\mathtt{ratio\_death_{v\_start}}, \mathtt{ratio\_death_{v\_end}})$
 
 #### Mean / barycenter
 

@@ -118,7 +118,7 @@ class Vertex(Component):
 
         Available keys:
 
-        - `X`: representing $X_{t, comp}[:,:,mid_w]$, that is to say,
+        - `X`: representing $X_{t, vert}[:,:,mid_w]$, that is to say,
         aligned member values at $t$ if DTW is used, and original
         member values otherwise.
         - `mean`: representing the cluster center. If a time window is
