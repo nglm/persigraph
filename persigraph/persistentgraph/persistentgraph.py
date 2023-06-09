@@ -796,64 +796,68 @@ class PersistentGraph():
         ]
 
         # ------------- Find edges between 2 relevant k ----------------
-        relevant_edges = [
-            [
-                deepcopy(e) for e in self._edges[t]
-                if (
-                    has_element(
-                        self._vertices[e.time_step][e.v_start].info['k'],
-                        selected_k[t]
-                    ) and has_element(
-                        self._vertices[e.time_step + 1][e.v_end].info['k'],
-                        selected_k[t+1]
-                    ))
-            ] for t in range(self.T-1)
-        ]
+        if not fill_holes:
+            relevant_edges = [
+                [
+                    deepcopy(e) for e in self._edges[t]
+                    if (
+                        has_element(
+                            self._vertices[e.time_step][e.v_start].info['k'],
+                            selected_k[t]
+                        ) and has_element(
+                            self._vertices[e.time_step + 1][e.v_end].info['k'],
+                            selected_k[t+1]
+                        ))
+                ] for t in range(self.T-1)
+            ]
 
         # Some edges might be non-existant (edge k1 -> k2 does not exist)
         # So we will create edges that won't be attached to the graph but with
         # the necessary information so that they can be visualized
-        if fill_holes:
-            for t, edges in enumerate(relevant_edges):
-                if edges == []:
+        else:
+            relevant_edges = []
+            for t in range(self.T-1):
+                edges = []
 
-                    # keep track of edge num for each t
-                    e_num = self._nb_edges[t]
+                # keep track of edge num for each t
+                e_num = self._nb_edges[t]
 
-                    # Get start relevant vertices
-                    v_starts = relevant_vertices[t]
-                    v_ends = relevant_vertices[t+1]
-                    for v_start in v_starts:
+                # Get start relevant vertices
+                v_starts = relevant_vertices[t]
+                v_ends = relevant_vertices[t+1]
+                for v_start in v_starts:
 
-                        # Find common members between v_start and v_end
-                        v_end_members = [
-                            (v, v.get_common_members(v_start)) for v in v_ends
-                            if v.get_common_members(v_start) != []
-                        ]
-                        for (v_end, members) in v_end_members:
+                    # Find common members between v_start and v_end
+                    v_end_members = [
+                        (v, v.get_common_members(v_start)) for v in v_ends
+                        if v.get_common_members(v_start) != []
+                    ]
+                    for (v_end, members) in v_end_members:
 
-                            # Compute info (mean, std inf/sup at start and end)
-                            info_start = Edge.info(v_start, members)
-                            info_end = Edge.info(v_end, members)
+                        # Compute info (mean, std inf/sup at start and end)
+                        info_start = Edge.info(v_start, members)
+                        info_end = Edge.info(v_end, members)
 
-                            edges.append(Edge(
-                                info_start=info_start,
-                                info_end=info_end,
-                                v_start = v_start.num,
-                                v_end = v_end.num,
-                                t = t,
-                                num = e_num,
-                                members = members,
-                                total_nb_members = self.N,
-                                score_ratios = [0, 1],
-                            ))
+                        edges.append(Edge(
+                            info_start=info_start,
+                            info_end=info_end,
+                            v_start = v_start.num,
+                            v_end = v_end.num,
+                            t = t,
+                            num = e_num,
+                            members = members,
+                            total_nb_members = self.N,
+                            score_ratios = [[0, 1]],
+                        ))
 
-                            # Add edge number to v_start and v_end
-                            # Potentially useful for plotting
-                            v_start.add_edge_from(e_num)
-                            v_end.add_edge_to(e_num)
+                        # Add edge number to v_start and v_end
+                        # Potentially useful for plotting
+                        v_start.add_edge_from(e_num)
+                        v_end.add_edge_to(e_num)
 
-                            e_num += 1
+                        e_num += 1
+
+                relevant_edges.append(edges)
 
         return relevant_vertices, relevant_edges
 
