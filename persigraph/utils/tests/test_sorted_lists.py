@@ -191,3 +191,18 @@ def test_concat_no_duplicate():
         output = concat_no_duplicate(**args)
         output_exp = res_concat_no_dup[i]
         assert output == output_exp
+
+def test_are_equal():
+    l1s = [
+        [], [0], [0], [0], [1,2,3], [1,2,3]
+    ]
+    l2s = [
+        [], [1], [0], [0, 1], [1,2,3], [0,1,2]
+    ]
+    output_exp = [
+        True, False, True, False, True, False
+    ]
+    for i in range(len(l1s)):
+        output = are_equal(l1s[i], l2s[i])
+
+        assert output == output_exp[i]

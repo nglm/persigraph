@@ -1,4 +1,4 @@
-
+import itertools
 from typing import List, Tuple, Any, Sequence
 from bisect import *
 
@@ -28,8 +28,6 @@ def bisect_search(
         return i
     else:
         return -1
-
-
 
 def reverse_bisect_left(a, x, lo=0, hi=None):
     """
@@ -76,7 +74,6 @@ def reverse_bisect_right(a, x, lo=0, hi=None):
         if x > a[mid]: hi = mid
         else: lo = mid+1
     return lo
-
 
 def insert_no_duplicate(a, x, lo=0, hi=None):
     """Insert item x in list a if x is not already in a and keep it
@@ -195,8 +192,8 @@ def concat_with_duplicate(
             len_l2 = len(l2)
         if len_l1 <= len_l2:
             l_new = l1.copy()
-            for x in l2:
-                insort(l_new, x)
+            # inplace update of l_new inside a list comprehension
+            [insort(l_new, x) for x in l2]
             return l_new
     else:
         for x in l2:
@@ -215,3 +212,16 @@ def remove_duplicate(
     :rtype: [type]
     """
     return [x for i,x in enumerate(l) if i>0 and x != l[i-1]]
+
+def are_equal(
+    l1: Sequence,
+    l2: Sequence,
+) -> bool:
+    """
+    Efficient way to check that 2 ordered lists are equal
+    """
+    return (
+        len(l1) == len(l2)
+        and len(l1) == len(list(itertools.takewhile(
+            lambda t: t[0] == t[1], zip(l1, l2)
+        ))))
