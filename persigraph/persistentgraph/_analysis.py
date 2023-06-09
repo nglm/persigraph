@@ -105,17 +105,15 @@ def sort_components_by(components, criteron="life_span", descending=True):
         sorted_components.append(sort_t)
     return sorted_components
 
-def get_k_life_span(
-    g,
-    k_max: int = 5,
-) -> Dict[int, List[float]]:
+def k_info(g) -> Dict[int, Dict[str, List[float]]]:
     """
-    Get the life span for all k [1, ..., k_max] and each t.
+    Get the life span and ratios for all k and t.
+
     To summarize:
-    life_span[k_prev][t] = r_curr - r_prev
+    `k_info[k_curr]['life_span'][t] = r_curr - r_prev`
 
     Note:
-    - g._local_steps[t][s]['ratio_score'] refers to the score of death of
+    - g._local_steps[t][s]['ratio_score'] refers to the ratio of death of
     the local step.
     - there might be some 'holes' when steps are ignored
     their life span will then all be 0.
@@ -123,10 +121,10 @@ def get_k_life_span(
     will be favored, the other ones keep their life span of value 0.
     - The case k=0 is used only to be used as a potential score bound.
     It is never used to create a vertex in the graph and it doesn't
-    really have a life span. However if k=0 is indeed the worst score
+    really have a life span. However if k=0 is indeed the worst ratio
     (as it should in a unimodal case) then, it helps define the second to
-    the worst score.
-    - If all scores are equal, life_span=0, r_birth=0 and r_death=0 for all k
+    the worst ratio.
+    - If all ratios are equal, life_span=0, r_birth=0 and r_death=0 for all k
     except for k=1, where life_span=1, r_birth=0 and r_death=1
 
     e.g. if k=2,3 have the same r_score, then
@@ -134,111 +132,80 @@ def get_k_life_span(
     - life span[2] = r_curr - r_prev where r_prev is the last r_score found
     without being equal to r_curr
 
-    :param g: [description]
-    :type g: [type]
-    :param k_max: Max value of k considered, defaults to 5
-    :type k_max: int, optional
-    :return: life span of k clusters for each k and each t
-    :rtype: Dict[int, List[float]]
+    :param g: Graph
+    :type g: PersistentGraph
+    :return: life span and ratios of each assumption k for all k and each t
+    :rtype: Dict[int, Dict[str, List[float]]]
     """
-    k_max = min(k_max, g.k_max)
+    k_max =g.k_max
 
     # By default all life span are 0 (even if their corresponding step was
-    # ignored). They might remain 0 in case of equal r_scores
-    life_span = { k : [0. for _ in range(g.T)] for k in range(1, k_max+1) }
+    # ignored). They might remain 0 in case of equal ratios
+    k_info = { k :
+        {
+            "life_span" : [0. for _ in range(g.T)],
+            "score_ratios" : [[0., 0.] for _ in range(g.T)],
+        } for k in range(1, k_max+1) }
 
-    # Extract ratio scores for each k and each t
+    # Extract ratio for each k and each t
     for t in range(g.T):
 
         # to keep track of the last step and make sure smaller k are favored
         k_prev = 0
         r_prev = 0
-        k_eq = []
 
-        for i, step in enumerate(g._local_steps[t]):
+        for step in g._local_steps[t]:
             # k_curr are not necessarily in increasing order
-            k_curr = step['param']['n_clusters']
+            k_curr = step['param']['k']
             r_curr = step['ratio_score']
 
-            # If r_scores are equal, don't update life span,
-            # just stack k values that share the same r_score
+            # ----- Initialisation -----------------
+            # By default all k have r_birth = r_death and life_span = 0
+            k_info[k_curr]['score_ratios'][t] = [r_curr, r_curr]
+
+            # If ratios are equal, don't update, keep everything as
+            # initialized
             if r_curr == r_prev:
                 if k_prev != 0:
-                    k_curr = min(k_curr, k_prev)
-                # if k_eq == []:
-                #     k_eq = [k_prev, k_curr]
-                # else:
-                #     k_eq.append(k_curr)
+                    argmin = np.argmin([k_curr, k_prev])
+                    k_curr = [k_curr, k_prev][argmin]
 
-            # Else compute life span of k_curr, with r_prev != r_curr
+            # Else update info of k_curr, with r_prev != r_curr
             else:
-                # If same ks were sharing the same r_score, keep their
-                # life span to 0 as initialized...
-                # if k_eq:
-                #     # ...except for the smallest k
-                #     k_curr = max(sorted(k_eq)[0], 1)
-                life_span[k_curr][t] = r_curr - r_prev
-                # k_eq = []
+                k_info[k_curr]['life_span'][t] = r_curr - r_prev
+                k_info[k_curr]['score_ratios'][t] = [r_prev, r_curr]
 
             # Prepare next iteration
             r_prev = r_curr
             k_prev = k_curr
 
         # ------- Last step ---------
-        # If we were in a series of equal scores, find the "good" k_prev
-        # if k_eq != []:
-        #     k_curr = max(sorted(k_eq)[0], 1)
+        # If we were in a series of equal ratios, find the "good" k_curr
         k_curr = max(min(k_curr, k_prev), 1)
-        life_span[k_curr][t] = 1 - r_prev
+        k_info[k_curr]['life_span'][t] = 1 - r_prev
+        k_info[k_curr]['score_ratios'][t] = [r_prev, 1]
 
-    return life_span
+    return k_info
 
 def get_relevant_k(
     g,
-    life_span: Dict[int, List[float]] = None,
-    k_max: int = 8,
 ) -> List[List]:
     """
     For each time step, get the most relevant number of clusters
 
     :param g: Graph
-    :type g: [type]
-    :param life_span: life span of all k for all t, defaults to None
-    :type life_span: Dict[int, List[float]], optional
-    :param k_max: Max value of k considered, defaults to 8
-    :type k_max: int, optional
-    :return: Nested list of [k_relevant, life_span] for each time step
+    :type g: PersistentGraph
+
+    :return: Nested list of [k_relevant, life_span_k] for each time step
     :rtype: List[List]
     """
-    k_max = min(k_max, g.k_max)
-    if life_span is None:
-        life_span = get_k_life_span(g, k_max)
 
-    # list of t (k, life_span_k)
+    # list of t (k, k_info)
     relevant_k = [[1, 0.] for _ in range(g.T)]
     for t in range(g.T):
-        for k, life_span_k in life_span.items():
+        for k, k_info_k in g.k_info.items():
             # Strict comparison to prioritize smaller k values
-            if life_span_k[t] > relevant_k[t][1]:
+            if k_info_k["life_span"][t] > relevant_k[t][1]:
                 relevant_k[t][0] = k
-                relevant_k[t][1] = life_span_k[t]
+                relevant_k[t][1] = k_info_k["life_span"][t]
     return relevant_k
-
-
-
-# #def# get_contemporaries(g, cmpt):
-#     # FIXME: Outdated
-#     t = cmpt.time_step
-#     contemporaries = []
-#     for s in range(cmpt.s_birth, cmpt.s_death):
-#         c_alive_s = []
-#         if isinstance(cmpt, Vertex):
-#             c_alive_s = g.get_alive_vertices(s=s, t=t)
-#         if isinstance(cmpt, Edge):
-#             c_alive_s = g.get_alive_edges(s=s, t=t)
-#         contemporaries += c_alive_s
-#     # get edges from e_num
-#     contemporaries = [g.edges[t][e_num] for e_num in contemporaries]
-#     # remove duplicate
-#     contemporaries = list(set(contemporaries))
-#     return contemporaries

@@ -69,7 +69,6 @@ def get_centroids(
                 if distance_matrix[i, j] == 0:
                     raise ValueError('Remaining members are now equal')
 
-
                 # We'll break this vertex into 2 vertices represented by i and j
                 rep_to_break = members_r[i]
 
@@ -195,7 +194,7 @@ def compute_cluster_params(
 class Naive:
 
     def __init__(self, n_clusters, distance=pairwise_distances) -> None:
-        self.n_clusters = n_clusters
+        self.k = n_clusters
         self.labels_ = None
         self.distance = distance
 
@@ -205,7 +204,7 @@ class Naive:
         # Repeat
         clusters = [[i for i in range(len(X))]]
         rep = []
-        for i in range(1, self.n_clusters +1):
+        for i in range(1, self.k +1):
 
             pdist_in_clusters = [self.distance(X[c]) for c in clusters]
             arg_diam_in_clusters = [

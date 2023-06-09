@@ -22,38 +22,6 @@ class Edge(Component):
         info = compute_cluster_params(X)
         return info
 
-    @staticmethod
-    def ratio_scores(v_start, v_end) -> Tuple[List[float]]:
-        """
-        Compute scores and ratios based on vertices
-
-        :param v_start: v_start
-        :type v_start: Vertex
-        :param v_end: v_end
-        :type v_end: Vertex
-        :return: [score_birth, score_death] and [ratio_birth, ratio_death]
-        :rtype: Tuple[List[float]]
-        """
-        # ------------ policy 1: common life span --------------------
-        argbirth = np.argmax([v_start.score_ratios[0], v_end.score_ratios[0]])
-        argdeath = np.argmin([v_start.score_ratios[1], v_end.score_ratios[1]])
-
-        # ------------ policy 2: min of life span --------------------
-        # argbirth = np.argmin([v_start.life_span, v_end.life_span])
-        # argdeath = argbirth
-
-        # Note that score birth and death might not be consistent but
-        # The most important thing is the ratios which must be consistent
-        score_birth = [v_start.scores[0], v_end.scores[0]][argbirth]
-        score_death = [v_start.scores[1], v_end.scores[1]][argdeath]
-        scores = [score_birth, score_death]
-
-        ratio_birth = [v_start.score_ratios[0], v_end.score_ratios[0]][argbirth]
-        ratio_death = [v_start.score_ratios[1], v_end.score_ratios[1]][argdeath]
-        ratios = [ratio_birth, ratio_death]
-
-        return scores, ratios
-
     def __init__(
         self,
         info_start: Dict[str, Any],
@@ -63,18 +31,14 @@ class Edge(Component):
         t: int = None,
         num: int = None,
         members : List[int] = None,
-        scores: Sequence[float] = None,
         score_ratios: Sequence[float] = None,
-        score_bounds: Sequence[float] = None,
         total_nb_members: int = None,
     ):
         super().__init__(
             t=t,
             num=num,
             members = members,
-            scores=scores,
             score_ratios = score_ratios,
-            score_bounds = score_bounds,
             total_nb_members = total_nb_members,
         )
 
@@ -127,13 +91,11 @@ class Edge(Component):
         """
         return self.__v_end
 
-
     @v_end.setter
     def v_end(self, v_end: int):
         if v_end is not None:
             check_int_positive(v_end, 'Vertex end')
             self.__v_end = int(abs(v_end))
-
 
     @property
     def info_start(self) ->  Dict[str, Any]:
@@ -147,7 +109,6 @@ class Edge(Component):
     @info_start.setter
     def info_start(self, info_start: Dict[str, Any]):
         self.__info_start = info_start
-
 
     @property
     def info_end(self) ->  Dict[str, Any]:

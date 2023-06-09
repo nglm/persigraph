@@ -17,4 +17,3 @@ from ._scores import SCORES
 
 # Select which modules should be available to the user
 # from . import plots
-# from . import analysis

@@ -1,5 +1,6 @@
 from . import Component
 from ..utils.check_variable import check_int_positive
+from ..utils.sorted_lists import are_equal
 from typing import Sequence, List, Dict, Any
 
 class Vertex(Component):
@@ -10,18 +11,14 @@ class Vertex(Component):
         t:int = None,
         num: int = None,
         members: List[int] = None,
-        scores: Sequence[float] = None,
         score_ratios: Sequence[float] = None,
-        score_bounds: float = None,
         total_nb_members: int = None,
     ):
         super().__init__(
             t=t,
             num=num,
             members = members,
-            scores = scores,
             score_ratios = score_ratios,
-            score_bounds = score_bounds,
             total_nb_members = total_nb_members,
         )
         self.info = info
@@ -32,7 +29,6 @@ class Vertex(Component):
         self,
         v = None,
         members: List[int] = None,
-        nb_members: int = None,
         time_step: int = None,
         v_type: str = None
     ) -> bool:
@@ -49,23 +45,13 @@ class Vertex(Component):
         if v is not None:
             members = v.members
             time_step = v.time_step
-            nb_members = v.nb_members
             v_type = v.info['type']
-        else:
-            if nb_members is None:
-                nb_members = len(members)
         if (self.time_step == time_step
-            and nb_members == self.nb_members
             and v_type == self.info['type']
             ):
-            res = True
-            for i in range(nb_members):
-                if members[i] != self.members[i]:
-                    res = False
-                    break
+            return are_equal(self.members, members)
         else:
-            res = False
-        return res
+            return False
 
     def index_members(self, members: Sequence[int]) -> List[int]:
         """

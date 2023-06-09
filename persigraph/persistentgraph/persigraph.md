@@ -101,7 +101,7 @@ From now on, when referring to a given cluster $\mathbf{X}_{t, clus, k}^{(i)}$ w
 Clustering scores
 -------------------------------------------------------------------------------
 
-There exist natural score functions to evaluate qualities of different clusterings (inertia, variance, diameter, log-likelihood etc.), but none of them is ideal, especially with few datapoints and when the case $k=1$ has to be considered as well.
+There exist natural score functions to evaluate qualities of different clusterings (inertia, variance, diameter, log-likelihood etc.). There are usually a measure of dispersion and/or separation, but none of them is ideal, especially with few datapoints and when the case $k=1$ has to be considered as well.
 
 Some score functions can be applied individually to each cluster $\mathbf{X}_{t, clus, k}^{(i)}$ and then combined to give the score of the whole clustering $\cup_{i=1, \cdots, k} \mathbf{X}_{t, clus, k}^{(i)}$. For example, the inertia of all clusters is computed individually, and then the sum/mean/max of the inertia of all clusters yields the score of the clustering. Alternatively, log-likelihood evaluates the entire clustering at once.
 
@@ -169,7 +169,7 @@ If DTW is used, time windows are extracted and aligned one by one with DTW using
 - Take their mean.
 - Take the aligned point that is the closest to the barycenter.
 
-In `PersiGraph`, it was decided to take their mean, this is a rather arbitrary decision. Which means that in the DTW case as well, we have $\mathbf{X}_{t, vert, k}^{(i)} \in \mathbb{R}^{N_{t, k}^{(i)} \times d}$.
+In `PersiGraph`, it was decided to take their mean, this is a rather arbitrary decision. As a consequence, in the DTW case as well, we have $\mathbf{X}_{t, vert, k}^{(i)} \in \mathbb{R}^{N_{t, k}^{(i)} \times d}$.
 
 #### Vertex life span
 
@@ -177,17 +177,31 @@ The life span of a vertex is the sum of all the life spans of the clusters it re
 
 #### Vertex center and uncertainty
 
+The center of a vertex is defined using a measure of tendency and the uncertainty using a measure of dispersion of the datapoints in the cluster they represent $\mathbf{X}_{t, vert, k}^{(i)} \in \mathbb{R}^{N_{t, k}^{(i)} \times d}$.
+
+Two measures of tendency can be used in PersiGraph, the mean and the median. The mean was implemented as it is the common interpretation of the expected value in ensemble prediction. The median was implemented as a more appropriate measure of tendency in case of a skewed cluster.
+
+The uncertainty of a vertex is computed both above and below the center for each of the $d$ variable separately. We define
+
+If the mean was used to compute the center then, then an asymmetric deviation is computed
+
+$$\sqrt{\sum_{i=0}^{N_{sup inf}}}$$
+
+and if the median was used, then an asymmetric median absolute deviation is used.
+
 ### Edge
 
-#### Edge data
-
-An edge represents a link between two vertices, one at $t$, $v_{t, k_1}^{(i_1)}$ and one at $t+1$, $v_{t+1, k_2}^{(i_2)}$. The edge is well defined if vertices have at least one member in common (i.e. $\mathcal{M^{(i_1)}_{t,k_1}} \cap \mathcal{M^{(i_2)}_{t+1,k_2}} \neq \emptyset$) and were contemporaries (i.e. ). and is well defined. The data used to define the edge is based on
+An edge represents a link between two vertices, one at $t$, $v_{t, k_1}^{(i_1)}$ and one at $t+1$, $v_{t+1, k_2}^{(i_2)}$. The edge is well defined if vertices have at least one member in common (i.e. $\mathcal{M^{(i_1)}_{t,k_1}} \cap \mathcal{M^{(i_2)}_{t+1,k_2}} \neq \emptyset$) and were contemporaries (i.e. ). and is well defined.
 
 #### Edge life span
 
 An edge is alive as long as both its start and end vertices are alive, i.e. $\mathtt{ratio\_birth} = \max(\mathtt{ratio\_birth_{v\_start}}, \mathtt{ratio\_birth_{v\_end}})$ and $\mathtt{ratio\_death} = \min(\mathtt{ratio\_death_{v\_start}}, \mathtt{ratio\_death_{v\_end}})$
 
-#### Mean / barycenter
+#### Edge center and uncertainty
 
-#### Standard deviation
+The starting (respectively ending) point of the center of an edge is the center of its start (resp. end) vertex. The whole center of an edge is then the line between those two points.
+
+The start (respectively end) uncertainty of an edge is computed using a subset of the data of its start (resp end) vertex.
+
+XXX
 

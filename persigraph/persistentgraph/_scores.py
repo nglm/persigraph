@@ -8,7 +8,7 @@ from numpy.linalg import norm
 from scipy.spatial.distance import cdist, pdist
 from sklearn.metrics import pairwise_distances
 from tslearn.metrics import cdist_soft_dtw
-from typing import List, Sequence, Union, Any, Dict
+from typing import List, Sequence, Union, Any, Dict, Tuple
 
 SCORES = [
         'inertia',
@@ -191,10 +191,9 @@ def f_diameter(cluster: np.ndarray, cluster_info: dict = None) -> float:
 def compute_subscores(
     pg,
     X : np.ndarray,
-    clusters: List[List[int]],
+    clusters_data: List[Tuple[List[int], Dict]],
     main_score: str,
     f_score,
-    clusters_info: Dict = None,
 ) -> float:
     """
     Compute the main score of a clustering and its associated subscores
@@ -203,24 +202,24 @@ def compute_subscores(
     :type pg: PersistentGraph
     :param X: Values of all members
     :type X: np.ndarray, shape: (N, d)
-    :param clusters: Members ids of each cluster, defaults to None
-    :type clusters: List[List[int]]
+    :param clusters_data: List of (members, info) tuples, defaults to None
+    :type clusters_data: List[Tuple(List[int], Dict)]
     :return: Score of the given clustering
     :rtype: float
     """
     prefixes = ["", "mean_", "weighted_"]
     score_tmp = [
             f_score(X[members], info)
-            for members, info in zip(clusters, clusters_info)
+            for members, info in clusters_data
         ]
     if (pg._score_type in [p + main_score for p in prefixes] ):
         score = sum(score_tmp)
         # Take the mean score by cluster
         if pg._score_type  == "mean_" + main_score:
-            score /= len(clusters)
+            score /= len(clusters_data)
         # Take a weighted mean score by cluster
         elif pg._score_type == "weighted_" + main_score:
-            score /= (len(clusters) / pg.N)
+            score /= (len(clusters_data) / pg.N)
     # ------------------------------------------------------------------
     # Take the median score among all clusters
     elif pg._score_type == 'median_' + main_score:
@@ -247,9 +246,8 @@ def compute_score(
     pg,
     model=None,
     X: np.ndarray = None,
-    clusters: List[List[int]] = None,
+    clusters_data: List[List[int]] = None,
     t: int = None,
-    clusters_info: Dict = None,
 ) -> float :
     """
     Compute the score of a given clustering
@@ -260,8 +258,8 @@ def compute_score(
     :type model: sklearn model, optional
     :param X: Values of all members, defaults to None
     :type X: np.ndarray, shape: (N, d*w) optional
-    :param clusters: Members ids of each cluster, defaults to None
-    :type clusters: List[List[int]], optional
+    :param clusters_data: List of (members, info) tuples, defaults to None
+    :type clusters_data: List[Tuple(List[int], Dict)]
     :param t: current time step (for weights), defaults to None
     :type t: int, optional
     :raises ValueError: [description]
@@ -282,8 +280,8 @@ def compute_score(
             score = model.inertia_
         else:
             score = compute_subscores(
-                pg, X, clusters, "inertia", f_inertia,
-                clusters_info=clusters_info)
+                pg, X, clusters_data, "inertia", f_inertia
+            )
     # ------------------------------------------------------------------
     # Variance based scores
     # Shouldn't be used: use inertia or distortion instead
@@ -291,31 +289,30 @@ def compute_score(
     # Here it's generalized variance
     elif pg._score_type.endswith("variance"):
         score = compute_subscores(
-            pg, X, clusters, "variance", f_generalized_var,
-            clusters_info=clusters_info
+            pg, X, clusters_data, "variance", f_generalized_var
         )
     # ------------------------------------------------------------------
     # Median around mean based scores
     elif pg._score_type.endswith("MedDevMean"):
         score = compute_subscores(
-            pg, X, clusters, "MedDevMean", f_med_dev_mean,
-            clusters_info=clusters_info)
+            pg, X, clusters_data, "MedDevMean", f_med_dev_mean,
+        )
     # Median around mean based scores
     elif pg._score_type.endswith("MeanDevMed"):
         score = compute_subscores(
-            pg, X, clusters, "MeanDevMed", f_mean_dev_med,
-            clusters_info=clusters_info)
+            pg, X, clusters_data, "MeanDevMed", f_mean_dev_med,
+        )
     # Median around median based scores
     # Shouldn't be used, see f_med_dev_med
     elif pg._score_type.endswith("MedDevMed"):
         score = compute_subscores(
-            pg, X, clusters, "MedDevMed", f_med_dev_med,
-            clusters_info=clusters_info)
+            pg, X, clusters_data, "MedDevMed", f_med_dev_med,
+        )
     # ------------------------------------------------------------------
     elif pg._score_type.endswith("diameter"):
         score = compute_subscores(
-            pg, X, clusters, "diameter", f_diameter,
-            clusters_info=clusters_info)
+            pg, X, clusters_data, "diameter", f_diameter,
+        )
     # ------------------------------------------------------------------
     else:
         raise ValueError(
@@ -352,7 +349,7 @@ def _compute_score_bounds(
         )
         if pg._worst_scores[t] != pg._zero_scores[t]:
             # k that will automatically get a life span of 0
-            pg._worst_k[t] = pg._local_steps[t][0]['param']["n_clusters"]
+            pg._worst_k[t] = pg._local_steps[t][0]['param']["k"]
         pg._best_scores[t] = best_score(
             pg._zero_scores[t], pg._local_steps[t][-1]['score'], pg._maximize
         )
@@ -383,13 +380,11 @@ def _compute_ratio_scores(
     pg,
 ):
     """
-    Compute the ratio scores and life span of local scores and vertices.
+    Compute the ratio scores of local scores
 
-    Note that 'ratio_score' of steps refer to the birth ratio score.
+    Note that 'ratio_score' of steps refer to the death ratio score.
     For more information on how life spans of steps are computed based on
-    the ratio_score of steps, see `get_k_life_span`.
-
-    Update the pg._max_life_span if relevant
+    the ratio_score of steps, see `k_info`.
 
     :param pg: [description]
     :type pg: [type]
@@ -402,7 +397,7 @@ def _compute_ratio_scores(
         # Special case, all ratio score and life spans of that step will be
         # 0 expect for the case k=1, where
         # ratio_score=0 and life_span=1
-        # See `get_k_life_span` for more info.
+        # See `k_info` for more info.
         if pg._worst_scores[t] == pg._best_scores[t]:
             for step in range(pg._nb_local_steps[t]):
                 pg._local_steps[t][step]['ratio_score'] = 0
@@ -412,21 +407,6 @@ def _compute_ratio_scores(
                 score = pg._local_steps[t][step]['score']
                 ratio = np.abs(score - score_bounds[0]) / norm_bounds
                 pg._local_steps[t][step]['ratio_score'] = ratio
-
-        # -- ratio scores of vertices that are still alive at the end --
-        for v in pg._v_at_step[t]['v'][-1]:
-            pg._vertices[t][v]._compute_ratio_scores(
-                score_bounds = score_bounds
-            )
-        if pg._v_at_step[t]['v'][-1]:
-                # Get the longest life span
-                pg._max_life_span = max(pg._max_life_span, max(
-                    [
-                        pg._vertices[t][v].life_span
-                        for v in pg._v_at_step[t]['v'][-1]
-                    ]
-                ))
-
 
 def better_score(
     score1: float,

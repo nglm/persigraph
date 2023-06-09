@@ -4,6 +4,7 @@ import time
 import pickle
 import json
 from copy import deepcopy
+from bisect import insort
 
 from typing import List, Sequence, Tuple, Union, Any, Dict
 
@@ -13,19 +14,18 @@ from . import Component
 from ._set_default_properties import (
     _set_members, _set_zero, _set_model_class, _set_score_type
 )
-from ._clustering_model import generate_all_clusters
+from ._clustering_model import generate_all_clusters, merge_clusters
 from ._scores import _compute_ratio_scores, _compute_score_bounds
-from .analysis import get_k_life_span, get_relevant_k
+from ._analysis import k_info, get_relevant_k
 
 from ..utils.sorted_lists import (
-    insert_no_duplicate, concat_no_duplicate, has_element
+    insert_no_duplicate, concat_no_duplicate, has_element, are_equal
 )
 from ..utils.d3 import jsonify
 from ..utils._clustering import compute_cluster_params
 
 
 class PersistentGraph():
-
 
     def __init__(
         self,
@@ -168,7 +168,7 @@ class PersistentGraph():
                 'scores' : [],
                 'params' : [],
             }
-            self._life_span = None
+            self._k_info = None
             self._life_span_max = None
             self._life_span_min = None
             self._relevant_k = None
@@ -187,34 +187,12 @@ class PersistentGraph():
 
             # To find members' vertices and edges more efficiently
             #
-            # Nested list (time, local steps) of arrays of size N
-            # members_v_distrib[t][local_step][i] is the vertex num of the
-            # ith member at t at the given local step
+            # List of dictionary of arrays of length N
+            # members_v_distrib[t][k][i] is the vertex num of the
+            # ith member at t for the assumption k.
             self._members_v_distrib = [
-                [] for _ in range(self.T)
-            ]
-            # To find local steps vertices and more efficiently
-            #
-            # v_at_step[t]['v'][local_step][i] is the vertex num of the
-            # ith alive vertex at t at the given local step
-            #
-            # v_at_step[t]['global_step_nums'][local_step] is the global step
-            # num associated with 'local_step' at 't'
-            self._v_at_step = [
-                {
-                    'v' : [],
-                    'global_step_nums' : []
-                } for _ in range(self.T)
-            ]
-
-            # Same as above EXCEPT that here local steps don't really refer to
-            # the algo's local steps since they will be new edges at t whenever
-            # there is a new local step at t OR at t+1
-            self._e_at_step = [
-                {
-                    'e' : [],
-                    'global_step_nums' : []
-                } for _ in range(self.T)
+                {k: np.zeros(self.N) for k in range(1, self._k_max+1)}
+                for _ in range(self.T)
             ]
 
             if self._maximize:
@@ -225,7 +203,6 @@ class PersistentGraph():
                 self._worst_scores = -np.inf*np.ones(self.T)
             self._zero_scores = np.nan*np.ones(self.T)
             self._worst_k = np.zeros(self.T)
-            self._max_life_span = 0
 
             self._are_bounds_known = False
             self._norm_bounds = None
@@ -237,8 +214,6 @@ class PersistentGraph():
         info: Dict[str, Any],
         t: int,
         members: List[int],
-        scores: Sequence[float],
-        local_step: int,
     ):
         """
         Add a vertex to the current graph
@@ -250,20 +225,16 @@ class PersistentGraph():
         :param members: Ordered list of members indices represented by the
         vertex
         :type members: List[int]
-        :param scores: (score_birth, score_death)
-        :type scores: Sequence[float]
-        :param local_step: Local step of the algorithm
-        :type local_step: int
         :return: The newly added vertex
         :rtype: Vertex
         """
 
-        # Info specific to this vertex
-        # (brotherhood_size computed in construct_vertices)
-        if info['brotherhood_size'][-1]:
-            info["type"] = self._model_type
-        else:
-            info["type"] = "uniform"
+        info["type"] = self._model_type
+        score_ratios = []
+        for k in info["k"]:
+            score_ratios = Component.ratio_union(
+                score_ratios, [self._k_info[k]["score_ratios"][t]]
+            )
 
         # Create the vertex
         num = self._nb_vertices[t]
@@ -272,16 +243,15 @@ class PersistentGraph():
             t = t,
             num = num,
             members = members,
-            scores = scores,
-            score_bounds = None,  # Ratio will be computed when v is killed
+            score_ratios = score_ratios,
             total_nb_members = self.N,
         )
 
         # Update the graph with the new vertex
         self._nb_vertices[t] += 1
         self._vertices[t].append(v)
-        self._members_v_distrib[t][local_step][members] = num
-        insort(self._v_at_step[t]['v'][local_step], v.num)
+        for k in info["k"]:
+            self._members_v_distrib[t][k][members] = num
 
         return v
 
@@ -311,7 +281,9 @@ class PersistentGraph():
             return None
 
         # --------- Compute scores and ratios info --------------
-        scores, ratios = Edge.ratio_scores(v_start, v_end)
+        ratios = Component.ratio_intersection(
+            v_start.score_ratios, v_end.score_ratios
+        )
 
         # -------------- Compute edge info --------------
 
@@ -335,7 +307,6 @@ class PersistentGraph():
             t = t,
             num = self._nb_edges[t],
             members = members,
-            scores = scores,
             score_ratios = ratios,
             total_nb_members = self.N,
         )
@@ -349,117 +320,47 @@ class PersistentGraph():
         self._edges[t].append(e)
         return e
 
-    def _kill_vertices(
-        self,
-        t:int,
-        vertices: List[int],
-        score_death: float = None,
-    ):
-        """
-        Kill vertices
-
-        Update the self._max_life_span if relevant
-
-        :param t: Time step at which the vertices should be killed
-        :type t: int
-        :param vertices: Vertex or list of vertices to be killed
-        :type vertices: List[Vertex]
-        :param score_death: (Open interval) best score at which a vertex
-        is still alive
-        :type score_death: float
-
-        """
-        if score_death is not None:
-            if not isinstance(vertices, list):
-                vertices = [vertices]
-            for v in vertices:
-                self._vertices[t][v].scores[1] = score_death
-                self._vertices[t][v]._compute_ratio_scores(
-                    (self._worst_scores[t], self._best_scores[t])
-                )
-
-            if vertices:
-                # Get the longest life span
-                self._max_life_span = max(self._max_life_span, max(
-                    [self._vertices[t][v].life_span for v in vertices]
-                ))
-
-    def _keep_alive_edges(
-        self,
-        t:int,
-        edges: List[int],
-        ratio: float = None,
-    ):
-        """
-        Keep edges that are not dead yet at that ratio
-
-        Assume that edges are already born (This is the edges's counterpart
-        of "kill_vertices" function)
-        """
-        if ratio is not None:
-            if not isinstance(edges, list):
-                edges = [edges]
-            return [
-                e for e in edges if ratio < self._edges[t][e].score_ratios[1]
-                ]
-
-
     def get_local_step_from_global_step(
         self,
-        step,
-        t,
-    ):
+        step: int,
+        t: int,
+        v_step: bool = True,
+    ) -> int:
         """
-        Find the local step corresponding to the given global step
+        Find the (pseudo-)local step corresponding to the given global step
 
         ``self.local_steps[t][s]['global_step_num']`` gives indeed the global
         steps corresponding exactly to a given local step. But one local step
         may live during more than 1 global step, if the global steps concern
         other time steps.
 
-        :param step: [description]
-        :type step: [type]
-        :param t: [description]
-        :type t: [type]
-        :return: [description]
-        :rtype: [type]
+        Local steps for edges are pseudo local steps since there is new edge
+        step, if there is a new local step at `t` or `t+1`.
+
+        :param step: global step
+        :type step: int
+        :param t: time step of interest
+        :type t: int
+        :param v_step: use v_step (local steps) or e_step (pseudo-local step)
+        :type v_step: bool
+        :return: local step corresponding to the global step
+        :rtype: int
         """
+        if v_step:
+            comp_at_step = self.v_at_step()
+        else:
+            comp_at_step = self.e_at_step()
         s = bisect_right(
-            self._v_at_step[t]['global_step_nums'],
+            comp_at_step[t]['global_step_nums'],
             step,
             hi = self._nb_local_steps[t],
         )
         s -= 1
         return s
 
-    def get_e_local_step_from_global_step(
-        self,
-        step,
-        t,
-    ):
-        """
-        Find the local step corresponding to the given global step
-
-        ``self.local_steps[t][s]['global_step_num']`` gives indeed the global
-        steps corresponding exactly to a given local step. But one local step
-        may live during more than 1 global step, if the global steps concern
-        other time steps.
-
-        :param step: [description]
-        :type step: [type]
-        :param t: [description]
-        :type t: [type]
-        :return: [description]
-        :rtype: [type]
-        """
-        s = bisect_right(self._e_at_step[t]['global_step_nums'], step)
-        s -= 1
-        return s
-
     def get_alive_vertices(
         self,
         ratio: float = None,
-        step: int = None,
         t: Union[Sequence[int],int] = None,
         get_only_num: bool = True
     ) -> Union[List[Vertex], List[int]]:
@@ -471,8 +372,6 @@ class PersistentGraph():
 
         :param ratio: Ratio at which vertices should be alive
         :type ratio: float, optional
-        :param step: Step at which vertices should be alive
-        :type step: int, optional
         :param t: Time step from which the vertices should be extracted
         :type t: int, optional
         :param get_only_num: Return the component or its num only?
@@ -491,52 +390,18 @@ class PersistentGraph():
                 return_nested_list = True
                 t_range = t
 
-        # -------------------- Special case ---------------------------
-        # If step and ratio are None,
-        # Then return the vertices that are still alive at the end
-        if step is None and ratio is None:
-            for t in t_range:
-                v_alive_t = self._v_at_step[t][-1]
+        # -------------------- Using ratio ---------------------------
+        for t in t_range:
+
+            v_alive_t = [
+                v for v in self._vertices[t] if v.is_alive(ratio)
+            ]
+
             if not get_only_num:
                 v_alive_t = [
                     self._vertices[t][v_num] for v_num in v_alive_t
                 ]
             v_alive.append(v_alive_t)
-
-        elif step is not None:
-
-            # -------------------- Using step --------------------------
-            for t in t_range:
-
-                local_s = self.get_local_step_from_global_step(step=step, t=t)
-
-                # If the global step occurred before the initialization step at
-                # t then return local_s = -1 and there is no alive vertices
-                # to add
-                if local_s != -1:
-                    v_alive_t = self._v_at_step[t]['v'][local_s],
-
-                if not get_only_num:
-                    v_alive_t = [
-                        self._vertices[t][v_num] for v_num in v_alive_t
-                    ]
-                v_alive.append(v_alive_t)
-
-        else:
-
-            # -------------------- Using ratio ---------------------------
-            for t in t_range:
-
-                v_alive_t = [
-                    v for v in self._vertices[t]
-                    if v.is_alive(ratio)
-                ]
-
-                if not get_only_num:
-                    v_alive_t = [
-                        self._vertices[t][v_num] for v_num in v_alive_t
-                    ]
-                v_alive.append(v_alive_t)
 
         if not return_nested_list:
             v_alive = v_alive[0]
@@ -545,7 +410,6 @@ class PersistentGraph():
     def get_alive_edges(
         self,
         ratio: float = None,
-        step: int = None,
         t: Union[Sequence[int],int] = None,
         get_only_num: bool = True
     ) -> Union[List[Vertex], List[int]]:
@@ -557,8 +421,6 @@ class PersistentGraph():
 
         :param ratio: Ratio at which edges should be alive
         :type ratio: float, optional
-        :param step: Step at which edges should be alive
-        :type step: int, optional
         :param t: Time step from which the edges should be extracted
         :type t: int, optional
         :param get_only_num: Return the component or its num only?
@@ -577,52 +439,18 @@ class PersistentGraph():
                 return_nested_list = True
                 t_range = t
 
-        # -------------------- Special case ---------------------------
-        # If step and ratio are None,
-        # Then return the edges that are still alive at the end
-        if step is None and ratio is None:
-            for t in t_range:
-                e_alive_t = self._e_at_step[t][-1]
+        # -------------------- Using ratio ---------------------------
+        for t in t_range:
+
+            e_alive_t = [
+                e for e in self._edges[t] if e.is_alive(ratio)
+            ]
+
             if not get_only_num:
                 e_alive_t = [
                     self._edges[t][e_num] for e_num in e_alive_t
                 ]
             e_alive.append(e_alive_t)
-
-        elif step is not None:
-
-            # -------------------- Using step --------------------------
-            for t in t_range:
-
-                local_s = self.get_local_step_from_global_step(step=step, t=t)
-
-                # If the global step occurred before the initialization step at
-                # t then return local_s = -1 and there is no alive edges
-                # to add
-                if local_s != -1:
-                    e_alive_t = self._e_at_step[t]['v'][local_s],
-
-                if not get_only_num:
-                    e_alive_t = [
-                        self._edges[t][e_num] for e_num in e_alive_t
-                    ]
-                e_alive.append(e_alive_t)
-
-        else:
-
-            # -------------------- Using ratio ---------------------------
-            for t in t_range:
-
-                e_alive_t = [
-                    v for v in self._edges[t]
-                    if v.is_alive(ratio)
-                ]
-
-                if not get_only_num:
-                    e_alive_t = [
-                        self._edges[t][e_num] for e_num in e_alive_t
-                    ]
-                e_alive.append(e_alive_t)
 
         if not return_nested_list:
             e_alive = e_alive[0]
@@ -630,107 +458,16 @@ class PersistentGraph():
 
     def _construct_vertices(self, cluster_data):
         for t in range(self.T):
-            score_prev = self._worst_scores[t]
-            for step, (clusters, clusters_info) in enumerate(cluster_data[t]):
-                n_clusters = len(clusters)
-                score = self._local_steps[t][step]['score']
-
-                # ---------------- Preliminary ---------------------
-                self._members_v_distrib[t].append(
-                    np.zeros(self.N, dtype = int)
-                )
-                self._v_at_step[t]['v'].append([])
-                self._v_at_step[t]['global_step_nums'].append(None)
-
-
-                # ---------- Update vertices: Kill and Create ----------
-                # For each new vertex, check if it already exists
-                # Then kill and create vertices accordingly
-
-                # Alive vertices
-                if step == 0:
-                    alive_vertices = []
-                else:
-                    alive_vertices = self._v_at_step[t]['v'][step-1][:]
-                v_to_kill = []
-                nb_v_created = 0
-                for i_cluster in range(n_clusters):
-
-                    to_create = True
-                    members = clusters[i_cluster]
-
-                    # IF i_cluster already exists in alive_vertices
-                    # THEN 'to_create' is then 'False'
-                    # And update 'v_at_step' and 'members_v_distrib'
-                    # ELSE, kill the former vertex of each of its members
-                    # And create a new vertex
-                    for i, v_key in enumerate(alive_vertices):
-                        v_alive = self._vertices[t][v_key]
-                        if (v_alive.is_equal_to(
-                            members = members,
-                            time_step = t,
-                            v_type = self._model_type
-                        )):
-                            to_create = False
-                            insort(
-                                self._v_at_step[t]['v'][step],
-                                v_key
-                            )
-                            self._members_v_distrib[t][step][members] = v_key
-
-                            # Update brotherhood size to the smallest one
-                            insort(
-                                v_alive.info['brotherhood_size'],
-                                n_clusters
-                            )
-
-                            # No need to check v_alive anymore for the
-                            # next cmpt
-                            del alive_vertices[i]
-                            break
-
-                    if to_create:
-                        # For each of its members, find their former vertex
-                        # and kill them
-                        nb_v_created += 1
-                        for m in members:
-                            if step > 0:
-                                insert_no_duplicate(
-                                    v_to_kill,
-                                    self._members_v_distrib[t][step-1][m]
-                                )
-
-                        # -------------- Create new vertex -------------
-                        # NOTE: score_death is not set yet
-                        # it will be set at the step at which v dies
-                        info = clusters_info[i_cluster]
-                        info['brotherhood_size'] = [n_clusters]
-                        v = self._add_vertex(
-                            info = info,
-                            t = t,
-                            members = members,
-                            scores = [score_prev, None],
-                            local_step = step,
-                        )
-
-                # --------------------  Kill Vertices ------------------
-                self._kill_vertices(
-                    t = t,
-                    vertices = v_to_kill,
-                    score_death = score_prev,
-                )
-                if self._verbose == 2:
-                    print("  ", nb_v_created, ' vertices created\n  ',
-                            v_to_kill, ' killed')
-
-                # ----------------  Prepare next iteration -------------
-                score_prev = score
-
-        if self._verbose:
-            print(
-                "nb steps: ", self._nb_steps,
-                "\nnb_local_steps: ", self._nb_local_steps
-            )
+            # Create all vertices at t
+            for cluster_data_t_k in cluster_data[t]:
+                    # create all v
+                    new_vertices = [
+                        self._add_vertex(
+                                info=info,
+                                t=t,
+                                members=cluster,
+                            ) for (cluster, info) in cluster_data_t_k
+                        ]
 
     def _sort_steps(self):
         """
@@ -767,7 +504,7 @@ class PersistentGraph():
                     "Step", global_step, '  ||  '
                     't: ', t, '  ||  ',
                     'n_clusters: ',
-                    self._local_steps[t][step_t[t]]["param"]['n_clusters'],
+                    self._local_steps[t][step_t[t]]["param"]['k'],
                     '  ||  ',
                     ' ratio_score: %.4f ' %candidate_ratios[idx_candidate]
                 )
@@ -787,7 +524,7 @@ class PersistentGraph():
 
             # ==================== Update local_steps =======================
             self._local_steps[t][step_t[t]]["global_step_num"] = global_step
-            self._v_at_step[t]['global_step_nums'][step_t[t]] = global_step
+            # self._v_at_step[t]['global_step_nums'][step_t[t]] = global_step
 
             # ======= Update candidates: deletion and insertion ==============
 
@@ -836,21 +573,111 @@ class PersistentGraph():
                     if e is not None:
                         nb_new_edges += 1
 
-                    if self._verbose == 2:
-                        print(
-                            "WARNING! \nt: {}, no new edges going from v: {}"
-                            %(t, v_start.num)
-                        )
+                if self._verbose == 2 and nb_new_edges == 0:
+                    print(
+                        "WARNING! \nt: {}, no new edges going from v: {}"
+                        %(t, v_start.num)
+                    )
 
-            # Add e_at_step
-            for step in self._local_steps[t]:
-                self._e_at_step[t]['e'].append([
-                    e.num for e in self._edges[t]
+    def e_at_step(self) -> List[dict]:
+        """
+        List of edge num and global step for each t and each pseudo local step
+
+        Pseudo-local steps don't really refer to the algo's local steps since they will be new edges at t whenever there is a new local step at t
+        OR at t+1
+
+        :rtype: List[dict]
+        """
+
+        # Same as above EXCEPT that here local steps don't really refer to
+        # the algo's local steps since they will be new edges at t whenever
+        # there is a new local step at t OR at t+1
+        e_at_step = [
+            {
+                'e' : [],
+                'global_step_nums' : []
+            } for _ in range(self.T)
+        ]
+
+        for t in range(self.T-1):
+            s = [0, 0]
+            ts= [t, t+1]
+            nb_steps = [self._nb_local_steps[t], self._nb_local_steps[t+1]]
+
+            # -- Base case: while there are steps in both t and t+1 ----
+            while s[0] < nb_steps[0] and s[1] < nb_steps[1]:
+
+                # Take the step that is the next between t and t+1
+                steps = [
+                    self._local_steps[t][s[0]],
+                    self._local_steps[t+1][s[1]]
+                ]
+                ratios = [steps[0]['ratio_score'], steps[0]['ratio_score']]
+                argmin = np.argmin(ratios)
+
+                e_at_step[t]['e'].append([
+                    e.num for e in self._edges[ts[argmin]]
+                    if e.is_alive(steps[argmin]["ratio_score"])
+                ])
+                e_at_step[t]['global_step_nums'].append([
+                    steps[argmin]["global_step_num"]
+                ])
+
+                s[argmin] += 1
+
+            # When at least one local step group has no remaining local steps
+            argmin = np.argmin(nb_steps)
+            s_start = s[argmin]
+            for step in self._local_steps[ts[argmin]][s_start:]:
+                e_at_step[t]['e'].append([
+                    e.num for e in self._edges[ts[argmin]]
                     if e.is_alive(step["ratio_score"])
                 ])
-                self._e_at_step[t]['global_step_nums'].append([
+                e_at_step[t]['global_step_nums'].append([
                     step["global_step_num"]
                 ])
+
+        return e_at_step
+
+    def v_at_step(self) -> List[dict]:
+        """
+        List of vertex num and global step for each t and each local step
+
+        v_at_step[t] is a dict such that:
+
+        - v_at_step[t]['v'][local_step][i] is the vertex num of the
+        ith alive vertex at t at the given local step
+
+        - v_at_step[t]['global_step_nums'][local_step] is the global step
+        num associated with 'local_step' at 't'
+
+        :rtype: List[dict]
+        """
+        # To find local steps vertices and more efficiently
+        #
+        # v_at_step[t]['v'][local_step][i] is the vertex num of the
+        # ith alive vertex at t at the given local step
+        #
+        # v_at_step[t]['global_step_nums'][local_step] is the global step
+        # num associated with 'local_step' at 't'
+        v_at_step = [
+            {
+                'v' : [],
+                'global_step_nums' : []
+            } for _ in range(self.T)
+        ]
+
+        for t in range(self.T-1):
+            # Add v_at_step
+            for step in self._local_steps[t]:
+                v_at_step[t]['v'].append([
+                    v.num for v in self._edges[t]
+                    if v.is_alive(step["ratio_score"])
+                ])
+                v_at_step[t]['global_step_nums'].append([
+                    step["global_step_num"]
+                ])
+        return v_at_step
 
     def _compute_statistics(self):
         # Max/min (N, d, t)
@@ -887,6 +714,7 @@ class PersistentGraph():
         if self._verbose:
             print("Clustering data...")
         cluster_data = generate_all_clusters(self)
+        merge_clusters(cluster_data)
         t_end = time.time()
         if self._verbose:
             print('Data clustered in %.2f s' %(t_end - t_start))
@@ -894,6 +722,16 @@ class PersistentGraph():
         # ================== Compute score bounds ======================
         _compute_score_bounds(self)
 
+        # ================= Compute ratio scores =======================
+        _compute_ratio_scores(self)
+
+        # =================== default k values =========================
+        self._k_info = k_info(self)
+        relevant_k = get_relevant_k(self)
+        dict_relevant_k = {}
+        dict_relevant_k["k"] = [x[0] for x in relevant_k]
+        dict_relevant_k["life_span"] = [x[1] for x in relevant_k]
+        self._relevant_k = dict_relevant_k
 
         # ================== Construct vertices ========================
         t_start = time.time()
@@ -903,9 +741,6 @@ class PersistentGraph():
         t_end = time.time()
         if self._verbose:
             print('Vertices constructed in %.2f s' %(t_end - t_start))
-
-        # ================= Compute ratio scores =======================
-        _compute_ratio_scores(self)
 
         # =================== Sort global steps ========================
         t_start = time.time()
@@ -928,14 +763,6 @@ class PersistentGraph():
         # =================== Compute statistics =======================
         self._compute_statistics()
 
-        # =================== defaukt k values =========================
-        self._life_span = get_k_life_span(self)
-        relevant_k = get_relevant_k(self, self._life_span, self.k_max)
-        dict_relevant_k = {}
-        dict_relevant_k["k"] = [x[0] for x in relevant_k]
-        dict_relevant_k["life_span"] = [x[1] for x in relevant_k]
-        self._relevant_k = dict_relevant_k
-
 
     def get_relevant_components(
         self,
@@ -957,14 +784,14 @@ class PersistentGraph():
         k_max = min(k_max, self.k_max)
         # For each time step, get the most relevant number of clusters
         if selected_k is None:
-            relevant_k = get_relevant_k(self, k_max=k_max)
+            relevant_k = get_relevant_k(self)
             selected_k = [k for [k, _] in relevant_k]
 
         # ------------ Find vertices that represent such a k -----------
         relevant_vertices = [
             [
                 deepcopy(v) for v in self._vertices[t]
-                if has_element(v.info['brotherhood_size'], selected_k[t])
+                if has_element(v.info['k'], selected_k[t])
             ] for t in range(self.T)
         ]
 
@@ -974,10 +801,10 @@ class PersistentGraph():
                 deepcopy(e) for e in self._edges[t]
                 if (
                     has_element(
-                        self._vertices[e.time_step][e.v_start].info['brotherhood_size'],
+                        self._vertices[e.time_step][e.v_start].info['k'],
                         selected_k[t]
                     ) and has_element(
-                        self._vertices[e.time_step + 1][e.v_end].info['brotherhood_size'],
+                        self._vertices[e.time_step + 1][e.v_end].info['k'],
                         selected_k[t+1]
                     ))
             ] for t in range(self.T-1)
@@ -1122,7 +949,6 @@ class PersistentGraph():
         """
         return self._k_max
 
-
     @property
     def members(self) -> np.ndarray:
         """Original data, ensemble of time series
@@ -1167,14 +993,21 @@ class PersistentGraph():
         return self._min
 
     @property
-    def life_span(self) -> Dict[int, List[float]]:
+    def k_info(self) -> Dict[int, List[float]]:
         """
-        Dict of life span for all k and each t. Each key `k` is associated
-        with a list of length T.
+        Life span and ratios of each assumptions k for all k and t.
+
+        Available keys:
+
+        - "score_ratios"
+        - "life_span"
+
+        Example: k_info[3]["life_span"][10] is the life span of k=3 and
+        t = 10
 
         :rtype: Dict[int, List[float]]
         """
-        return self._life_span
+        return self._k_info
 
     @property
     def life_span_max(self) -> float:
@@ -1220,36 +1053,6 @@ class PersistentGraph():
         :rtype: np.ndarray
         """
         return self._nb_local_steps
-
-    @property
-    def v_at_step(self) -> List[dict]:
-        """
-        List of vertex num and global step for each t and each local step
-
-        v_at_step[t] is a dict such that:
-
-        - v_at_step[t]['v'][local_step][i] is the vertex num of the
-        ith alive vertex at t at the given local step
-
-        - v_at_step[t]['global_step_nums'][local_step] is the global step
-        num associated with 'local_step' at 't'
-
-        :rtype: List[dict]
-        """
-        return self._v_at_step
-
-    @property
-    def e_at_step(self) -> List[dict]:
-        """
-        List of edge num and global step for each t and each pseudo local step
-
-        Pseudo-local steps don't really refer to the algo's local steps since they will be new edges at t whenever there is a new local step at t
-        OR at t+1
-
-        :rtype: List[dict]
-        """
-        return self._e_at_step
-
 
     @property
     def nb_vertices(self) -> np.ndarray:
@@ -1323,7 +1126,7 @@ class PersistentGraph():
         - By default, the "life span" of the assumption $k_{t,s}$ is defined as
         its improvement. Note that according to this definition of life span,
         `ratio_scores` refers to the death ratio of the step. See
-        `get_k_life_span` for more information on how `ratio_scores` is used
+        `k_info` for more information on how `ratio_scores` is used
         to compute life spans of steps.
 
         :rtype: List[List[dict]]
@@ -1355,7 +1158,6 @@ class PersistentGraph():
         :rtype: Sequence[int]
         """
         return self._n_clusters_range
-
 
     @property
     def parameters(self) -> dict:

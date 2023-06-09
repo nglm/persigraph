@@ -6,7 +6,7 @@ import time
 from typing import List, Union
 
 
-from .analysis import get_k_life_span, get_relevant_k
+from ._analysis import get_relevant_k
 from ..vis import PGraphStyle
 from ..vis.commonstyle import nrows_ncols, get_list_colors
 from ..vis.barstyle import draw_arrow
@@ -212,7 +212,7 @@ def graph(
             # Add suggestion bar (not a collection)
             if pgstyle.show_bar:
                 suggestion_bar(
-                    g, ax, relevant_k=None, k_max=g.k_max,
+                    g, ax, relevant_k=None,
                     color_list=color_list)
 
             ax.autoscale()
@@ -227,17 +227,11 @@ def graph(
     # ax.set_ylabel(ax_kw.pop('ylabel', ""))
     return fig, axs
 
-
-
-
-
 def k_plot(
     g,
     k_max=8,
-    life_span=None,
     fig = None,
     ax = None,
-    show0 = False,
     show_legend = True,
     fig_kw: dict = {"figsize" : (5,3)},
     ax_kw: dict = {},
@@ -247,18 +241,13 @@ def k_plot(
     """
     k_max = min(k_max, g.k_max)
     colors = get_list_colors(k_max)
-    if life_span is None:
-        life_span = get_k_life_span(g, k_max)
 
     if ax is None:
         fig, ax = plt.subplots(**fig_kw)
-    if show0:
-        k_range = range(k_max)
-    else:
-        k_range = range(1, k_max)
+    k_range = range(1, k_max)
     for k in k_range:
         ax.plot(
-            g.time_axis, life_span[k],
+            g.time_axis, g.k_info[k]['life_span'],
             c=colors[k], label='k='+str(k)
             )
         if show_legend:
@@ -266,7 +255,7 @@ def k_plot(
         ax.set_xlabel(ax_kw.pop('xlabel', 'Time (h)'))
         ax.set_ylabel(ax_kw.pop('ylabel', 'Life span'))
         ax.set_ylim([0,1])
-    return fig, ax, life_span
+    return fig, ax
 
 def k_legend(color_list, k_max=8, lw=4):
     k_max = min(len(color_list), k_max)
@@ -286,7 +275,6 @@ def suggestion_bar(
     g,
     ax,
     relevant_k = None,
-    k_max = 8,
     color_list = None,
     arrow_kw = {}
 ):
@@ -295,14 +283,14 @@ def suggestion_bar(
 
     If ``relevant_k`` is not specified, take the automated solution
     """
-    k_max = min(k_max, g.k_max)
+
     if color_list is None:
-        color_list = get_list_colors(k_max)
+        color_list = get_list_colors(g.k_max)
     # For each time step, get the most relevant number of clusters
     # If a custom value of relevant k is not given, take the automated
     # solution
     if relevant_k is None:
-        relevant_k = get_relevant_k(g, k_max=k_max)
+        relevant_k = get_relevant_k(g)
 
     # init
     t_start = 0
@@ -459,7 +447,7 @@ def overview(
     )
 
     # k_plot
-    _, axs03, _ = k_plot(g, k_max = k_max, ax=axs03, show_legend=False)
+    _, axs03 = k_plot(g, k_max = k_max, ax=axs03, show_legend=False)
     # legend
     color_list = get_list_colors(g.k_max)
 
@@ -548,13 +536,6 @@ def make_gif(
     )
     t_end = time.time()
     return ani
-
-
-
-    # Update drawing the next step
-    # If cumulative, simply 'add' the current step to the previous ones
-    # If not, the current frame is composed of the current step only
-
 
 
 

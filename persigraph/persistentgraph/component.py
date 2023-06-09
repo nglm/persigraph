@@ -6,7 +6,7 @@ from ..utils.check_variable import (
     check_is_leq,
 )
 from ..utils.sorted_lists import has_element, get_common_elements, bisect_search
-
+from ..utils.lists import union_intervals, intersection_intervals
 
 class Component():
     """
@@ -14,6 +14,41 @@ class Component():
     """
 
     key_incr:int = 0
+
+    @staticmethod
+    def ratio_intersection(
+        ratios1: List[Sequence[float]],
+        ratios2: List[Sequence[float]]
+    ) -> List[Sequence[float]]:
+        """
+        Compute intersection of ratios
+
+        :param ratios1: First list of ratios
+        :type ratios1: List[Sequence[float]]
+        :param ratios2: Second list of ratios
+        :type ratios2: List[Sequence[float]]
+        :return: Intersection of list of ratios
+        :rtype: List[Sequence[float]]
+        """
+
+        return intersection_intervals(ratios1, ratios2)
+
+    @staticmethod
+    def ratio_union(
+        ratios1: List[Sequence[float]],
+        ratios2: List[Sequence[float]]
+    ) -> List[Sequence[float]]:
+        """
+        Compute union of ratios
+
+        :param ratios1: First list of ratios
+        :type ratios1: List[Sequence[float]]
+        :param ratios2: Second list of ratios
+        :type ratios2: List[Sequence[float]]
+        :return: Intersection of list of ratios
+        :rtype: List[Sequence[float]]
+        """
+        return union_intervals(ratios1, ratios2)
 
     @staticmethod
     def contemporaries(c1, c2, verbose=False) -> bool:
@@ -33,15 +68,12 @@ class Component():
         """
         # If c1 is dead before c2 is even born
         # Or if c2 is dead before c1 is even born
-
-        if (
-            c1.score_ratios[1] <= c2.score_ratios[0]
-            or c2.score_ratios[1] <= c1.score_ratios[0]
-        ):
+        ratios = Component.ratio_intersection(c1.score_ratios, c2.score_ratios)
+        if ratios == []:
             if verbose:
                 print("WARNING: Components are not contemporaries")
-                print("c1 scores: ", c1.score_ratios)
-                print("c2 scores:   ", c2.score_ratios)
+                print("c1 ratios: ", c1.score_ratios)
+                print("c2 ratios: ", c2.score_ratios)
             return False
         else:
             return True
@@ -80,21 +112,15 @@ class Component():
         t: int = None,
         num: int = None,
         members : List[int] = [],
-        scores: Sequence[float] = None,
         score_ratios: Sequence[float] = None,
-        score_bounds: float = None,
         total_nb_members: int = None,
     ):
         self.__key: int = Component.key_incr
         self.num = num
         self.time_step = t
         self.members = members
-        self.scores = scores
         self._compute_ratio_members(total_nb_members = total_nb_members)
-        if score_ratios is None:
-            self._compute_ratio_scores(score_bounds = score_bounds)
-        else:
-            self.score_ratios = score_ratios
+        self.score_ratios = score_ratios
 
         Component.key_incr += 1
 
@@ -110,10 +136,10 @@ class Component():
         :return: True if the component is alive at that ratio
         :rtype: bool
         """
-        return (
-            ratio > self.__score_ratios[0]
-            and ratio <= self.__score_ratios[1]
-        )
+        alive = False
+        for (ratio_birth, ratio_death) in self.__score_ratios:
+            alive |= ratio > ratio_birth and ratio <= ratio_death
+        return alive
 
     def has_member(self, m: int) -> bool:
         """
@@ -157,67 +183,6 @@ class Component():
         else:
             ratio_members = self.nb_members/total_nb_members
             self.ratio_members = ratio_members
-
-    def _compute_ratio_scores(
-        self,
-        score_bounds = None,
-    ):
-        """
-        On scores:
-        - By convention, `score_bound = (score_worst, score_best)`
-        - By convention, `score_birth` is worse than `score_death`.
-        - Note that if a score is better when maximized (respectively
-        minimized), `score_birth` is lower (resp higher) than
-        `score_death`.
-        - Note that, depending on the type of score used, `score_birth`
-        and / or `score_death` could be negative.
-
-        On ratios:
-        - By convention, `ratio_score_birth` is worse (in terms of
-        corresponding scores) than `ratio_score_death`.
-        - By convention, `ratio_score_birth` is lower than
-        `ratio_score_death` (in terms of ratio).
-        - Both `ratio_score_birth` and`ratio_score_death` are within
-        $[0, 1]$ range.
-
-        This means that `ratio_score_birth` <= `ratio_score_death` even
-        when `score_birth` > `score_death`.
-
-        We use this extra auxiliary function on top of the setter
-        to use `score_bounds`.
-        """
-        if score_bounds is None or self.scores is None:
-            self.__score_ratios = None
-            self.__life_span = None
-        else:
-            # SPECIAL CASE, if all score are equal, favor the case k=1
-            if score_bounds[0] == score_bounds[1]:
-                ratio_birth = 0
-                if self.ratio_members == 1:
-                    ratio_death = 1
-                else:
-                    ratio_death = 0
-            else:
-                # Normalizer so that ratios are within 0-1 range
-                norm = np.abs(score_bounds[0] - score_bounds[1])
-
-                # BIRTH
-                # If score_birth is ``None`` or 0 it means that the component is
-                # alive since the very beginning
-                if self.scores[0] is None:
-                    ratio_birth = 0.
-                else:
-                    ratio_birth = np.abs(self.scores[0]-score_bounds[0]) / norm
-
-                # DEATH
-                # If score_death is ``None`` it means that the component is not
-                # dead at the end
-                if self.scores[1] is None:
-                    ratio_death = 1.
-                else:
-                    ratio_death = np.abs(self.scores[1]-score_bounds[0]) / norm
-
-            self.score_ratios = [ratio_birth, ratio_death]
 
     @property
     def key(self) -> int:
@@ -312,50 +277,17 @@ class Component():
         self.__nb_members = int(nb_members)
 
     @property
-    def scores(self) -> Sequence[float]:
-        """
-        Sequence (`score_birth`, `score_death`).
-
-        For vertices, `score_birth` is worse than `score_death` by
-        convention.
-
-        Note that if a score is better when maximized (respectively
-        minimized), `score_birth` is lower (resp higher) than
-        `score_death`.
-
-        Note that, depending on the type of score used, `score_birth`
-        and / or `score_death` could be negative.
-
-        For edges, `scores` is rather irrelevant as different time steps
-        could be mixed.
-
-        :rtype: Sequence[float]
-        """
-        return self.__scores
-
-    @scores.setter
-    def scores(self, scores: Sequence[float]):
-        if scores is None:
-            self.__scores = None
-        else:
-            if len(scores) != 2:
-                raise ValueError("scores should be a sequence of 2 elements")
-            else:
-                self.__scores = scores
-
-    @property
     def score_ratios(self) -> Sequence[float]:
         """
-        Sequence (`ratio_score_birth`, `ratio_score_death`).
+        List of sequences (`ratio_birth`, `ratio_death`).
 
-        By convention, `ratio_score_birth` is worse (in terms of
-        corresponding scores) than `ratio_score_death`.
-        By convention, `ratio_score_birth` is lower than
-        `ratio_score_death` (in terms of ratio).
+        By convention, `ratio_birth` is worse (in terms of corresponding
+        scores) than `ratio_death`. By convention, `ratio_birth` is
+        lower than `ratio_death` (in terms of ratio).
 
-        This means that `ratio_score_birth` <= `ratio_score_death` even
+        This means that `ratio_birth` <= `ratio_death` even
         when `score_birth` > `score_death`.
-        Both `ratio_score_birth` and`ratio_score_death` are within $[0,
+        Both `ratio_birth` and`ratio_death` are within $[0,
         1]$ range.
 
         Score ratios for components are derived from score ratios of
@@ -382,7 +314,7 @@ class Component():
         created and the ratio of the best assumption where `c` is still
         alive, that means ratio at which `c` dies.
 
-        :rtype: Sequence[float]
+        :rtype: List[Sequence[float]]
         """
         return self.__score_ratios
 
@@ -392,21 +324,23 @@ class Component():
             self.__score_ratios = None
             self.__life_span = None
         else:
-            if len(score_ratios) != 2:
-                raise ValueError("score_ratios should be a sequence of 2 elements")
+            life_span = 0
+            self.__score_ratios = []
+            for ratios in score_ratios:
+                if len(ratios) != 2:
+                    raise ValueError("score_ratios should be a sequence of 2 elements")
 
-            check_O1_range(score_ratios[0], 'Ratio birth')
-            check_O1_range(score_ratios[1], 'Ratio death')
-            check_is_leq(score_ratios, '[ratio_birth, ratio_death]')
+                check_O1_range(ratios[0], 'Ratio birth')
+                check_O1_range(ratios[1], 'Ratio death')
+                check_is_leq(ratios, '[ratio_birth, ratio_death]')
 
-            self.__score_ratios = score_ratios
+                self.__score_ratios.append(ratios)
 
-            # LIFE SPAN
-            # Note: ratio death must always be >= ratio_birth
-            # Note: life_span is with 0-1 range
-            life_span = score_ratios[1] - score_ratios[0]
+                # LIFE SPAN
+                # Note: ratio death must always be >= ratio_birth
+                # Note: life_span is with 0-1 range
+                life_span += ratios[1] - ratios[0]
             self.__life_span = life_span
-
 
     @property
     def life_span(self) -> float:

@@ -3,7 +3,7 @@ This module is supposed to manage any type of clustering model and to
 call _pg_* for more model-dependant code.
 """
 import numpy as np
-from bisect import bisect_left
+from bisect import bisect_left, insort
 from sklearn.cluster import KMeans
 from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
 from sklearn.mixture import GaussianMixture
@@ -14,7 +14,7 @@ from ._scores import compute_score
 from ..utils._clustering import (
     compute_cluster_params,
 )
-from ..utils.sorted_lists import reverse_bisect_left
+from ..utils.sorted_lists import reverse_bisect_left, are_equal
 
 CLUSTERING_METHODS = {
     "names": [
@@ -258,6 +258,26 @@ def _sliding_window(T: int, w: int) -> dict:
     ]
     return window
 
+def _merge_clusters_aux(cluster_data1, cluster_data2):
+
+    for i1, (c1, info1) in enumerate(cluster_data1):
+        for i2, (c2, info2) in enumerate(cluster_data2):
+            if are_equal(c1, c2):
+                # Merge info
+                [insort(info1['k'], k) for k in info2['k']]
+                # Delete redundant cluster
+                del cluster_data2[i2]
+
+def merge_clusters(cluster_data):
+    for cluster_data_t in cluster_data:
+        # cluster_data_t = []
+        n_clusterings = len(cluster_data_t)
+        for i in range(n_clusterings-1):
+            for j in range(i+1, n_clusterings):
+                # Merge clusters that are the same between 2 clusterings
+                _merge_clusters_aux(
+                    cluster_data_t[i], cluster_data_t[j]
+                )
 
 def generate_all_clusters(
     pg
@@ -350,7 +370,7 @@ def generate_all_clusters(
     # --------------------------------------------------------------
 
     # temporary variable to help sort the local steps
-    # cluster_data[t] contains (clusters, clusters_info)
+    # cluster_data[t][s] contains (clusters, clusters_info)
     cluster_data = [[] for _ in range(pg.T)]
     local_scores = [[] for _ in range(pg.T)]
 
@@ -388,20 +408,27 @@ def generate_all_clusters(
                 continue
 
             # -------- Cluster infos for each cluster ---------
-            clusters_info = [
-                compute_cluster_params(X_params[c], midpoint_w) for c in clusters
+
+            clusters_data = [
+                (
+                    c,
+                    {
+                        **{"k": [n_clusters]},
+                        **compute_cluster_params(X_params[c], midpoint_w)
+                    }
+                ) for c in clusters
             ]
-            clusters_info_score = [
-                compute_cluster_params(X[c], midpoint_w) for c in clusters
+            clusters_data_score = [
+                (c, compute_cluster_params(X[c], midpoint_w))
+                for c in clusters
             ]
 
-            # -------- Score corresponding to 'n_clusters' ---------
+            # ------------ Score corresponding to 'n_clusters' ---------
             score = compute_score(
                 pg,
                 X = X,
-                clusters = clusters,
+                clusters_data = clusters_data_score,
                 t = t,
-                clusters_info = clusters_info_score,
             )
             if n_clusters == 0:
                 pg._zero_scores[t] = score
@@ -414,10 +441,10 @@ def generate_all_clusters(
                 # Find where should we insert this future local step
                 idx = sort_fc(local_scores[t], score)
                 local_scores[t].insert(idx, score)
-                cluster_data[t].insert(idx, [clusters, clusters_info])
+                cluster_data[t].insert(idx, clusters_data)
                 pg._local_steps[t].insert(
                     idx,
-                    {**{'param' : {"n_clusters" : n_clusters}},
+                    {**{'param' : {"k" : n_clusters}},
                         **step_info
                     }
                 )

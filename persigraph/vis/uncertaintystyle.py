@@ -39,7 +39,7 @@ class UncertaintyStyle(ComponentStyle):
         return polys
 
     def f_color(self, g, c, f_color_kw = {}):
-        return g._vertices[c.time_step][c.v_start].info['brotherhood_size'][0]
+        return g._vertices[c.time_step][c.v_start].info['k'][0]
 
     def f_alpha(self, g, c, f_alpha_kw = {}):
         return linear(c.life_span, range0_1 = True)/6

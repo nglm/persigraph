@@ -54,7 +54,7 @@ class ComponentStyle(ABC):
 
     def f_alpha(self, g, c, f_alpha_kw = {}):
         # Choose the max life span as a opacity of 1
-        rescaled = range_rescale(c.life_span, x1=g._max_life_span)
+        rescaled = range_rescale(c.life_span, x1=g.life_span_max)
         return sigmoid(c.life_span, range0_1=True, f0=0, )
 
     def alpha_function(self, g, components, f_alpha_kw = {}):

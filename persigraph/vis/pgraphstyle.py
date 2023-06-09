@@ -8,7 +8,7 @@ from .commonstyle import get_list_colors
 from ..utils.lists import to_iterable
 from ..persistentgraph import Vertex
 from ..persistentgraph import Edge
-from ..persistentgraph.analysis import sort_components_by
+from ..persistentgraph._analysis import sort_components_by
 
 class PGraphStyle():
 
