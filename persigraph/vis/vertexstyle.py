@@ -20,7 +20,7 @@ class VertexStyle(ComponentStyle):
         )
 
     def f_component(self, g, c, i, f_component_kw = {}):
-        return (g.time_axis[c.time_step], c.info['mean'][i])
+        return (g.time_axis[c.time_step], c.info['center'][i])
 
     def f_color(self, g, c, f_color_kw = {}):
         return c.info['k'][0]

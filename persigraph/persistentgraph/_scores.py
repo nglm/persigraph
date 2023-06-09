@@ -56,7 +56,7 @@ def f_inertia(cluster: np.ndarray, cluster_info: dict = None) -> float:
     if len(dims) == 2:
         score = cdist(
             cluster,
-            cluster_info["mean"].reshape(1, -1),
+            cluster_info['center'].reshape(1, -1),
             metric='sqeuclidean'
         )
     if len(dims) == 3:
@@ -112,7 +112,7 @@ def f_med_dev_mean(cluster: np.ndarray, cluster_info: dict = None) -> float:
         if len(dims) == 2:
             return np.median(cdist(
                 cluster,
-                cluster_info["mean"].reshape(1, -1),
+                cluster_info['center'].reshape(1, -1),
                 metric='sqeuclidean'
             ))
         if len(dims) == 3:
@@ -140,7 +140,7 @@ def f_mean_dev_med(cluster: np.ndarray, cluster_info: dict = None) -> float:
         if len(dims) == 2:
             return np.mean(cdist(
                 cluster,
-                cluster_info["mean"].reshape(1, -1),
+                cluster_info['center'].reshape(1, -1),
                 metric='sqeuclidean'
             ))
         if len(dims) == 3:

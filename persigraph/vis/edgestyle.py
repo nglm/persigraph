@@ -23,8 +23,8 @@ class EdgeStyle(ComponentStyle):
         t_start = g.time_axis[c.time_step]
         t_end = g.time_axis[c.time_step + 1]
         line = (
-            (t_start, g._vertices[c.time_step][c.v_start].info['mean'][i]),
-            (t_end,   g._vertices[c.time_step + 1][c.v_end].info['mean'][i])
+            (t_start, g._vertices[c.time_step][c.v_start].info['center'][i]),
+            (t_end,   g._vertices[c.time_step + 1][c.v_end].info['center'][i])
         )
         return line
 

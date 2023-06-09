@@ -4,7 +4,6 @@ import time
 import pickle
 import json
 from copy import deepcopy
-from bisect import insort
 
 from typing import List, Sequence, Tuple, Union, Any, Dict
 

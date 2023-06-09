@@ -109,7 +109,7 @@ def compute_cluster_params(
     :param t: center point of the time window w_t, used as reference in
     case of DTW, defaults to None
     Note that for the first time steps and the last time steps, the
-    "center" of the time window is not necessarily in the middle on the
+    'center' of the time window is not necessarily in the middle on the
     window. E.g. for t=0 and w = 50, we have w_t = 26 and midpoint_w = 0
     :type t: int, optional
     :return: Dict of summary statistics
@@ -185,10 +185,10 @@ def compute_cluster_params(
 
     # Member values (aligned with the barycenter if DTW was used)
     cluster_params['X'] = X
-    cluster_params['mean'] = mean
-    cluster_params['std'] = std
-    cluster_params['std_inf'] = std_inf
-    cluster_params['std_sup'] = std_sup
+    cluster_params['center'] = mean
+    cluster_params['disp'] = std
+    cluster_params['disp_inf'] = std_inf
+    cluster_params['disp_sup'] = std_sup
     return cluster_params
 
 class Naive:

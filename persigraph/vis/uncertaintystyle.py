@@ -28,13 +28,13 @@ class UncertaintyStyle(ComponentStyle):
         v_end = g._vertices[c.time_step + 1][c.v_end]
         polys = (
             # std_inf at t
-            (t_start, v_start.info["mean"][i] - v_start.info["std_inf"][i]),
+            (t_start, v_start.info['center'][i] - v_start.info['disp_inf'][i]),
             # std_sup at t
-            (t_start, v_start.info["mean"][i] + v_start.info["std_sup"][i]),
+            (t_start, v_start.info['center'][i] + v_start.info['disp_sup'][i]),
             # std_sup at t+1
-            (t_end,   v_end.info["mean"][i] + v_end.info["std_sup"][i]),
+            (t_end,   v_end.info['center'][i] + v_end.info['disp_sup'][i]),
             # std_inf at t+1
-            (t_end,   v_end.info["mean"][i] - v_end.info["std_inf"][i])
+            (t_end,   v_end.info['center'][i] - v_end.info['disp_inf'][i])
         )
         return polys
 
