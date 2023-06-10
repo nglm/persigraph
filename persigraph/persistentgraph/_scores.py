@@ -4,8 +4,7 @@ It is totally clustering model independent
 """
 
 import numpy as np
-from numpy.linalg import norm
-from scipy.spatial.distance import cdist, pdist
+from scipy.spatial.distance import cdist
 from sklearn.metrics import pairwise_distances
 from tslearn.metrics import cdist_soft_dtw
 from typing import List, Sequence, Union, Any, Dict, Tuple

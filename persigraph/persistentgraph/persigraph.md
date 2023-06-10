@@ -103,7 +103,7 @@ Clustering scores
 
 There exist natural score functions to evaluate qualities of different clusterings (inertia, variance, diameter, log-likelihood etc.). There are usually a measure of dispersion and/or separation, but none of them is ideal, especially with few datapoints and when the case $k=1$ has to be considered as well.
 
-Some score functions can be applied individually to each cluster $\mathbf{X}_{t, clus, k}^{(i)}$ and then combined to give the score of the whole clustering $\cup_{i=1, \cdots, k} \mathbf{X}_{t, clus, k}^{(i)}$. For example, the inertia of all clusters is computed individually, and then the sum/mean/max of the inertia of all clusters yields the score of the clustering. Alternatively, log-likelihood evaluates the entire clustering at once.
+Some score functions can be applied individually to each cluster $\mathbf{X}_{t, clus, k}^{(i)}$ and then combined to give the score of the whole clustering $\cup_{i=1, \cdots, k} \mathbf{X}_{t, clus, k}^{(i)}$. For example, the inertia of all clusters is computed individually, and then the sum/mean/max of the inertia of all clusters yields the score of the clustering. Alternatively, log-likelihood evaluates the entire clustering at once. We will denote $\mathtt{score}_{t,k}$ the score of the clustering obtained with the assumption that there are $k_s$ clusters at the time step $t$.
 
 In the context of `PersiGraph`:
 
@@ -132,23 +132,23 @@ Take a smaller time window around the midpoint to compute the pairwise distance 
 Clustering ratios and life spans
 -------------------------------------------------------------------------------
 
-For each time step $t$, `PersiGraph` computes the clustering scores for all assumptions $k=0, ..., N$ $\mathtt{score}_{t,k}$. Once all scores have been computed, we can define $\mathtt{worst\_score}_t$ and $\mathtt{best\_score}t$ as being respectively the worst clustering score and the best for each time step $t$. Note that depending on the type of score, "best" can mean "greater" (log likelihood) or "lower" (inertia). This allows scores to be normalized into ratios $r_{t,k} \in [0, 1]$ as follows:
+For each time step $t$, `PersiGraph` computes the clustering scores for all assumptions $k=0, ..., N$ $\mathtt{score}_{t,k}$. Once all scores have been computed, we can define $\mathtt{worst\_score}_t$ and $\mathtt{best\_score}t$ as being respectively the worst clustering score and the best for each time step $t$. Note that depending on the type of score, "best" can mean "greater" (log likelihood) or "lower" (inertia). This allows scores to be normalized into clustering score ratios $r_{t, k} \in [0, 1]$ as follows:
 
 $$r_{t,k} = \frac{|\mathtt{score}_{t,k} - \mathtt{worst\_score}_t|}{|\mathtt{best\_score}_t- \mathtt{worst\_score}_t|}$$
 
-This implies that a ratio closer to $0$ is the worse that a ratio closer to $1$. We can then sort ratios, from the worst to the best. We will denote $r_{t, k_s}$ with $s = 0, \cdots, N-1$ such that $r_{t, k_s} \le r_{t, k_{s+1}}$ and $k_s \in [1, N]$.
+This implies that a clustering score ratio closer to $0$ is the worse that a ratio closer to $1$. We can then sort ratios of all clustering, from the worst to the best. We will denote $r_{t, k_s}$, with $s = 0, \cdots, N-1$ such that $r_{t, k_s} \le r_{t, k_{s+1}}$ and $k_s \in [1, N]$.
 
 Once ratios are sorted, we can define 3 concepts:
 
 - The "improvement" of assuming $k_{s}$ at $t$: $r_{t,k_s} - r_{t,k_{s-1}}$
 - The "cost" of assuming $k_{s}$ at $t$: $r_{t,k_{s+1}} - r_{t,s}$
-- The "life span" of the assumption $k_{s}$ at $t$: $\mathtt{ratio\_death}_{t,k_s} - \mathtt{ratio\_birth}_{t,k_s}$, with $\mathtt{ratio\_death}_{t,k_s}$ and $\mathtt{ratio\_birth}_{t,k_s}$ defined as a combination of the improvement and the cost. From now on, we will assume that the life span is simply equal to the improvement, which means that $\mathtt{ratio\_death}_{t,k_s} = r_{t,k_s}$ and $\mathtt{ratio\_birth}_{t,k_s} = r_{t,k_{s-1}}$
+- The "life span" of the assumption $k_{s}$ at $t$: $\mathtt{ratio\_death}_{t,k_s} - \mathtt{ratio\_birth}_{t,k_s}$, with $\mathtt{ratio\_death}_{t,k_s}$ and $\mathtt{ratio\_birth}_{t,k_s}$ defined as a combination of the improvement and the cost. From now on, we will assume that the life span is simply equal to the improvement, which means that $\mathtt{ratio\_death}_{t,k_s} = r_{t,k_s}$ and $\mathtt{ratio\_birth}_{t,k_s} = r_{t,k_{s-1}}$. The assumption $k_{s}$ at $t$ is said to be *alive* $\forall r \in [\mathtt{ratio\_birth}_{t,k_s}, \mathtt{ratio\_death}_{t,k_s}]$.
 
-The case $k=0$ can be used to define to worst or the best score, but is not among the sorted ratios and is not used to define any of the improvement, cost nor life span of the other assumptions $k_s \in [1, N]$.
+The case $k=0$ can be used to define to worst or the best score, but is otherwise not among the sorted ratios and is not used to define any of the improvement, cost nor life span of the other assumptions $k_s \in [1, N]$.
 
 Note that $\sum_{k=1}^N \mathtt{life\_span}_{t,k} = 1 \; \forall t$.
 
-Using ratios instead of scores has two advantages: it allows the definition of life span and it makes it possible to define the concept of contemporary vertices in order to define edges. As the ensemble tends to spread with increasing time step, using raw scores instead of ratios could mean than there are no contemporary vertices between $t$ and $t+1$.
+Using ratios and ratio intervals instead of scores has two advantages: it allows the definition of clustering life span and it makes it possible to define the concept of contemporary vertices in order to define edges. As the ensemble tends to spread with increasing time step, using raw scores instead of ratios could mean than there are no contemporary vertices between $t$ and $t+1$.
 
 Graph components: vertices and edges
 -------------------------------------------------------------------------------
@@ -171,10 +171,6 @@ If DTW is used, time windows are extracted and aligned one by one with DTW using
 
 In `PersiGraph`, it was decided to take their mean, this is a rather arbitrary decision. As a consequence, in the DTW case as well, we have $\mathbf{X}_{t, vert, k}^{(i)} \in \mathbb{R}^{N_{t, k}^{(i)} \times d}$.
 
-#### Vertex life span
-
-The life span of a vertex is the sum of all the life spans of the clusters it represents.
-
 #### Vertex center and uncertainty
 
 The center of a vertex is defined using a measure of tendency and the uncertainty using a measure of dispersion of the datapoints in the cluster they represent $\mathbf{X}_{t, vert, k}^{(i)} \in \mathbb{R}^{N_{t, k}^{(i)} \times d}$.
@@ -189,13 +185,15 @@ $$\sqrt{\sum_{i=0}^{N_{sup inf}}}$$
 
 and if the median was used, then an asymmetric median absolute deviation is used.
 
+#### Vertex ratio intervals and life span
+
+The score ratio intervals of a vertex is the union of the ratio intervals of the clusterings to which the clusters it represents belong. A vertex is said to be *alive* for all ratio values that are within its score ratio intervals.
+
+The life span of a vertex is the sum of all the life spans of the clusterings to which the clusters it represents belong.
+
 ### Edge
 
 An edge represents a link between two vertices, one at $t$, $v_{t, k_1}^{(i_1)}$ and one at $t+1$, $v_{t+1, k_2}^{(i_2)}$. The edge is well defined if vertices have at least one member in common (i.e. $\mathcal{M^{(i_1)}_{t,k_1}} \cap \mathcal{M^{(i_2)}_{t+1,k_2}} \neq \emptyset$) and were contemporaries (i.e. ). and is well defined.
-
-#### Edge life span
-
-An edge is alive as long as both its start and end vertices are alive, i.e. $\mathtt{ratio\_birth} = \max(\mathtt{ratio\_birth_{v\_start}}, \mathtt{ratio\_birth_{v\_end}})$ and $\mathtt{ratio\_death} = \min(\mathtt{ratio\_death_{v\_start}}, \mathtt{ratio\_death_{v\_end}})$
 
 #### Edge center and uncertainty
 
@@ -205,3 +203,15 @@ The start (respectively end) uncertainty of an edge is computed using a subset o
 
 XXX
 
+#### Edge ratio intervals and life span
+
+An edge is alive as long as both its start and end vertices are alive, i.e., its score ratio intervals are the intersection of the ratio intervals of its start and end vertices.  $\mathtt{ratio\_birth} = \max(\mathtt{ratio\_birth_{v\_start}}, \mathtt{ratio\_birth_{v\_end}})$ and $\mathtt{ratio\_death} = \min(\mathtt{ratio\_death_{v\_start}}, \mathtt{ratio\_death_{v\_end}})$
+
+Most relevant clustering
+-------------------------------------------------------------------------------
+
+### Relevant clustering
+
+### Relevant vertices
+
+### Relevant edges
