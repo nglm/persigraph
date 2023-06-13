@@ -783,8 +783,7 @@ class PersistentGraph():
         k_max = min(k_max, self.k_max)
         # For each time step, get the most relevant number of clusters
         if selected_k is None:
-            relevant_k = get_relevant_k(self)
-            selected_k = [k for [k, _] in relevant_k]
+            selected_k = self._relevant_k["k"]
 
         # ------------ Find vertices that represent such a k -----------
         relevant_vertices = [
