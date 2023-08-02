@@ -21,7 +21,6 @@ from ..utils.sorted_lists import (
     insert_no_duplicate, concat_no_duplicate, has_element, are_equal
 )
 from ..utils.d3 import jsonify
-from ..utils._clustering import compute_cluster_params
 
 
 class PersistentGraph():

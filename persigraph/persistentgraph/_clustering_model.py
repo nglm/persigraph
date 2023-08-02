@@ -10,10 +10,8 @@ from sklearn.mixture import GaussianMixture
 from tslearn.clustering import TimeSeriesKMeans
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
-from ._scores import compute_score
-from ..utils._clustering import (
-    compute_cluster_params,
-)
+from pycvi.scores import compute_score
+from pycvi.cluster import compute_cluster_params
 from ..utils.sorted_lists import reverse_bisect_left, are_equal
 
 CLUSTERING_METHODS = {
@@ -425,10 +423,9 @@ def generate_all_clusters(
 
             # ------------ Score corresponding to 'n_clusters' ---------
             score = compute_score(
-                pg,
+                pg._score_type,
                 X = X,
                 clusters_data = clusters_data_score,
-                t = t,
             )
             if n_clusters == 0:
                 pg._zero_scores[t] = score

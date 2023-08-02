@@ -1,7 +1,7 @@
 from typing import Sequence, List, Dict, Any, Tuple
 from . import Component
 from ..utils.check_variable import check_int_positive
-from ..utils._clustering import compute_cluster_params
+from pycvi.cluster import compute_cluster_params
 
 import numpy as np
 

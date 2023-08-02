@@ -1,9 +1,8 @@
 
-from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
-from sklearn.mixture import GaussianMixture
+from sklearn.cluster import KMeans
 import numpy as np
 
-from ._scores import SCORES_TO_MAXIMIZE, SCORES_TO_MINIMIZE, SCORES
+from ._scores import SCORES_TO_MAXIMIZE, SCORES_TO_MINIMIZE
 from ._clustering_model import CLUSTERING_METHODS
 
 def _set_members(pg, members):
