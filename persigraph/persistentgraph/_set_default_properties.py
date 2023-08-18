@@ -1,6 +1,7 @@
 
 from sklearn.cluster import KMeans
 import numpy as np
+from pycvi.cluster import generate_uniform, sliding_window
 
 from ._scores import SCORES_TO_MAXIMIZE, SCORES_TO_MINIMIZE
 from ._clustering_model import CLUSTERING_METHODS
@@ -39,6 +40,17 @@ def _set_members(pg, members):
             + ". Please provide a valid shape: (N,) or (N, T) or (N, d, T)"
         )
 
+def _set_sliding_window(pg, w:int):
+    """
+    Set pg._sliding_window and pg._w
+    """
+    if w is None:
+        pg._sliding_window = None
+        pg._w = None
+    else:
+        pg._w = min( max(int(w), 1), pg.T)
+        pg._sliding_window = sliding_window(pg.T, pg._w)
+
 def _set_zero(pg, zero_type: str = "bounds"):
     """
     Set members_zero, zero_type
@@ -48,32 +60,8 @@ def _set_zero(pg, zero_type: str = "bounds"):
     :param pg: PersistentGraph
     :type pg: PersistentGraph
     """
-    # Determines how to measure the score of the 0th component
-    if zero_type == 'bounds':
-        pg._zero_type = zero_type
-    else:
-        raise NotImplementedError("Only 'bounds' is implemented as `zero_type`")
-        # I'm not sure if this type should be used at all actually.....
-        # Get the parameters of the uniform distrib using mean and variance
-        var = np.var(X, axis=0)
-        mean = np.mean(X, axis=0)
-
-        mins = (2*mean - np.sqrt(12*var)) / 2
-        maxs = (2*mean + np.sqrt(12*var)) / 2
-
-    # Get the parameters of the uniform distrib using min and max
-    # We keep all the dims except the first one (Hence the 0) because
-    # The number of members dimension will be added in members_0 in the
-    # List comprehension
-    # pg._members of shape (N, d, T) even if d and T were initially omitted
-    # mins and max of shape (d, T) (the [0] is to get rid of the N dim)
-    mins = np.amin(pg._members, axis=0, keepdims=True)[0]
-    maxs = np.amax(pg._members, axis=0, keepdims=True)[0]
-
-    # Generate a perfect uniform distribution
-    steps = (maxs-mins) / (pg.N-1)
-    members_0 = np.array([mins + i*steps for i in range(pg.N)])
-    pg._members_zero = members_0
+    pg._members_zero = generate_uniform(pg._members, zero_type)
+    pg._zero_type = zero_type
 
 def _set_model_class(
     pg,
@@ -161,11 +149,11 @@ def _set_score_type(pg, score_type):
     default_maximize = False
 
     if score_type in SCORES_TO_MAXIMIZE:
-        pg._maximize = True
+        pg._score_maximize = True
     elif score_type in SCORES_TO_MINIMIZE:
-        pg._maximize = False
+        pg._score_maximize = False
     elif score_type in default_names:
-        pg._maximize = default_maximize
+        pg._score_maximize = default_maximize
         score_type = default_score
     else:
         raise ValueError(
@@ -176,4 +164,4 @@ def _set_score_type(pg, score_type):
         pg._global_bounds = True
     else:
         pg._global_bounds = False
-    pg._score_type = score_type
+    pg._score = score_type

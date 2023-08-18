@@ -4,14 +4,14 @@ It is totally clustering model independent
 """
 
 import pycvi
-from pycvi.scores import best_score, worst_score
+from pycvi.compute_scores import best_score, worst_score
 import numpy as np
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
 SCORES = pycvi.SCORES
-SUBSCORES = pycvi.scores.SUBSCORES
-MAIN_SCORES_TO_MINIMIZE = pycvi.scores.MAIN_SCORES_TO_MINIMIZE
-MAIN_SCORES_TO_MAXIMIZE = pycvi.scores.MAIN_SCORES_TO_MAXIMIZE
+SUBSCORES = pycvi.compute_scores.SUBSCORES
+MAIN_SCORES_TO_MINIMIZE = pycvi.compute_scores.MAIN_SCORES_TO_MINIMIZE
+MAIN_SCORES_TO_MAXIMIZE = pycvi.compute_scores.MAIN_SCORES_TO_MAXIMIZE
 SCORES_TO_MINIMIZE = [p+s for s in MAIN_SCORES_TO_MINIMIZE for p in SUBSCORES]
 SCORES_TO_MAXIMIZE = [p+s for s in MAIN_SCORES_TO_MAXIMIZE for p in SUBSCORES]
 
@@ -37,13 +37,17 @@ def _compute_score_bounds(
     """
     for t in range(pg.T):
         pg._worst_scores[t] = worst_score(
-            pg._zero_scores[t], pg._local_steps[t][0]['score'], pg._maximize
+            pg._zero_scores[t],
+            pg._local_steps[t][0]['score'],
+            pg._score_maximize
         )
         if pg._worst_scores[t] != pg._zero_scores[t]:
             # k that will automatically get a life span of 0
             pg._worst_k[t] = pg._local_steps[t][0]['param']["k"]
         pg._best_scores[t] = best_score(
-            pg._zero_scores[t], pg._local_steps[t][-1]['score'], pg._maximize
+            pg._zero_scores[t],
+            pg._local_steps[t][-1]['score'],
+            pg._score_maximize
         )
     if pg._global_bounds:
         worst_score_global = pg._worst_scores[0]
@@ -55,12 +59,12 @@ def _compute_score_bounds(
             best_score_global = best_score(
                 best_score_global,
                 best_t,
-                pg._maximize
+                pg._score_maximize
             )
             worst_score_global = worst_score(
                 worst_score_global,
                 worst_t,
-                pg._maximize
+                pg._score_maximize
             )
         pg._worst_scores[:] = worst_score_global
         pg._best_scores[:] = best_score_global

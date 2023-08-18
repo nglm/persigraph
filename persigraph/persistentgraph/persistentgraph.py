@@ -3,6 +3,7 @@ from bisect import bisect, bisect_right, insort
 import time
 import pickle
 import json
+from sklearn.preprocessing import StandardScaler
 from copy import deepcopy
 
 from typing import List, Sequence, Tuple, Union, Any, Dict
@@ -11,7 +12,8 @@ from . import Vertex
 from . import Edge
 from . import Component
 from ._set_default_properties import (
-    _set_members, _set_zero, _set_model_class, _set_score_type
+    _set_members, _set_zero, _set_model_class, _set_score_type,
+    _set_sliding_window
 )
 from ._clustering_model import generate_all_clusters, merge_clusters
 from ._scores import _compute_ratio_scores, _compute_score_bounds
@@ -29,11 +31,12 @@ class PersistentGraph():
         self,
         members: np.ndarray = None,
         time_axis: np.ndarray = None,
-        time_window: int = 1,
+        w: int = 1,
         weights: np.ndarray = None,
         precision: int = 13,
         score_type: str = None,
-        squared_radius: bool = False,
+        transformer = None,
+        scaler = StandardScaler(),
         DTW: bool = False,
         zero_type: str = 'bounds',
         model_class = None,
@@ -97,7 +100,11 @@ class PersistentGraph():
             # After that pg._members is of shape (N, d, T) even if
             # d and T were initially omitted
             _set_members(self, members)
+            _set_sliding_window(self, w)
             _set_zero(self, zero_type)
+
+            self._scaler = scaler
+            self._transformer = transformer
 
             # Shared x-axis values among the members
             if time_axis is None:
@@ -122,8 +129,6 @@ class PersistentGraph():
             else:
                 self._k_max = min(max(int(k_max), 1), self.N)
 
-            # Length of the time window
-            self._w = min( max(int(time_window), 0), self.T)
             # Determines how to cluster the members
             _set_model_class(
                 self, model_class, DTW, model_kw, fit_predict_kw,
@@ -132,11 +137,11 @@ class PersistentGraph():
             self._n_clusters_range = range(self.k_max + 1)
             # Score type, determines how to measure how good a model is
             _set_score_type(self, score_type)
-            # Should we use a squared radius when clustering data?
-            self._squared_radius = squared_radius
+            # Determines how to transform the clustering data
+            self._transformer = transformer
 
             if name is None:
-                self._name = self._model_type + "_" + self._score_type
+                self._name = self._model_type + "_" + self._score
             else:
                 self._name = name
 
@@ -193,7 +198,7 @@ class PersistentGraph():
                 for _ in range(self.T)
             ]
 
-            if self._maximize:
+            if self._score_maximize:
                 self._best_scores = -np.inf*np.ones(self.T)
                 self._worst_scores = np.inf*np.ones(self.T)
             else:
@@ -228,6 +233,8 @@ class PersistentGraph():
         """
 
         info["type"] = self._model_type
+
+        # Compute the ratio intervals
         score_ratios = []
         for k in info["k"]:
             score_ratios = Component.ratio_union(
@@ -1170,8 +1177,9 @@ class PersistentGraph():
         dic = {
             "model_type" : self._model_type,
             "zero_type" : self._zero_type,
-            "score_type" : self._score_type,
-            "squared_radius" : self._squared_radius,
+            "score_type" : self._score,
+            "transformer" : self._transformer.__name__,
+            "scaler" : self._scaler.__class__,
             "DTW" : self._DTW,
             "model_class_kw" : self._model_class_kw,
             "model_kw" : self._model_kw,

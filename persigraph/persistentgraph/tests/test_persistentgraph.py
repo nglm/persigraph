@@ -96,18 +96,18 @@ def test_sorted_steps():
     """
     members, time = mini(multivariate=True)
     w = 3
-    list_squared_radius = [True, False]
+    list_transformers = [_square_radius, None]
     DTWs = [False, True]
-    for squared_radius in list_squared_radius:
+    for transformer in list_transformers:
         for DTW in DTWs:
             g = PersistentGraph(
-                members, time, time_window=w,
-                DTW=DTW, squared_radius=squared_radius)
+                members, time, w=w,
+                DTW=DTW, transformer=transformer)
             g.construct_graph()
             fig, ax = overview(g)
             fname = (
                 "test_sorted_steps_" + "DTWs_" + str(DTW)
-                + "squared_radius_" + str(squared_radius)
+                + "squared_radius_" + str(transformer is not None)
             )
             fig.savefig('tmp/'+fname)
             g.save('tmp/'+fname, type="json")
@@ -122,30 +122,40 @@ def test_time_window():
     members, time = mini(multivariate=True)
     list_w = [t for t in range(1, len(time))]
     for w in list_w:
-        g = PersistentGraph(members, time, time_window=w)
+        g = PersistentGraph(members, time, w=w)
         g.construct_graph()
         fig, ax = overview(g)
         fname = "test_time_window_" + "time_window_" + str(w)
         fig.savefig('tmp/'+fname)
         g.save('tmp/'+fname, type="json")
 
-def test_squared_radius():
+def _square_radius(X: np.ndarray) -> np.ndarray:
+    """
+    Returns r*X with r = sqrt(RMM1**2 + RMM2**2)
+    """
+    # r = sqrt(RMM1**2 + RMM2**2)
+    # r of shape (N, 1, T)
+    r = np.sqrt(np.sum(np.square(X), axis=1, keepdims=True))
+    # r*X gives the same angle but a squared radius
+    return r*X
+
+def test_transformer():
     members, time = mini(multivariate=True)
-    list_squared_radius = [True, False]
+    list_transformers = [None, _square_radius]
     list_w = [1,2,3, len(time)]
-    for squared_radius in list_squared_radius:
+    for transformer in list_transformers:
         for w in list_w:
             g = PersistentGraph(
                 members,
                 time,
-                squared_radius=squared_radius,
-                time_window=w,
+                transformer=transformer,
+                w=w,
             )
             g.construct_graph()
             fig, ax = overview(g)
             fname = (
-                "test_squared_radius_" + "time_window_" + str(w)
-                + "squared_radius_" + str(squared_radius)
+                "test_transformer" + "time_window_" + str(w)
+                + "squared_radius_" + str(transformer is not None)
             )
             fig.savefig('tmp/'+fname)
             g.save('tmp/'+fname, type="json")
@@ -154,11 +164,11 @@ def test_DTW():
     members, time = mini(multivariate=True)
     methods = CLUSTERING_METHODS["names"]
     DTWs = [False, True]
-    list_squared_radius = [True, False]
+    list_transformers = [_square_radius, None]
     list_w = [1, max(1, len(time)//2), max(1, len(time)-1)]
     for i, m in enumerate(methods):
         for is_dtw in DTWs:
-            for squared_radius in list_squared_radius:
+            for transformer in list_transformers:
                 for w in list_w:
                     if not (
                         is_dtw and CLUSTERING_METHODS["classes-dtw"][i] is None
@@ -167,11 +177,11 @@ def test_DTW():
                             continue
                         g = PersistentGraph(
                             members, time, model_class=m, DTW=is_dtw,
-                            squared_radius=squared_radius, time_window=w
+                            transformer=transformer, w=w
                             )
                         g.construct_graph()
                         fig, ax = overview(g)
-                        fname = "test_DTW_" + str(m) + "_" + str(is_dtw) + "_squared_" + str(squared_radius) + "_w_" + str(w)
+                        fname = "test_DTW_" + str(m) + "_" + str(is_dtw) + "_squared_" + str(transformer is not None) + "_w_" + str(w)
                         fig.savefig('tmp/'+fname)
                         g.save('tmp/'+fname, type="json")
 
