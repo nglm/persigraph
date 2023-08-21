@@ -12,10 +12,34 @@ from ..vis.commonstyle import nrows_ncols, get_list_colors
 from ..vis.barstyle import draw_arrow
 from ..vis.mjostyle import draw_mjo_classes, add_mjo_member ,add_mjo_mean
 from ..utils.lists import to_list
+from ..persistentgraph._set_default_properties import _check_members_shape
+
+def _infer_from_members(
+    g = None,                      # Persistent Graph
+    members: np.ndarray = None,    # shape (N, T, d)
+    time_axis: np.ndarray  = None, # shape (T)
+):
+    # Get members
+    if members is None:
+        if g is None:
+            raise ValueError("No members were given")
+        else:
+            members_copy = g.members
+    else:
+
+        members_copy = _check_members_shape(members)
+    # Get the time axis
+    if time_axis is None:
+        if g is None:
+            time_axis = np.arange(members.shape[1])
+        else:
+            time_axis = g.time_axis
+    return members_copy, time_axis
+
 
 def mean_std(
     g = None,
-    members = None,
+    members: np.ndarray = None, # shape (N, T, d)
     time_axis = None,
     fig = None,
     axs = None,
@@ -23,21 +47,11 @@ def mean_std(
     ax_kw: dict = {},
     plt_kw : dict = {'lw' : 3, 'ls' : '--', 'color' :'grey'}
 ):
-    if members is None:
-        if g is None:
-            raise ValueError("No members were given")
-        else:
-            members = g.members
-    if time_axis is None:
-        if g is None:
-            time_axis = np.arange(members.shape[-1])
-        else:
-            time_axis = g.time_axis
-    if len(members.shape) > 2:
-        d = members.shape[1]
-    else:
-        d = 1
+    # Make sure members are of the right shape
+    members_copy, time_axis = _infer_from_members(g, members, time_axis)
+    (N, T, d) = members_copy
 
+    # One ax per variable to plot
     if axs is None:
         nrows, ncols = nrows_ncols(d)
         fig, axs = plt.subplots(
@@ -45,19 +59,20 @@ def mean_std(
             ncols = ncols,
             squeeze = False,
             **fig_kw)
-    mean = np.mean(members, axis=0)
-    std_sup = np.std(members, axis=0)
-    std_inf = np.std(members, axis=0)
+    mean = np.mean(members_copy, axis=0)
+    std_sup = np.std(members_copy, axis=0)
+    std_inf = np.std(members_copy, axis=0)
+    # Plot variables one by one
     for i, ax in enumerate(axs.flat):
         lw = plt_kw.pop("lw", 3)
-        ax.plot(time_axis, mean[i], lw = lw, **plt_kw)
-        ax.plot(time_axis, mean[i] + std_sup[i], lw=lw/2, **plt_kw)
-        ax.plot(time_axis, mean[i] - std_inf[i], lw=lw/2, **plt_kw)
+        ax.plot(time_axis, mean[:, i], lw = lw, **plt_kw)
+        ax.plot(time_axis, mean[:, i] + std_sup[:, i], lw=lw/2, **plt_kw)
+        ax.plot(time_axis, mean[:, i] - std_inf[:, i], lw=lw/2, **plt_kw)
     return fig, axs
 
 def members(
     g = None,
-    members = None,
+    members: np.ndarray = None, # shape (N, T, d)
     time_axis = None,
     fig = None,
     axs = None,
@@ -65,20 +80,9 @@ def members(
     ax_kw: dict = {},
     plt_kw : dict = {'lw' : 0.6, 'color' :'lightgrey'}
 ):
-    if members is None:
-        if g is None:
-            raise ValueError("No members were given")
-        else:
-            members = g.members
-    if time_axis is None:
-        if g is None:
-            time_axis = np.arange(members.shape[-1])
-        else:
-            time_axis = g.time_axis
-    if len(members.shape) > 2:
-        d = members.shape[1]
-    else:
-        d = 1
+    # Make sure members are of the right shape
+    members_copy, time_axis = _infer_from_members(g, members, time_axis)
+    (N, T, d) = members_copy
 
     if axs is None:
         nrows, ncols = nrows_ncols(d)
@@ -87,33 +91,34 @@ def members(
             ncols = ncols,
             squeeze = False,
             **fig_kw)
+    # Plot variables one by one
     for i, ax in enumerate(axs.flat):
-        for m in members[:,i,:]:
+        for m in members_copy[:,:,i]:
             ax.plot(time_axis, m,  **plt_kw)
     return fig, axs
 
 def mjo_mean_std(
     g = None,
-    members = None,
+    members: np.ndarray = None, # shape (N, T, d)
     fig = None,
     ax = None,
-    show_classes = True,
-    show_std = False,
-    polar = True,  # True if members are in polar coordinate
+    show_classes: bool = True,
+    show_std: bool = False,
+    polar: bool = True,  # True if members are in polar coordinate
     fig_kw: dict = {"figsize" : (15,15), 'tight_layout':True, },
 ):
-    if members is None:
-        if g is None:
-            raise ValueError("No members were given")
-        else:
-            members = g.members
+    # Make sure members are of the right shape
+    members_copy, _ = _infer_from_members(g, members, None)
+    (N, T, d) = members_copy
+
     if ax is None:
         fig, ax = plt.subplots(**fig_kw)
     if show_classes:
         fig, ax = draw_mjo_classes(fig, ax)
-    mean = np.mean(members, axis=0)
-    std_sup = np.std(members, axis=0)
-    std_inf = np.std(members, axis=0)
+    # All of shape (T, d)
+    mean = np.mean(members_copy, axis=0)
+    std_sup = np.std(members_copy, axis=0)
+    std_inf = np.std(members_copy, axis=0)
     if polar:
         raise NotImplementedError("to_cartesian function is not available anymore")
         #mean = to_cartesian(mean)
@@ -129,7 +134,7 @@ def mjo_mean_std(
 
 def mjo_members(
     g = None,
-    members = None,
+    members: np.ndarray = None, # shape (N, T, d)
     fig = None,
     ax = None,
     show_classes = True,
@@ -137,16 +142,15 @@ def mjo_members(
     ax_kw: dict = {},
     plt_kw : dict = {'lw' : 0.8}
 ):
-    if members is None:
-        if g is None:
-            raise ValueError("No members were given")
-        else:
-            members = g.members
+    # Make sure members are of the right shape
+    members_copy, _ = _infer_from_members(g, members, None)
+    (N, T, d) = members_copy
+
     if ax is None:
         fig, ax = plt.subplots(**fig_kw)
     if show_classes:
         fig, ax = draw_mjo_classes(fig, ax)
-    for rmm in members:
+    for rmm in members_copy:
         ax.add_collection(add_mjo_member(rmm, line_kw=plt_kw))
     ax.set_xlim(-4, 4)
     ax.set_ylim(-4, 4)

@@ -10,7 +10,10 @@ import matplotlib.path as mpath
 from matplotlib.colors import ListedColormap
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
-def _make_segments(x, y):
+def _make_segments(
+    x: np.ndarray,   # shape (T)
+    y: np.ndarray,   # shape (T)
+) -> np.ndarray:
     """
     Create list of line segments from x and y coordinates, in the correct format
     for LineCollection: an array of the form numlines x (points per line) x 2 (x
@@ -21,32 +24,36 @@ def _make_segments(x, y):
     segments = np.concatenate([points[:-1], points[1:]], axis=1)
     return segments
 
-def _make_polygons(mean, std_sup, std_inf):
+def _make_polygons(
+    mean: np.ndarray,     # shape (T, d)
+    std_sup: np.ndarray,  # shape (T, d)
+    std_inf: np.ndarray,  # shape (T, d)
+) -> np.ndarray:
     """
     Create list of line segments from x and y coordinates, in the correct format
     for PolyCollection
     """
     polys = []
-    N_points = np.shape(mean)[-1]
+    N_points = len(mean)
     for i in range(N_points-1):
         polys.append([
             # std_inf at t
-            [mean[0, i]-std_inf[0, i], mean[1, i]-std_inf[1, i]],
+            [mean[i, 0]-std_inf[i, 0], mean[i, 1]-std_inf[i, 1]],
             # std_sup at t
-            [mean[0, i]+std_sup[0, i], mean[1, i]+std_sup[1, i]],
+            [mean[i, 0]+std_sup[i, 0], mean[i, 1]+std_sup[i, 1]],
             # std_sup at t+1
-            [mean[0, i+1]+std_sup[0, i+1], mean[1, i+1]+std_sup[1, i+1]],
+            [mean[i+1, 0]+std_sup[i+1, 0], mean[i+1, 1]+std_sup[i+1, 1]],
             # std_inf at t+1
-            [mean[0, i+1]-std_inf[0, i+1], mean[1, i+1]-std_inf[1, i+1]],
+            [mean[i+1, 0]-std_inf[i+1, 0], mean[i+1, 1]-std_inf[i+1, 1]],
         ])
     polys = np.asarray(polys)
     return polys
 
 
 def add_mjo_mean(
-    mean: np.ndarray,
-    std_inf: np.ndarray = None,
-    std_sup: np.ndarray = None,
+    mean: np.ndarray,             # shape (T, d)
+    std_inf: np.ndarray = None,   # shape (T, d)
+    std_sup: np.ndarray = None,   # shape (T, d)
     cmap: ListedColormap = None,
     line_kw: dict = {'lw' : 10},
     fig_kw: dict = {},
@@ -55,11 +62,11 @@ def add_mjo_mean(
     Return collections corresponding to the mean and std of the MJO
 
     :param mean: mean values
-    :type mean: np.ndarray
+    :type mean: np.ndarray, shape (T, d)
     :param std_inf: std of the members below the mean
-    :type std_inf: np.ndarray, optional
+    :type std_inf: np.ndarray, shape (T, d), optional
     :param std_sup: std of the members above the mean
-    :type std_sup: np.ndarray, optional
+    :type std_sup: np.ndarray, shape (T, d), optional
     :param cmap: colormap (for timescale), defaults to None
     :type cmap: ListedColormap, optional
     :param line_kw: kw for the mean line, defaults to {'lw' : 10}
@@ -73,7 +80,7 @@ def add_mjo_mean(
         cmap = plt.get_cmap('plasma').reversed()
 
     # Default colors equally spaced on [0,1]:
-    z = np.linspace(0.0, 1.0, np.shape(mean)[-1])
+    z = np.linspace(0.0, 1.0, len(mean))
     # Special case if a single number:
     if not hasattr(z, "__iter__"):
         z = np.array([z])
@@ -83,12 +90,12 @@ def add_mjo_mean(
         polys = PolyCollection(polys, array=z, cmap=cmap, alpha=0.15)
     else:
         polys = None
-    segments = _make_segments(mean[0], mean[1])
+    segments = _make_segments(mean[:, 0], mean[:, 1])
     segments = LineCollection(segments, array=z, cmap=cmap, **line_kw)
     return polys, segments
 
 def add_mjo_member(
-    rmm: np.ndarray,
+    rmm: np.ndarray,      # Shape (T, 2)
     cmap: ListedColormap = None,
     line_kw: dict = {'lw' : 0.8, "alpha":1},
 ) -> LineCollection:
@@ -107,12 +114,12 @@ def add_mjo_member(
     if cmap is None:
         cmap = plt.get_cmap('plasma').reversed()
     # Default colors equally spaced on [0,1]:
-    z = np.linspace(0.0, 1.0, len(rmm[0]))
+    z = np.linspace(0.0, 1.0, len(rmm))
     # Special case if a single number:
     if not hasattr(z, "__iter__"):
         z = np.array([z])
 
-    segments = _make_segments(x=rmm[0], y=rmm[1])
+    segments = _make_segments(x=rmm[:, 0], y=rmm[:, 1])
     lc = LineCollection(segments, array=z, cmap=cmap, **line_kw)
     return lc
 

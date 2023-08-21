@@ -29,9 +29,9 @@ members_bis = np.array([
     (-0.3,  -0.4,   -0.6,   -0.7,   -1),
 ])
 
-members_biv = np.ones((4,2,5))
-members_biv[:,0,:] = members
-members_biv[:,1,:] = members_bis
+members_biv = np.ones((4,5, 2))
+members_biv[:, :, 0] = members
+members_biv[:, :, 1] = members_bis
 
 def mini(
     multivariate: bool = False,
@@ -68,7 +68,7 @@ def mini(
         time *= 6
     # Bivariate data
     if multivariate:
-        data = np.ones((N, 2, T))
+        data = np.ones((N, T, 2))
         data[:,0,:] = members
         data[:,1,:] = members_bis
         data = members_biv
@@ -84,11 +84,11 @@ def mini(
             else:
                 data = members
         # Add the "d" dimension with d=1
-        data = np.expand_dims(data, 1)
+        data = np.expand_dims(data, -1)
     # Treat time series as multivariate data instead of time series
-    # New shape: (N, d*T, 1)
+    # New shape: (N, 1, d*T)
     if not as_time_series:
-        data = np.reshape(N, -1, 1)
+        data = np.reshape(N, 1, -1)
     return np.copy(data), np.copy(time)
 
 

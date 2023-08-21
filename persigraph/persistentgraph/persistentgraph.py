@@ -49,7 +49,7 @@ class PersistentGraph():
         """
         Initialize an empty graph
 
-        :param members: (N, d, T)-array. Original data, ensemble of time series
+        :param members: (N, T, d)-array. Original data, ensemble of time series
 
         - N: number of members
         - d: number of variables (default: 1)
@@ -97,7 +97,7 @@ class PersistentGraph():
         # --------------------------------------------------------------
 
         if members is not None:
-            # After that pg._members is of shape (N, d, T) even if
+            # After that pg._members is of shape (N, T, d) even if
             # d and T were initially omitted
             _set_members(self, members)
             _set_sliding_window(self, w)
@@ -113,7 +113,7 @@ class PersistentGraph():
                 self._time_axis = np.copy(time_axis)
 
             if weights is None:
-                self._weights = np.ones((self.d, self.T), dtype = float)
+                self._weights = np.ones((self.T, self.d), dtype = float)
             else:
                 self._weights = np.array(weights)
                 if len(self._weights.shape) < 2:
@@ -685,9 +685,9 @@ class PersistentGraph():
         return v_at_step
 
     def _compute_statistics(self):
-        # Max/min (N, d, t)
-        self._max = np.amax(self._members, axis=(1,2))
-        self._min = np.amin(self._members, axis=(1,2))
+        # Max/min (N, T, d)
+        self._max = np.amax(self._members, axis=0)
+        self._min = np.amin(self._members, axis=0)
         # max/min life span
         life_spans = []
         for v_t in self._vertices:
@@ -961,7 +961,7 @@ class PersistentGraph():
     def members(self) -> np.ndarray:
         """Original data, ensemble of time series
 
-        :rtype: np.ndarray[float], shape: (N, d, T)
+        :rtype: np.ndarray[float], shape: (N, T, d)
         """
         return np.copy(self._members)
 
@@ -969,7 +969,7 @@ class PersistentGraph():
     def members_zero(self) -> np.ndarray:
         """Data used for the "zero component", ensemble of time series
 
-        :rtype: np.ndarray[float], shape: (N, d, T)
+        :rtype: np.ndarray[float], shape: (N, T, d)
         """
         return np.copy(self._members_zero)
 
@@ -987,7 +987,7 @@ class PersistentGraph():
         """
         Max member values for each variable and each t
 
-        :rtype: np.ndarray[float], shape: (d, T)
+        :rtype: np.ndarray[float], shape: (T, d)
         """
         return self._max
 
@@ -996,7 +996,7 @@ class PersistentGraph():
         """
         Min member values for each variable and each t
 
-        :rtype: np.ndarray[float], shape: (d, T)
+        :rtype: np.ndarray[float], shape: (T, d)
         """
         return self._min
 

@@ -6,39 +6,52 @@ from pycvi.cluster import generate_uniform, sliding_window
 from ._scores import SCORES_TO_MAXIMIZE, SCORES_TO_MINIMIZE
 from ._clustering_model import CLUSTERING_METHODS
 
-def _set_members(pg, members):
+def _check_members_shape(members: np.ndarray) -> np.ndarray:
     """
-    Set members, N, d, T
-    """
-    pg._members = np.copy(members)  #Original Data
+    Force members to have (N, T, d) shape and returns a copy
 
+    :param members: original members, with potentially T, and d omitted.
+    :type members: np.ndarray
+    :raises ValueError: If (N<2)
+    :raises ValueError: If invalid shape (not (N,) or (N, d) or (N, T, d))
+    :return: _description_
+    :rtype: np.ndarray
+    """
     # Variable dimension
-    shape = pg._members.shape
+    shape = members.shape
 
-
-    pg._N = shape[0]  # Number of members (time series)
-    if pg._N < 2:
+    N = shape[0]  # Number of members (time series)
+    if N < 2:
         raise ValueError(
             "At least members should be given (N>=2)" + str(shape[0])
         )
     # Assume that both d and T are "missing"
     if len(shape) == 1:
-        pg._d = int(1)
-        pg._T = int(1)
-        pg._members = np.expand_dims(pg._members, axis=(1,2))
-    # Assume that only d is missing
+        members_copy = np.expand_dims(members, axis=(1,2))
+    # Assume that only T is missing
     elif len(shape) == 2:
-        pg._d = int(1)
-        pg._members = np.expand_dims(pg._members, axis=1)
-    elif len(shape) == 3:
-
-        pg._d = shape[1]  # Number of variables
-        pg._T = shape[2]  # Length of the time series
+        members_copy = np.expand_dims(members, axis=1)
+    elif len(shape) != 3:
+        members_copy = np.copy(members)
     else:
         raise ValueError(
             "Invalid shape of members provided:" + str(shape)
-            + ". Please provide a valid shape: (N,) or (N, T) or (N, d, T)"
+            + ". Please provide a valid shape: (N,) or (N, d) or (N, T, d)"
         )
+    return members_copy
+
+def _set_members(pg, members):
+    """
+    Set members, N, T, d
+    """
+    # Force members to have (N, T, d) shape and returns a copy
+    members_copy = _check_members_shape(members)
+    pg._members = members_copy  #Original Data
+    (N, d, T) = members_copy.shape
+    pg._N = N
+    pg._d = d
+    pg._T = T
+
 
 def _set_sliding_window(pg, w:int):
     """
