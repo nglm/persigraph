@@ -10,7 +10,7 @@ from . import Vertex
 from . import Edge
 from . import Component
 from ._set_default_properties import (
-    _set_members, _set_zero, _set_model_class, _set_score_type,
+    _set_members, _set_zero, _set_model_class, _set_score,
     _set_sliding_window, _set_transformer, _set_scaler
 )
 from ._clustering_model import generate_all_clusters, merge_clusters
@@ -30,7 +30,7 @@ class PersistentGraph():
         w: int = 1,
         weights: np.ndarray = None,
         precision: int = 13,
-        score_type: str = None,
+        score: str = None,
         transformer = None,
         scaler = None,
         DTW: bool = False,
@@ -64,7 +64,7 @@ class PersistentGraph():
         :param precision: Score precision, defaults to 13
         :type precision: int, optional
 
-        :param score_type: Define how the score is computed,
+        :param score: Define how the score is computed,
         defaults to 'inertia'. Scores available:
 
         - inertia
@@ -72,7 +72,7 @@ class PersistentGraph():
         - variance
         - min / max_variance
 
-        :type score_type: str, optional
+        :type score: optional
         :param zero_type: Define the "0" cluster, defaults to 'uniform'
         :type zero_type: str, optional
         :param verbose: Level of verbosity (defaults to False):
@@ -134,7 +134,7 @@ class PersistentGraph():
             # Ordered number of clusters that will be tried
             self._n_clusters_range = range(self.k_max + 1)
             # Score type, determines how to measure how good a model is
-            _set_score_type(self, score_type)
+            _set_score(self, score)
 
             if name is None:
                 self._name = self._model_type + "_" + self._score
@@ -884,7 +884,7 @@ class PersistentGraph():
         dic = {
             "model_type" : self._model_type,
             "zero_type" : self._zero_type,
-            "score_type" : self._score,
+            "score" : self._score,
             "transformer" : self._transformer.__name__,
             "scaler" : self._scaler.__class__,
             "DTW" : self._DTW,

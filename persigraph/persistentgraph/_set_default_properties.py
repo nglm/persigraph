@@ -3,6 +3,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 from pycvi.cluster import generate_uniform, sliding_window
+from pycvi.scores import Inertia, MaxDiameter, Score
 
 from ._scores import SCORES_TO_MAXIMIZE, SCORES_TO_MINIMIZE
 from ._clustering_model import CLUSTERING_METHODS
@@ -168,27 +169,18 @@ def _set_score(pg, score):
     set pg._score and pg._global_bounds
     """
 
-    default_names = [None, ""]
-    default_score = "inertia"
-    default_maximize = False
-
-    if score_type in SCORES_TO_MAXIMIZE:
-        pg._score_maximize = True
-    elif score_type in SCORES_TO_MINIMIZE:
-        pg._score_maximize = False
-    elif score_type in default_names:
-        pg._score_maximize = default_maximize
-        score_type = default_score
+    if score is None:
+        pg._score = Inertia()
+    elif isinstance(score, Score):
+        pg._score = score()
     else:
         raise ValueError(
-            "Choose an available score_type"
-            + str(SCORES_TO_MAXIMIZE + SCORES_TO_MINIMIZE)
+            "Choose an available score, see pycvi.scores.Score"
         )
-    if score_type in ['max_diameter']:
+    if score in [MaxDiameter]:
         pg._global_bounds = True
     else:
         pg._global_bounds = False
-    pg._score = score_type
 
 def _set_transformer(pg, transformer):
     """

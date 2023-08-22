@@ -180,6 +180,6 @@ def test_scores():
     scores = SCORES_TO_MINIMIZE
     for s in scores:
         print(s)
-        g = PersistentGraph(members, time, score_type=s)
+        g = PersistentGraph(members, time, score=s)
         g.construct_graph()
         overview(g)
