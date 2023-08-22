@@ -42,50 +42,6 @@ def stats(components: List[List[Component]]) -> Dict[str, float]:
     stats['max_ratio_members'] = np.amax(ratio_members)
     return stats
 
-# #def# compute_barcodes(
-#     components: List[List[Component]],
-# ) -> List[List[Tuple[float]]]:
-#     """
-#     Compute a list of (sort of) barcodes for each time step
-
-#     FIXME: Outdated
-#     What we call a barcode here is simply a list of tuple
-#     ``(r_birth, r_born, ratio_members)``.
-
-#     - ``r_birth`` defines where the bar starts
-#     - ``r_death`` defines where the bar dies
-#     - ``ratio_members`` is additional information
-
-#     They are not really barcodes as defined in the persistent homology
-#     method because we do not build simplices.
-
-#     :param components: List of graph components (vertices or edges)
-#     :type components: List[List[Component]]
-#     :return: A list of (sort of) barcodes for each time step
-#     :rtype: List[List[Tuple[float]]]
-#     """
-#     if not isinstance(components[0], list):
-#         components = [components]
-#     barcodes = []
-#     for t in range(len(components)):
-#         bc_t = []
-#         for c in components[t]:
-#             bc_t.append((c.r_birth, c.r_death, c.ratio_members))
-#         barcodes.append(bc_t)
-#     return barcodes
-
-# def# compute_bottleneck_distances(barcodes):
-#     #FIXME: Outdated
-#     diags = [np.array([bc_3[:-1] for bc_3 in bc_i]) for bc_i in barcodes]
-#     bn_dist = []
-#     for i in range(len(diags)-1):
-#         bn_dist.append(bottleneck_distance(diags[i], diags[i+1], e=0))
-#     # If only 2 barcodes were compared return a float
-#     # Otherwise return a list of bn distances
-#     if len(bn_dist)==1:
-#         bn_dist = bn_dist[0]
-#     return bn_dist
-
 def sort_components_by(components, criteron="life_span", descending=True):
     # components must be a nested list
     if not isinstance(components[0], list):
