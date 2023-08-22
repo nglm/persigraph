@@ -156,27 +156,6 @@ def generate_all_clusters(
     clusterings_t_k. each element of the nested list contain [clusters, clusters_info]
     :rtype: List[Tuple[List[int], dict]]
     """
-    # --------------------------------------------------------------
-    # --------------------- Preliminary ----------------------------
-    # --------------------------------------------------------------
-    # Use bisect left in order to favor the lowest number of clusters
-    # if pg._score_maximize:
-    #     sort_fc = bisect_left
-    # else:
-    #     sort_fc = reverse_bisect_left
-
-    # wind = sliding_window(pg.T, pg.w)
-    # # Use default transformer and scaler
-    # members_clus = prepare_data(pg.members, pg._DTW, wind,)
-    # members_clus0 = prepare_data(pg.members_zero, pg._DTW, wind)
-    # No scaler/transformer
-    # members_params = prepare_data(
-    #     pg.members, pg._DTW, pg._sliding_window, transformer=None, scaler=None
-    # )
-    # members_params0 = prepare_data(
-    #     pg.members_zero, pg._DTW, pg._sliding_window, transformer=None,
-    #     scaler=None
-    # )
 
     # --------------------------------------------------------------
     # --------------------- Find clusters --------------------------
@@ -206,54 +185,6 @@ def generate_all_clusters(
         fit_predict_kw=fit_predict_kw,
         model_class_kw=model_class_kw
     )
-
-    # for t in range(pg.T):
-
-    #     # ---- clustering method specific parameters --------
-    #     # members_clus: list of length T of arrays of shape (N, w_t, d)
-    #     # X: (N, w_t, d)
-    #     X = members_clus[t]
-    #     (N, w_t, d) = X.shape
-    #     if not pg._DTW:
-    #         # X: (N, w_t*d)
-    #         X = X.reshape(N, w_t*d)
-
-    #     # Get clustering model parameters required by the
-    #     # clustering model
-    #     model_kw, fit_predict_kw, model_class_kw = get_model_parameters(
-    #         pg._model_class,
-    #         model_kw = pg._model_kw,
-    #         fit_predict_kw = pg._fit_predict_kw,
-    #         model_class_kw = pg._model_class_kw,
-    #     )
-    #     fit_predict_kw[model_class_kw["X_arg_name"]] = X
-
-    #     for n_clusters in pg._n_clusters_range:
-
-    #         # All members in the same cluster. Go to next iteration
-    #         if n_clusters <= 1:
-    #             clusterings_t_k[t][n_clusters] = [[i for i in range(pg.N)]]
-    #         # General case
-    #         else:
-
-    #             # Update model_kw
-    #             model_kw[model_class_kw["k_arg_name"]] = n_clusters
-
-    #             # ---------- Fit & predict using clustering model-------
-    #             try :
-    #                 clusters = get_clusters(
-    #                     pg._model_class,
-    #                     model_kw = model_kw,
-    #                     fit_predict_kw = fit_predict_kw,
-    #                     model_class_kw = model_class_kw,
-    #                 )
-    #             except ValueError as ve:
-    #                 if not pg._quiet:
-    #                     print(str(ve))
-    #                 clusterings_t_k[t][n_clusters] = None
-    #                 continue
-
-    #             clusterings_t_k[t][n_clusters] = clusters
 
     # --------------------------------------------------------------
     # -------- Compute score, cluster params, etc. -----------------
