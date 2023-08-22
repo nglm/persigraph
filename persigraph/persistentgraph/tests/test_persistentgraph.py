@@ -74,22 +74,6 @@ def test_construct_graph():
     for out, out_exp in zip(output_np, output_np_exp):
         assert_array_equal(out, out_exp)
 
-    # ------------------------------------------------------------------
-    # Test vertices and edges sorted
-    # ------------------------------------------------------------------
-    for t in range(g.T):
-        v_t = g.v_at_step()[t]['v']
-        msg = "t: {:d} | vertices not sorted {}".format(t, v_t)
-        (assert_sorted(v_t_s, msg) for v_t_s in v_t)
-
-        e_t = g.e_at_step()[t]['e']
-        msg = "t: {:d} | edges not sorted {}".format(t, e_t)
-        (assert_sorted(e_t_s, msg) for e_t_s in e_t)
-    fig, ax = overview(g)
-    fname = "test_construct_graph"
-    fig.savefig('tmp/'+fname)
-    g.save('tmp/'+fname, type="json")
-
 def test_sorted_steps():
     """
     Test that sorted steps is sorted in increasing order of ratio scores.

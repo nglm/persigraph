@@ -166,7 +166,6 @@ class PersistentGraph():
             # Dict of lists containing step info stored in increasing step order
             self._sorted_steps = {
                 'time_steps' : [],
-                'local_step_nums' : [],
                 'ratio_scores' : [],
                 'scores' : [],
                 'params' : [],
@@ -326,44 +325,6 @@ class PersistentGraph():
         self._edges[t].append(e)
         return e
 
-    def get_local_step_from_global_step(
-        self,
-        step: int,
-        t: int,
-        v_step: bool = True,
-    ) -> int:
-        """
-        Find the (pseudo-)local step corresponding to the given global step
-
-        ``self.local_steps[t][s]['global_step_num']`` gives indeed the global
-        steps corresponding exactly to a given local step. But one local step
-        may live during more than 1 global step, if the global steps concern
-        other time steps.
-
-        Local steps for edges are pseudo local steps since there is new edge
-        step, if there is a new local step at `t` or `t+1`.
-
-        :param step: global step
-        :type step: int
-        :param t: time step of interest
-        :type t: int
-        :param v_step: use v_step (local steps) or e_step (pseudo-local step)
-        :type v_step: bool
-        :return: local step corresponding to the global step
-        :rtype: int
-        """
-        if v_step:
-            comp_at_step = self.v_at_step()
-        else:
-            comp_at_step = self.e_at_step()
-        s = bisect_right(
-            comp_at_step[t]['global_step_nums'],
-            step,
-            hi = self._nb_local_steps[t],
-        )
-        s -= 1
-        return s
-
     def get_alive_vertices(
         self,
         ratio: float = None,
@@ -522,7 +483,6 @@ class PersistentGraph():
 
             # ==================== Update sorted_steps =======================
             self._sorted_steps['time_steps'].append(t)
-            self._sorted_steps['local_step_nums'].append(int(step_t[t]))
             self._sorted_steps['ratio_scores'].append(
                 candidate_ratios[idx_candidate]
             )
@@ -532,10 +492,6 @@ class PersistentGraph():
             self._sorted_steps['params'].append(
                 self._local_steps[t][step_t[t]]["param"]
             )
-
-            # ==================== Update local_steps =======================
-            self._local_steps[t][step_t[t]]["global_step_num"] = global_step
-            # self._v_at_step[t]['global_step_nums'][step_t[t]] = global_step
 
             # ======= Update candidates: deletion and insertion ==============
 
@@ -552,13 +508,6 @@ class PersistentGraph():
                 candidate_time_steps.insert(idx_insert, t)
 
             global_step += 1
-
-        if global_step != self._nb_steps:
-            if not self._quiet:
-                print(
-                    "WARNING: number of steps sorted: ", global_step,
-                    " But number of steps done: ", self._nb_steps
-                )
 
     def _construct_edges(self):
         for t in range(self.T-1):
@@ -589,106 +538,6 @@ class PersistentGraph():
                         "WARNING! \nt: {}, no new edges going from v: {}"
                         %(t, v_start.num)
                     )
-
-    def e_at_step(self) -> List[dict]:
-        """
-        List of edge num and global step for each t and each pseudo local step
-
-        Pseudo-local steps don't really refer to the algo's local steps since they will be new edges at t whenever there is a new local step at t
-        OR at t+1
-
-        :rtype: List[dict]
-        """
-
-        # Same as above EXCEPT that here local steps don't really refer to
-        # the algo's local steps since they will be new edges at t whenever
-        # there is a new local step at t OR at t+1
-        e_at_step = [
-            {
-                'e' : [],
-                'global_step_nums' : []
-            } for _ in range(self.T)
-        ]
-
-        for t in range(self.T-1):
-            s = [0, 0]
-            ts= [t, t+1]
-            nb_steps = [self._nb_local_steps[t], self._nb_local_steps[t+1]]
-
-            # -- Base case: while there are steps in both t and t+1 ----
-            while s[0] < nb_steps[0] and s[1] < nb_steps[1]:
-
-                # Take the step that is the next between t and t+1
-                steps = [
-                    self._local_steps[t][s[0]],
-                    self._local_steps[t+1][s[1]]
-                ]
-                ratios = [steps[0]['ratio_score'], steps[0]['ratio_score']]
-                argmin = np.argmin(ratios)
-
-                e_at_step[t]['e'].append([
-                    e.num for e in self._edges[ts[argmin]]
-                    if e.is_alive(steps[argmin]["ratio_score"])
-                ])
-                e_at_step[t]['global_step_nums'].append([
-                    steps[argmin]["global_step_num"]
-                ])
-
-                s[argmin] += 1
-
-            # When at least one local step group has no remaining local steps
-            argmin = np.argmin(nb_steps)
-            s_start = s[argmin]
-            for step in self._local_steps[ts[argmin]][s_start:]:
-                e_at_step[t]['e'].append([
-                    e.num for e in self._edges[ts[argmin]]
-                    if e.is_alive(step["ratio_score"])
-                ])
-                e_at_step[t]['global_step_nums'].append([
-                    step["global_step_num"]
-                ])
-
-        return e_at_step
-
-    def v_at_step(self) -> List[dict]:
-        """
-        List of vertex num and global step for each t and each local step
-
-        v_at_step[t] is a dict such that:
-
-        - v_at_step[t]['v'][local_step][i] is the vertex num of the
-        ith alive vertex at t at the given local step
-
-        - v_at_step[t]['global_step_nums'][local_step] is the global step
-        num associated with 'local_step' at 't'
-
-        :rtype: List[dict]
-        """
-        # To find local steps vertices and more efficiently
-        #
-        # v_at_step[t]['v'][local_step][i] is the vertex num of the
-        # ith alive vertex at t at the given local step
-        #
-        # v_at_step[t]['global_step_nums'][local_step] is the global step
-        # num associated with 'local_step' at 't'
-        v_at_step = [
-            {
-                'v' : [],
-                'global_step_nums' : []
-            } for _ in range(self.T)
-        ]
-
-        for t in range(self.T-1):
-            # Add v_at_step
-            for step in self._local_steps[t]:
-                v_at_step[t]['v'].append([
-                    v.num for v in self._edges[t]
-                    if v.is_alive(step["ratio_score"])
-                ])
-                v_at_step[t]['global_step_nums'].append([
-                    step["global_step_num"]
-                ])
-        return v_at_step
 
     def _compute_statistics(self):
         # Max/min (N, T, d)
@@ -1127,7 +976,6 @@ class PersistentGraph():
         - `param`
         - `score`
         - `ratio_score`
-        - `global_step_num`
 
         Let's denote $k_{t,s}$ the assumption on the number of clusters at time
         step `t` and local step `s`; and $r_{t,s}$ its corresponding score
@@ -1153,7 +1001,6 @@ class PersistentGraph():
         Sorted steps as used for each step of the algorithm
         available keys (with values being lists of length nb_steps)
         - `time_steps`
-        - `local_step_nums`
         - `ratio_scores`
         - `scores`
         - `params`
