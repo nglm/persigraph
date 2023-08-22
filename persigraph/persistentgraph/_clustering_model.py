@@ -124,12 +124,13 @@ def merge_clusters(
     # extracted time window t_w.
 
     # initialise a list of k for each cluster of each k of each t_w
+    T_w = len(clusterings_t_k)
     listk_t_k = [
         {k: [[k] for _ in range(k)] for k in clusterings_t_k[t_w].key()}
-        for t_w in range(len(clusterings_t_k))]
+        for t_w in range(T_w)]
 
     # Delete redundant clusters and merge their k
-    for t_w in range(len(clusterings_t_k)):
+    for t_w in range(T_w):
 
         list_k = list(clusterings_t_k[t_w].key())
         # Iterate over the values of k in two nested loops
