@@ -43,7 +43,7 @@ def _compute_score_bounds(
         )
         if pg._worst_scores[t] != pg._zero_scores[t]:
             # k that will automatically get a life span of 0
-            pg._worst_k[t] = pg._local_steps[t][0]['param']["k"]
+            pg._worst_k[t] = pg._local_steps[t][0]["k"]
         pg._best_scores[t] = best_score(
             pg._zero_scores[t],
             pg._local_steps[t][-1]['score'],

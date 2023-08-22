@@ -168,7 +168,7 @@ class PersistentGraph():
                 'time_steps' : [],
                 'ratio_scores' : [],
                 'scores' : [],
-                'params' : [],
+                'k' : [],
             }
             self._k_info = None
             self._life_span_max = None
@@ -476,7 +476,7 @@ class PersistentGraph():
                     "Step", global_step, '  ||  '
                     't: ', t, '  ||  ',
                     'n_clusters: ',
-                    self._local_steps[t][step_t[t]]["param"]['k'],
+                    self._local_steps[t][step_t[t]]['k'],
                     '  ||  ',
                     ' ratio_score: %.4f ' %candidate_ratios[idx_candidate]
                 )
@@ -489,8 +489,8 @@ class PersistentGraph():
             self._sorted_steps['scores'].append(
                 self._local_steps[t][step_t[t]]["score"]
             )
-            self._sorted_steps['params'].append(
-                self._local_steps[t][step_t[t]]["param"]
+            self._sorted_steps['k'].append(
+                self._local_steps[t][step_t[t]]["k"]
             )
 
             # ======= Update candidates: deletion and insertion ==============
@@ -973,7 +973,7 @@ class PersistentGraph():
         Steps are sorted in increasing order of ratio_scores.
 
         Available keys of self._local_steps[t][s]:
-        - `param`
+        - `k`
         - `score`
         - `ratio_score`
 
@@ -1003,7 +1003,7 @@ class PersistentGraph():
         - `time_steps`
         - `ratio_scores`
         - `scores`
-        - `params`
+        - `k`
 
         Steps are sorted in increasing order of ratio_scores.
 
