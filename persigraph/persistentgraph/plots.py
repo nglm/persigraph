@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 from matplotlib.lines import Line2D
 import time
 from typing import List, Union
@@ -460,83 +459,3 @@ def overview(
 
     return fig, fig.axes
 
-
-def __init_make_gif():
-
-    return None
-
-def __update_make_gif(
-    s,
-    g,
-    show_vertices: bool = True,
-    show_edges: bool = True,
-    threshold_m:int = 1,
-    threshold_l:float = 0.00,
-    cumulative=True,
-    ax = None,
-    verbose = False,
-):
-    if not cumulative:
-        ax.collections = []
-        ax.artists = []
-        # ax.set_xlim(g.min_time_step, g.max_time_step)
-        # ax.set_ylim(g.min_value-1, g.max_value+1)
-    if verbose:
-        print(s)
-    fig, ax = graph(
-        g,
-        s = s,
-        show_vertices = show_vertices,
-        show_edges = show_edges,
-        threshold_m = threshold_m,
-        threshold_l = threshold_l,
-        ax = ax,
-    )
-
-
-def make_gif(
-    g,
-    show_vertices: bool = True,
-    show_edges: bool = True,
-    threshold_m:int = 1,
-    threshold_l:float = 0.01,
-    cumulative=True,
-    ax = None,
-    fig = None,
-    fig_kw: dict = {"figsize" : (5,5)},
-    ax_kw: dict = {'xlabel' : "Time (h)",
-                   'ylabel' : "Temperature (°C)"},
-    verbose=False,
-    max_iter=None,
-):
-    """
-    FIXME: Outdated
-    """
-
-    fig, ax = plt.subplots(**fig_kw)
-    ax.set_xlim(g.min_time_step, g.max_time_step)
-    ax.set_ylim(g.min_value-1, g.max_value+1)
-
-    if max_iter is None:
-        max_iter = g.nb_steps
-
-    fargs = (
-        g,
-        show_vertices,
-        show_edges,
-        threshold_m,
-        threshold_l,
-        cumulative,
-        ax,
-        verbose
-    )
-
-    ani = FuncAnimation(
-        fig,
-        func = __update_make_gif,
-        fargs = fargs,
-        frames = max_iter,
-        init_func = None,
-    )
-    t_end = time.time()
-    return ani
