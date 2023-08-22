@@ -105,18 +105,18 @@ def _merge_clusters_aux(
                 del clustering2[i2]
 
 def merge_clusters(
-    clusterings_t_k: List[Dict[List[List[int]]]],
-) -> Tuple[List[Dict[List[List[int]]]], List[Dict[List[List[int]]]]]:
+    clusterings_t_k: List[Dict[int, List[List[int]]]],
+) -> Tuple[List[Dict[int, List[List[int]]]], List[Dict[int, List[List[int]]]]]:
     """
     Returns the clusterings without duplicate clusters and "k" for each cluster
 
-    `listk_t_k: List[Dict[List[List[int]]]]`
+    `listk_t_k: List[Dict[int, List[List[int]]]]`
     listk_t_k[t_w][k][i] is the list of k for which the cluster i exists
 
     :param clusterings_t_k: _description_
-    :type clusterings_t_k: List[Dict[List[List[int]]]]
+    :type clusterings_t_k: List[Dict[int, List[List[int]]]]
     """
-    # `clusterings_t_k: List[Dict[List[List[int]]]]`
+    # `clusterings_t_k: List[Dict[int, List[List[int]]]]`
     # `clusterings_t_k[t_w][k][i]` is a list of members indices contained
     # in cluster i for the clustering assuming k clusters for the
     # extracted time window t_w.
@@ -144,7 +144,7 @@ def merge_clusters(
 
 def generate_all_clusters(
     pg
-) -> List[Dict[List[List[int]]]]:
+) -> List[Dict[int, List[List[int]]]]:
     """
     Generate all clustering data
 
@@ -152,7 +152,7 @@ def generate_all_clusters(
     :type pg: _type_
     :return: All data corresponding to the generated clustering in a nested list
     clusterings_t_k. each element of the nested list contain [clusters, clusters_info]
-    :rtype: List[Dict[List[List[int]]]]
+    :rtype: List[Dict[int, List[List[int]]]]
     """
 
     # --------------------------------------------------------------
@@ -168,7 +168,7 @@ def generate_all_clusters(
         model_class_kw = pg._model_class_kw,
     )
 
-    # `clusterings_t_k: List[Dict[List[List[int]]]]`
+    # `clusterings_t_k: List[Dict[int, List[List[int]]]]`
     # `clusterings_t_k[t_w][k][i]` is a list of members indices contained
     # in cluster i for the clustering assuming k clusters for the
     # extracted time window t_w.
@@ -188,7 +188,7 @@ def generate_all_clusters(
     # -------- Compute score, cluster params, etc. -----------------
     # --------------------------------------------------------------
 
-    # `scores_t_: List[Dict[float]]`
+    # `scores_t_: List[Dict[int, float]]`
     # `scores_t_n[t_w][k]` is the score for the clustering assuming k
     # clusters for the extracted time window t_w
     scores_t_n = compute_all_scores(

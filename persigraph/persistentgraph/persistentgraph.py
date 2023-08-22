@@ -404,7 +404,7 @@ class PersistentGraph():
 
     def _construct_vertices(
         self,
-        clusterings_t_k: List[Dict[List[List[int]]]],
+        clusterings_t_k: List[Dict[int, List[List[int]]]],
     ) -> None:
         # `clusterings_t_k[t_w][k][i]` is a list of members indices
         # contained in cluster i for the clustering assuming k clusters
