@@ -182,16 +182,11 @@ class PersistentGraph():
                 for _ in range(self.T)
             ]
 
-            if self._score_maximize:
-                self._best_scores = -np.inf*np.ones(self.T)
-                self._worst_scores = np.inf*np.ones(self.T)
-            else:
-                self._best_scores = np.inf*np.ones(self.T)
-                self._worst_scores = -np.inf*np.ones(self.T)
-            self._zero_scores = np.nan*np.ones(self.T)
+            # List of length T_w of scores
+            self._best_scores = None
+            self._worst_scores = None
+            self._zero_scores = None
 
-            self._are_bounds_known = False
-            self._norm_bounds = None
             self._verbose = False
             self._quiet = False
 

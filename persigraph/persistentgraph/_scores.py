@@ -39,12 +39,12 @@ def _compute_score_bounds(
     pg._worst_scores = [
         pg._score.worst_score([
             pg._local_steps[t][s]['score'] for s in len(pg._local_steps[t])
-        ]) for t in pg._T_w
+        ]) for t in range(pg._T_w)
     ]
     pg._best_scores = [
         pg._score.best_score([
             pg._local_steps[t][s]['score'] for s in len(pg._local_steps[t])
-        ]) for t in pg._T_w
+        ]) for t in range(pg._T_w)
     ]
     if pg._global_bounds:
         pg._worst_scores = pg._score.worst_score([
@@ -53,9 +53,6 @@ def _compute_score_bounds(
         pg._best_scores = pg._score.best_score([
             s for s in pg._best_scores
         ])
-
-    pg._norm_bounds = np.abs(pg._worst_scores - pg._best_scores)
-    pg._are_bounds_known = True
 
 def _compute_ratio_scores(
     pg,
@@ -77,19 +74,29 @@ def _compute_ratio_scores(
         # ------------------ ratio scores of local steps ---------------
         # Special case, all ratio score and life spans of that step will be
         # 0 expect for the case k=1, where
-        # ratio_score=0 and life_span=1
+        # ratio_score=1 and life_span=1
         # See `k_info` for more info.
         if pg._worst_scores[t] == pg._best_scores[t]:
-            for step in range(pg._nb_local_steps[t]):
-                pg._local_steps[t][step]['ratio_score'] = 0
+            for step in range(len(pg._local_steps[t])):
+                if pg._local_steps[t][step]['k'] == 1:
+                    pg._local_steps[t][step]['ratio_score'] = 1
+                else:
+                    pg._local_steps[t][step]['ratio_score'] = 0
+        # Normal case:
         else:
+            ratios_t = [
+                (
+                    np.abs(pg._local_steps[t][s]['score'] - score_bounds[0])
+                    / norm_bounds
+                ) for s in range(len(pg._local_steps[t]))
+            ]
+            # If the score is absolute, we need a second round of
+            # normalisation at the end
+            if pg._score.score_type == "absolute":
+                second_norm = sum(ratios_t)
+            else:
+                second_norm = 1
 
-            for step in range(pg._nb_local_steps[t]):
-                score = pg._local_steps[t][step]['score']
-                ratio = np.abs(score - score_bounds[0]) / norm_bounds
-                # If the score is absolute, we need a second round of
-                # normalisation
-                if True:
-                    pass
-                pg._local_steps[t][step]['ratio_score'] = ratio
+            for step in range(len(pg._local_steps[t])):
+                pg._local_steps[t][step]['ratio_score'] = ratios_t / second_norm
 

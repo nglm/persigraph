@@ -203,6 +203,11 @@ def generate_all_clusters(
         score_kwargs = {},
     )
 
+    # Compute zero score if relevant
+    if 0 in scores_t_n[0]:
+        pg._zero_scores = [scores_t_n[t][0] for t in range(pg._T_w)]
+
+
     pg._local_steps = [
         [
             {
