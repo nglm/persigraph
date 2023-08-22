@@ -93,46 +93,47 @@ class PGraphStyle():
                 components, criteron='life_span', descending=False
             )[0]     # [0] because sort_components_by returns a nested list
 
-            # --------------------- VERTICES ---------------------------
-            if isinstance(components[0], Vertex):
-                gaussians = [
-                    c for c in components if c.info['type'] not in u_types
-                ]
-                uniforms = [
-                    c for c in components if c.info['type'] in u_types
-                ]
-            # ----------------------- EDGES ----------------------------
-            elif isinstance(components[0], Edge):
-                gaussians = [
-                    c for c in components
-                    if (
-                        g._vertices[c.time_step][c.v_start].info['type']
-                        not in u_types
-                    and
-                        g._vertices[c.time_step + 1][c.v_end].info['type']
-                        not in u_types
-                    )]
-                from_to_uniforms = [
-                    c for c in components
-                    if (g._vertices[c.time_step][c.v_start].info['type'] in u_types)
-                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] in u_types)
-                    ]
-                to_uniforms = [
-                    c for c in components
-                    if (g._vertices[c.time_step][c.v_start].info['type'] not in u_types)
-                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] in u_types)
-                    ]
-                from_uniforms = [
-                    c for c in components
-                    if (g._vertices[c.time_step][c.v_start].info['type'] in u_types)
-                    and (g._vertices[c.time_step + 1][c.v_end].info['type'] not in u_types)
-                    ]
-                uniforms = [to_uniforms, from_to_uniforms, from_uniforms]
-        else:
-            gaussians = []
-            uniforms = []
+        #     # --------------------- VERTICES ---------------------------
+        #     if isinstance(components[0], Vertex):
+        #         gaussians = [
+        #             c for c in components if c.info['type'] not in u_types
+        #         ]
+        #         uniforms = [
+        #             c for c in components if c.info['type'] in u_types
+        #         ]
+        #     # ----------------------- EDGES ----------------------------
+        #     elif isinstance(components[0], Edge):
+        #         gaussians = [
+        #             c for c in components
+        #             if (
+        #                 g._vertices[c.time_step][c.v_start].info['type']
+        #                 not in u_types
+        #             and
+        #                 g._vertices[c.time_step + 1][c.v_end].info['type']
+        #                 not in u_types
+        #             )]
 
-        return gaussians, uniforms
+        #         from_to_uniforms = [
+        #             c for c in components
+        #             if (g._vertices[c.time_step][c.v_start].info['type'] in u_types)
+        #             and (g._vertices[c.time_step + 1][c.v_end].info['type'] in u_types)
+        #             ]
+        #         to_uniforms = [
+        #             c for c in components
+        #             if (g._vertices[c.time_step][c.v_start].info['type'] not in u_types)
+        #             and (g._vertices[c.time_step + 1][c.v_end].info['type'] in u_types)
+        #             ]
+        #         from_uniforms = [
+        #             c for c in components
+        #             if (g._vertices[c.time_step][c.v_start].info['type'] in u_types)
+        #             and (g._vertices[c.time_step + 1][c.v_end].info['type'] not in u_types)
+        #             ]
+        #         uniforms = [to_uniforms, from_to_uniforms, from_uniforms]
+        # else:
+        #     gaussians = []
+        #     uniforms = []
+
+        return components, []
 
     def gdraw(
         self,
