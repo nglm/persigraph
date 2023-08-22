@@ -112,7 +112,7 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
 
         for step in g._local_steps[t]:
             # k_curr are not necessarily in increasing order
-            k_curr = step['param']['k']
+            k_curr = step['k']
             r_curr = step['ratio_score']
 
             # ----- Initialisation -----------------
