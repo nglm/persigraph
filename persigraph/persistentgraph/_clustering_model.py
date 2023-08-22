@@ -144,7 +144,7 @@ def merge_clusters(
 
 def generate_all_clusters(
     pg
-) -> List[Tuple[List[int], dict]]:
+) -> List[Dict[List[List[int]]]]:
     """
     Generate all clustering data
 
@@ -152,7 +152,7 @@ def generate_all_clusters(
     :type pg: _type_
     :return: All data corresponding to the generated clustering in a nested list
     clusterings_t_k. each element of the nested list contain [clusters, clusters_info]
-    :rtype: List[Tuple[List[int], dict]]
+    :rtype: List[Dict[List[List[int]]]]
     """
 
     # --------------------------------------------------------------
