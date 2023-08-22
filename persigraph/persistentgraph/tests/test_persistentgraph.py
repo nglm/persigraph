@@ -51,7 +51,7 @@ def test_construct_graph():
     overview(g)
 
     # ------------------------------------------------------------------
-    # Test numbers of vertices / edges / steps are consistent
+    # Test numbers of vertices / edges are consistent
     # ------------------------------------------------------------------
     output_np = [
         [len(edges) for edges in g.edges],
@@ -61,46 +61,8 @@ def test_construct_graph():
         g.nb_edges,
         g.nb_vertices,
     ]
-    output = [
-        sum(g.nb_local_steps),
-        len(g.sorted_steps["scores"])
-    ]
-    output_exp = [
-        g.nb_steps,
-        g.nb_steps
-    ]
-    for out, out_exp in zip(output, output_exp):
-        assert out == out_exp , "out: " + str(out) + " expected " + str(out_exp)
     for out, out_exp in zip(output_np, output_np_exp):
         assert_array_equal(out, out_exp)
-
-def test_sorted_steps():
-    """
-    Test that sorted steps is sorted in increasing order of ratio scores.
-    """
-    members, time = mini(multivariate=True)
-    w = 3
-    list_transformers = [_square_radius, None]
-    DTWs = [False, True]
-    for transformer in list_transformers:
-        for DTW in DTWs:
-            g = PersistentGraph(
-                members, time, w=w,
-                DTW=DTW, transformer=transformer)
-            g.construct_graph()
-            fig, ax = overview(g)
-            fname = (
-                "test_sorted_steps_" + "DTWs_" + str(DTW)
-                + "squared_radius_" + str(transformer is not None)
-            )
-            fig.savefig('tmp/'+fname)
-            g.save('tmp/'+fname, type="json")
-
-            sorted_steps = g.sorted_steps
-            scores = sorted_steps["scores"]
-            r_scores = sorted_steps["ratio_scores"]
-            msg = "r_scores: " + str(r_scores)
-            assert_sorted(r_scores, msg)
 
 def test_time_window():
     members, time = mini(multivariate=True)

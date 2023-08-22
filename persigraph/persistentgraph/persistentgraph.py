@@ -163,13 +163,6 @@ class PersistentGraph():
             # Nested list (time, nb_local_steps) of dict storing info about
             # The successive steps
             self._local_steps = [[] for _ in range(self.T)]
-            # Dict of lists containing step info stored in increasing step order
-            self._sorted_steps = {
-                'time_steps' : [],
-                'ratio_scores' : [],
-                'scores' : [],
-                'k' : [],
-            }
             self._k_info = None
             self._life_span_max = None
             self._life_span_min = None
@@ -441,74 +434,6 @@ class PersistentGraph():
                             ) for cluster in clustering_t
                         ]
 
-    def _sort_steps(self):
-        """
-        Sort all local steps into global steps based on the ratio score,
-        from the smallest to the greatest
-        """
-
-        # ====================== Initialization ==============================
-        # Current local step (i.e step_t[i] represents the ith step at t)
-        step_t = np.zeros(self.T, dtype=int)
-
-        # Find the ratio of the first algorithm step at each time step
-        candidate_ratios = np.array([
-            self._local_steps[t][0]["ratio_score"]
-            for t in range(self.T)
-        ])
-        # candidate_time_steps[i] is the time step of candidate_ratios[i]
-        candidate_time_steps = list(np.argsort( candidate_ratios ))
-
-        # Now candidate_ratios are sorted in increasing order
-        candidate_ratios = list(candidate_ratios[candidate_time_steps])
-
-        global_step = 0
-        while candidate_ratios:
-
-            # ==== Find the candidate score with its associated time step ====
-            idx_candidate = 0
-            # it's already an int, but it's somehow a shallow copy without using
-            # int()
-            t = int(candidate_time_steps[idx_candidate])
-
-            if self._verbose:
-                print(
-                    "Step", global_step, '  ||  '
-                    't: ', t, '  ||  ',
-                    'n_clusters: ',
-                    self._local_steps[t][step_t[t]]['k'],
-                    '  ||  ',
-                    ' ratio_score: %.4f ' %candidate_ratios[idx_candidate]
-                )
-
-            # ==================== Update sorted_steps =======================
-            self._sorted_steps['time_steps'].append(t)
-            self._sorted_steps['ratio_scores'].append(
-                candidate_ratios[idx_candidate]
-            )
-            self._sorted_steps['scores'].append(
-                self._local_steps[t][step_t[t]]["score"]
-            )
-            self._sorted_steps['k'].append(
-                self._local_steps[t][step_t[t]]["k"]
-            )
-
-            # ======= Update candidates: deletion and insertion ==============
-
-            # 1. Deletion:
-            del candidate_ratios[idx_candidate]
-            del candidate_time_steps[idx_candidate]
-
-            # 2. Insertion if there are more local steps available:
-            step_t[t] += 1
-            if step_t[t] < self._nb_local_steps[t]:
-                next_ratio = self._local_steps[t][step_t[t]]["ratio_score"]
-                idx_insert = bisect(candidate_ratios, next_ratio)
-                candidate_ratios.insert(idx_insert, next_ratio)
-                candidate_time_steps.insert(idx_insert, t)
-
-            global_step += 1
-
     def _construct_edges(self):
         for t in range(self.T-1):
             v_starts = self._vertices[t]
@@ -601,15 +526,6 @@ class PersistentGraph():
         t_end = time.time()
         if self._verbose:
             print('Vertices constructed in %.2f s' %(t_end - t_start))
-
-        # =================== Sort global steps ========================
-        t_start = time.time()
-        if self._verbose:
-            print("Sort steps...")
-        self._sort_steps()
-        t_end = time.time()
-        if self._verbose:
-            print('Steps sorted in %.2f s' %(t_end - t_start))
 
         # =================== Construct edges ==========================
         if self._verbose:
@@ -994,22 +910,6 @@ class PersistentGraph():
         :rtype: List[List[dict]]
         """
         return self._local_steps
-
-    @property
-    def sorted_steps(self) -> Dict[str, List]:
-        """
-        Sorted steps as used for each step of the algorithm
-        available keys (with values being lists of length nb_steps)
-        - `time_steps`
-        - `ratio_scores`
-        - `scores`
-        - `k`
-
-        Steps are sorted in increasing order of ratio_scores.
-
-        :rtype: dict[str, List]
-        """
-        return self._sorted_steps
 
     @property
     def n_clusters_range(self) -> Sequence[int]:
