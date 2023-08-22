@@ -30,7 +30,6 @@ class Vertex(Component):
         v = None,
         members: List[int] = None,
         time_step: int = None,
-        v_type: str = None
     ) -> bool:
         """
         Check if 2 vertices are equal.
@@ -45,10 +44,7 @@ class Vertex(Component):
         if v is not None:
             members = v.members
             time_step = v.time_step
-            v_type = v.info['type']
-        if (self.time_step == time_step
-            and v_type == self.info['type']
-            ):
+        if (self.time_step == time_step):
             return are_equal(self.members, members)
         else:
             return False
@@ -99,21 +95,20 @@ class Vertex(Component):
         """
         Info related to the cluster Vertex represents
 
-        Must contain a 'type' key, representing the type of cluster
-        (uniform, gaussian, etc).
-
         Available keys:
 
         - `X`: representing $X_{t, vert}[:,:,mid_w]$, that is to say,
         aligned member values at $t$ if DTW is used, and original
         member values otherwise.
-        - `mean`: representing the cluster center. If a time window is
+        - `center`: representing the cluster center. If a time window is
         used, the midpoint of the time window is used to compute the
         mean. If DTW is used, DBA is used instead of the usual
         definition of the mean.
-        - `std`: representing the cluster uncertainty.
-        - `std_inf`: representing the cluster uncertainty under `mean`
-        - `std_sup`: representing the cluster uncertainty above `mean`
+        - `disp`: representing the cluster uncertainty.
+        - `disp_inf`: representing the cluster uncertainty under `mean`
+        - `disp_sup`: representing the cluster uncertainty above `mean`
+        - `k`: list representing the number of clusters in the
+        clusterings for which this vertex exist
 
         :rtype: Dict[str, Any]
         """
@@ -121,8 +116,12 @@ class Vertex(Component):
 
     @info.setter
     def info(self, info: Dict[str, Any]):
-        if "type" not in info.keys():
-            raise ValueError("Vertex.info must have a 'type' key")
+        keys = ["X", "center", "disp", "disp_inf", "disp_sup", "k"]
+        msg = "Vertex.info must have the following keys: "
+        msg += ", ".join(keys)
+        missings = [(msg + "missing" + k) for k in keys if (k not in info)]
+        if missings:
+            raise ValueError(msg, info)
         self.__info = info
 
     @property

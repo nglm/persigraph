@@ -1,5 +1,6 @@
 
 from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 import numpy as np
 from pycvi.cluster import generate_uniform, sliding_window
 
@@ -31,7 +32,7 @@ def _check_members_shape(members: np.ndarray) -> np.ndarray:
     # Assume that only T is missing
     elif len(shape) == 2:
         members_copy = np.expand_dims(members, axis=1)
-    elif len(shape) != 3:
+    elif len(shape) == 3:
         members_copy = np.copy(members)
     else:
         raise ValueError(
@@ -47,7 +48,7 @@ def _set_members(pg, members):
     # Force members to have (N, T, d) shape and returns a copy
     members_copy = _check_members_shape(members)
     pg._members = members_copy  #Original Data
-    (N, d, T) = members_copy.shape
+    (N, T, d) = members_copy.shape
     pg._N = N
     pg._d = d
     pg._T = T
@@ -178,3 +179,15 @@ def _set_score_type(pg, score_type):
     else:
         pg._global_bounds = False
     pg._score = score_type
+
+def _set_transformer(pg, transformer):
+    if transformer is None:
+        pg._transformer = lambda x: x
+    else:
+        pg._transformer = transformer
+
+def _set_scaler(pg, scaler):
+    if scaler is None:
+        pg._scaler = StandardScaler()
+    else:
+        pg._scaler = scaler

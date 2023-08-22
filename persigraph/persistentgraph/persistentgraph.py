@@ -3,17 +3,17 @@ from bisect import bisect, bisect_right, insort
 import time
 import pickle
 import json
-from sklearn.preprocessing import StandardScaler
 from copy import deepcopy
 
 from typing import List, Sequence, Tuple, Union, Any, Dict
+from pycvi.cluster import compute_cluster_params
 
 from . import Vertex
 from . import Edge
 from . import Component
 from ._set_default_properties import (
     _set_members, _set_zero, _set_model_class, _set_score_type,
-    _set_sliding_window
+    _set_sliding_window, _set_transformer, _set_scaler
 )
 from ._clustering_model import generate_all_clusters, merge_clusters
 from ._scores import _compute_ratio_scores, _compute_score_bounds
@@ -36,7 +36,7 @@ class PersistentGraph():
         precision: int = 13,
         score_type: str = None,
         transformer = None,
-        scaler = StandardScaler(),
+        scaler = None,
         DTW: bool = False,
         zero_type: str = 'bounds',
         model_class = None,
@@ -103,8 +103,10 @@ class PersistentGraph():
             _set_sliding_window(self, w)
             _set_zero(self, zero_type)
 
-            self._scaler = scaler
-            self._transformer = transformer
+            # Determines how to scale the clustering data
+            _set_scaler(self, scaler)
+            # Determines how to transform the clustering data
+            _set_transformer(self, transformer)
 
             # Shared x-axis values among the members
             if time_axis is None:
@@ -137,8 +139,6 @@ class PersistentGraph():
             self._n_clusters_range = range(self.k_max + 1)
             # Score type, determines how to measure how good a model is
             _set_score_type(self, score_type)
-            # Determines how to transform the clustering data
-            self._transformer = transformer
 
             if name is None:
                 self._name = self._model_type + "_" + self._score
@@ -214,15 +214,15 @@ class PersistentGraph():
 
     def _add_vertex(
         self,
-        info: Dict[str, Any],
+        k: int,
         t: int,
         members: List[int],
     ):
         """
         Add a vertex to the current graph
 
-        :param info: Info related to the cluster the vertex represents
-        :type info: Dict[str, Any]
+        :param k: Number(s) of clusters in which this vertex exist
+        :type k: int
         :param t: time step at which the vertex should be added
         :type t: int
         :param members: Ordered list of members indices represented by the
@@ -232,7 +232,8 @@ class PersistentGraph():
         :rtype: Vertex
         """
 
-        info["type"] = self._model_type
+        info = {}
+
 
         # Compute the ratio intervals
         score_ratios = []
@@ -461,17 +462,22 @@ class PersistentGraph():
             e_alive = e_alive[0]
         return e_alive
 
-    def _construct_vertices(self, cluster_data):
-        for t in range(self.T):
-            # Create all vertices at t
-            for cluster_data_t_k in cluster_data[t]:
+    def _construct_vertices(
+        self,
+        clusterings_t_k: List[Dict[List[List[int]]]],
+    ) -> None:
+        # `clusterings_t_k[t_w][k][i]` is a list of members indices
+        # contained in cluster i for the clustering assuming k clusters
+        # for the extracted time window t_w.
+        for t_w in range(len(clusterings_t_k)):
+            for k, clustering_t in clusterings_t_k[t_w].items():
                     # create all v
                     new_vertices = [
                         self._add_vertex(
-                                info=info,
-                                t=t,
+                                k=k,
+                                t=t_w,
                                 members=cluster,
-                            ) for (cluster, info) in cluster_data_t_k
+                            ) for cluster in clustering_t
                         ]
 
     def _sort_steps(self):
@@ -718,8 +724,8 @@ class PersistentGraph():
         t_start = time.time()
         if self._verbose:
             print("Clustering data...")
-        cluster_data = generate_all_clusters(self)
-        merge_clusters(cluster_data)
+        clusterings_t_k, scores_t_k = generate_all_clusters(self)
+        merge_clusters(clusterings_t_k)
         t_end = time.time()
         if self._verbose:
             print('Data clustered in %.2f s' %(t_end - t_start))
@@ -742,7 +748,7 @@ class PersistentGraph():
         t_start = time.time()
         if self._verbose:
             print("Construct vertices...")
-        self._construct_vertices(cluster_data)
+        self._construct_vertices(clusterings_t_k)
         t_end = time.time()
         if self._verbose:
             print('Vertices constructed in %.2f s' %(t_end - t_start))

@@ -29,7 +29,7 @@ members_bis = np.array([
     (-0.3,  -0.4,   -0.6,   -0.7,   -1),
 ])
 
-members_biv = np.ones((4,5, 2))
+members_biv = np.ones((4, 5, 2))
 members_biv[:, :, 0] = members
 members_biv[:, :, 1] = members_bis
 
