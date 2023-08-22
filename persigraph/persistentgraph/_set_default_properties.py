@@ -74,7 +74,7 @@ def _set_sliding_window(pg, w:int):
 
 def _set_zero(pg, zero_type: str = "bounds"):
     """
-    Set members_zero, zero_type
+    Set pg._members_zero, pg._zero_type
 
     Generate member values to emulate the case k=0
 
@@ -93,7 +93,7 @@ def _set_model_class(
     model_class_kw: dict = {},
 ):
     """
-    Set all properties related to the clustering model
+    Set all properties of pg related to the clustering model
 
     `_model_class`, `_DTW`, `_model_kw`, `_fit_predict_kw`,
     `_model_class_kw` and `_model_type`
@@ -163,7 +163,10 @@ def _set_model_class(
     # Key-words related to the clustering model fit_predict method
     pg._fit_predict_kw = fit_predict_kw
 
-def _set_score_type(pg, score_type):
+def _set_score(pg, score):
+    """
+    set pg._score and pg._global_bounds
+    """
 
     default_names = [None, ""]
     default_score = "inertia"
@@ -188,12 +191,18 @@ def _set_score_type(pg, score_type):
     pg._score = score_type
 
 def _set_transformer(pg, transformer):
+    """
+    set pg._transformer
+    """
     if transformer is None:
         pg._transformer = lambda x: x
     else:
         pg._transformer = transformer
 
 def _set_scaler(pg, scaler):
+    """
+    set pg._scaler
+    """
     if scaler is None:
         pg._scaler = StandardScaler()
     else:
