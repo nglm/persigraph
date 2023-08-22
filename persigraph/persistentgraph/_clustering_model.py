@@ -203,105 +203,14 @@ def generate_all_clusters(
         score_kwargs = {},
     )
 
-    T_w = len(scores_t_n)
-    info = [
-        [{
-            **{"k": [n_clusters]},
-            **compute_cluster_params(
-                X_params[c],
-                pg._sliding_window["midpoint_w"][t_w])
-        }]
-        for t_w in range(T_w)
+    pg._local_steps = [
+        [
+            {
+                "k": [n_clusters],
+                "score": score,
+            }
+            for (n_clusters, score) in scores_t_n[t_w].items()
+        ] for t_w in range(pg._T_w)
     ]
 
-    # # temporary variable to help sort the local steps
-    # # cluster_data[t][s] contains (clusters, clusters_info)
-    # cluster_data = [[] for _ in range(pg.T)]
-    # local_scores = [[] for _ in range(pg.T)]
-
-    # for t in range(pg.T):
-
-    #     for n_clusters in pg._n_clusters_range:
-    #         # Take the data used for clustering while taking into account the
-    #         # difference between time step indices with/without sliding window
-    #         if n_clusters == 0:
-    #             # members_clus: list of length T of arrays of shape (N, w_t, d)
-    #             # X: (N, w_t, d)
-    #             X = np.copy(members_clus0[t])
-    #             X_params = np.copy(members_params0[t])
-    #         else:
-    #             X = np.copy(members_clus[t])
-    #             X_params = np.copy(members_params[t])
-
-    #         (N, w_t, d) = X.shape
-    #         midpoint_w = wind["midpoint_w"][t]
-    #         if not pg._DTW:
-    #             # We take the entire time window into consideration for the
-    #             # scores of the clusters
-    #             # X: (N, d*w_t)
-    #             X = X.reshape(N, w_t*d)
-    #             # We take only the midpoint into consideration for the
-    #             # parameters of the clusters
-    #             # X_params: (N, d)
-    #             X_params = X_params[:, midpoint_w, :]
-
-    #         # Find cluster membership of each member
-    #         clusters = clusterings_t_k[t][n_clusters]
-
-    #         # Go to next iteration if the model didn't converge
-    #         if clusters is None:
-    #             continue
-
-    #         # -------- Cluster infos for each cluster ---------
-
-    #         clusters_data = [
-    #             (
-    #                 c,
-    #                 {
-    #                     **{"k": [n_clusters]},
-    #                     **compute_cluster_params(X_params[c], midpoint_w)
-    #                 }
-    #             ) for c in clusters
-    #         ]
-    #         clusters_data_score = [
-    #             (c, compute_cluster_params(X[c], midpoint_w))
-    #             for c in clusters
-    #         ]
-
-    #         # ------------ Score corresponding to 'n_clusters' ---------
-    #         score = compute_score(
-    #             pg._score,
-    #             X = X,
-    #             clusters = clusters_data_score,
-    #         )
-            if n_clusters == 0:
-                pg._zero_scores[t] = score
-                # don't insert the case k=0 in cluster_data
-                # nor in local_steps, go straight to the next iteration
-            elif pg._score_type == "monotonous" and score :
-                pass
-            else:
-                step_info = {"score" : score}
-
-                # ---------------- Finalize local step -----------------
-                # Find where should we insert this future local step
-                idx = sort_fc(local_scores[t], score)
-                local_scores[t].insert(idx, score)
-                cluster_data[t].insert(idx, clusters_data)
-                pg._local_steps[t].insert(
-                    idx,
-                    {**{'param' : {"k" : n_clusters}},
-                        **step_info
-                    }
-                )
-                pg._nb_steps += 1
-                pg._nb_local_steps[t] += 1
-
-                if pg._verbose:
-                    print(" ========= ", t, " ========= ")
-                    msg = "n_clusters: " + str(n_clusters)
-                    for (key,item) in step_info.items():
-                        msg += '  ||  ' + key + ":  " + str(item)
-                    print(msg)
-
-    return cluster_data
+    return clusterings_t_k
