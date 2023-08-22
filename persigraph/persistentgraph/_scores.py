@@ -36,19 +36,13 @@ def _compute_score_bounds(
     :type pg: [type]
     """
     for t in range(pg.T):
-        pg._worst_scores[t] = worst_score(
-            pg._zero_scores[t],
-            pg._local_steps[t][0]['score'],
-            pg._score_maximize
-        )
-        if pg._worst_scores[t] != pg._zero_scores[t]:
-            # k that will automatically get a life span of 0
-            pg._worst_k[t] = pg._local_steps[t][0]["k"]
-        pg._best_scores[t] = best_score(
-            pg._zero_scores[t],
-            pg._local_steps[t][-1]['score'],
-            pg._score_maximize
-        )
+        # _local_step n'est pas trié
+        pg._worst_scores[t] = pg._score.worst_score([
+            pg._local_steps[t][s]['score'] for s in len(pg._local_steps[t])
+        ])
+        pg._best_scores[t] = pg._score._best_score([
+            pg._local_steps[t][s]['score'] for s in len(pg._local_steps[t])
+        ])
     if pg._global_bounds:
         worst_score_global = pg._worst_scores[0]
         best_score_global = pg._best_scores[0]
@@ -102,5 +96,9 @@ def _compute_ratio_scores(
             for step in range(pg._nb_local_steps[t]):
                 score = pg._local_steps[t][step]['score']
                 ratio = np.abs(score - score_bounds[0]) / norm_bounds
+                # If the score is absolute, we need a second round of
+                # normalisation
+                if True:
+                    pass
                 pg._local_steps[t][step]['ratio_score'] = ratio
 
