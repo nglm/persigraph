@@ -56,14 +56,21 @@ def _set_members(pg, members):
 
 def _set_sliding_window(pg, w:int):
     """
-    Set pg._sliding_window and pg._w
+    Set pg._sliding_window, pg._w and pg._T_w
+
+    3 cases:
+    - `w=None`: use the entire time series at once and vertices represent time series
+    - `w=1`: equivalent to a time step by time step clustering
+    - `w>1`: using a sliding window
     """
     if w is None:
         pg._sliding_window = None
         pg._w = None
+        pg._T_w = 1
     else:
         pg._w = min( max(int(w), 1), pg.T)
         pg._sliding_window = sliding_window(pg.T, pg._w)
+        pg._T_w = pg._T
 
 def _set_zero(pg, zero_type: str = "bounds"):
     """
