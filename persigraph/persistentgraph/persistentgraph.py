@@ -1,12 +1,10 @@
 import numpy as np
-from bisect import bisect, bisect_right, insort
 import time
 import pickle
 import json
 from copy import deepcopy
 
 from typing import List, Sequence, Tuple, Union, Any, Dict
-from pycvi.cluster import compute_cluster_params
 
 from . import Vertex
 from . import Edge
@@ -19,9 +17,7 @@ from ._clustering_model import generate_all_clusters, merge_clusters
 from ._scores import _compute_ratio_scores, _compute_score_bounds
 from ._analysis import k_info, get_relevant_k
 
-from ..utils.sorted_lists import (
-    insert_no_duplicate, concat_no_duplicate, has_element, are_equal
-)
+from ..utils.sorted_lists import ( has_element )
 from ..utils.d3 import jsonify
 
 
@@ -884,28 +880,12 @@ class PersistentGraph():
     @property
     def local_steps(self) -> List[List[dict]]:
         """
-        Sorted nested list (time and steps) of information on local steps.
-
-        Steps are sorted in increasing order of ratio_scores.
+        Nested list (time and steps) of information on local steps.
 
         Available keys of self._local_steps[t][s]:
         - `k`
         - `score`
         - `ratio_score`
-
-        Let's denote $k_{t,s}$ the assumption on the number of clusters at time
-        step `t` and local step `s`; and $r_{t,s}$ its corresponding score
-        ratio.
-
-        - The "improvement" of assuming $k_{t,s}$ is defined as
-        $r_{t,s} - r_{t,s-1}$
-        - The "cost" of assuming $k_{t,s}$ is defined as
-        $r_{t,s+1} - r_{t,s}$
-        - By default, the "life span" of the assumption $k_{t,s}$ is defined as
-        its improvement. Note that according to this definition of life span,
-        `ratio_scores` refers to the death ratio of the step. See
-        `k_info` for more information on how `ratio_scores` is used
-        to compute life spans of steps.
 
         :rtype: List[List[dict]]
         """

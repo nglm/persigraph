@@ -5,7 +5,7 @@ from ..utils.check_variable import (
     check_O1_range, check_int_positive, check_all_int_positive,
     check_is_leq,
 )
-from ..utils.sorted_lists import has_element, get_common_elements, bisect_search
+from ..utils.sorted_lists import has_element, get_common_elements,
 from ..utils.lists import union_intervals, intersection_intervals
 
 class Component():

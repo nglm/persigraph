@@ -2,19 +2,17 @@
 This module is supposed to manage any type of clustering model and to
 call _pg_* for more model-dependant code.
 """
-import numpy as np
-from bisect import bisect_left, insort
+from bisect import insort
 from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
 from sklearn.mixture import GaussianMixture
 from tslearn.clustering import TimeSeriesKMeans
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
-from pycvi.compute_scores import compute_score, compute_all_scores
+from pycvi.compute_scores import compute_all_scores
 from pycvi.cluster import (
-    compute_cluster_params, prepare_data, sliding_window, get_clusters,
-    generate_all_clusterings,
+    compute_cluster_params, generate_all_clusterings,
 )
-from ..utils.sorted_lists import reverse_bisect_left, are_equal
+from ..utils.sorted_lists import are_equal
 
 CLUSTERING_METHODS = {
     "names": [
