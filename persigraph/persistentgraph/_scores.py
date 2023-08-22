@@ -35,33 +35,24 @@ def _compute_score_bounds(
     :param pg: [description]
     :type pg: [type]
     """
-    for t in range(pg.T):
-        # _local_step n'est pas trié
-        pg._worst_scores[t] = pg._score.worst_score([
+
+    pg._worst_scores = [
+        pg._score.worst_score([
             pg._local_steps[t][s]['score'] for s in len(pg._local_steps[t])
-        ])
-        pg._best_scores[t] = pg._score._best_score([
+        ]) for t in pg._T_w
+    ]
+    pg._best_scores = [
+        pg._score.best_score([
             pg._local_steps[t][s]['score'] for s in len(pg._local_steps[t])
-        ])
+        ]) for t in pg._T_w
+    ]
     if pg._global_bounds:
-        worst_score_global = pg._worst_scores[0]
-        best_score_global = pg._best_scores[0]
-        for worst_t, best_t in zip(
-            pg._worst_scores[1:],
-            pg._best_scores[1:]
-        ):
-            best_score_global = best_score(
-                best_score_global,
-                best_t,
-                pg._score_maximize
-            )
-            worst_score_global = worst_score(
-                worst_score_global,
-                worst_t,
-                pg._score_maximize
-            )
-        pg._worst_scores[:] = worst_score_global
-        pg._best_scores[:] = best_score_global
+        pg._worst_scores = pg._score.worst_score([
+            s for s in pg._worst_scores
+        ])
+        pg._best_scores = pg._score.best_score([
+            s for s in pg._best_scores
+        ])
 
     pg._norm_bounds = np.abs(pg._worst_scores - pg._best_scores)
     pg._are_bounds_known = True

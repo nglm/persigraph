@@ -145,10 +145,6 @@ class PersistentGraph():
             # --------- About the graph:   graph's attributes --------------
             # --------------------------------------------------------------
 
-            # Total number of iteration of the algorithm
-            self._nb_steps = 0
-            # Local number of iteration of the algorithm
-            self._nb_local_steps = np.zeros(self.T, dtype = int)
             # Total number of vertices/edges created at each time step
             self._nb_vertices = np.zeros((self.T), dtype=int)
             self._nb_edges = np.zeros((self.T-1), dtype=int)
@@ -811,22 +807,6 @@ class PersistentGraph():
         :rtype: Dict[str, List]
         """
         return self._relevant_k
-
-    @property
-    def nb_steps(self) -> int :
-        """Total number of iteration on the graph
-
-        :rtype: int
-        """
-        return self._nb_steps
-
-    @property
-    def nb_local_steps(self) -> np.ndarray :
-        """Total number of local iteration on the graph
-
-        :rtype: np.ndarray
-        """
-        return self._nb_local_steps
 
     @property
     def nb_vertices(self) -> np.ndarray:
