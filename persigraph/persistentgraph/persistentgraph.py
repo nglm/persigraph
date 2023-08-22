@@ -193,7 +193,6 @@ class PersistentGraph():
                 self._best_scores = np.inf*np.ones(self.T)
                 self._worst_scores = -np.inf*np.ones(self.T)
             self._zero_scores = np.nan*np.ones(self.T)
-            self._worst_k = np.zeros(self.T)
 
             self._are_bounds_known = False
             self._norm_bounds = None
@@ -494,7 +493,7 @@ class PersistentGraph():
         t_start = time.time()
         if self._verbose:
             print("Clustering data...")
-        clusterings_t_k, scores_t_k = generate_all_clusters(self)
+        clusterings_t_k = generate_all_clusters(self)
         merge_clusters(clusterings_t_k)
         t_end = time.time()
         if self._verbose:
