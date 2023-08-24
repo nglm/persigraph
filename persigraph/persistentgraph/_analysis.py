@@ -113,7 +113,9 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
 
             # to keep track of the last step and make sure smaller k are favored
             k_prev = 0
+            k_curr = 0
             r_prev = 0
+            r_curr = 0
             # sort steps
             sorted_steps_t = sorted(
                 g._local_steps[t], key=lambda step: step["ratio_score"]
@@ -121,6 +123,10 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
 
             for step in sorted_steps_t:
                 if step['k'] != 0:
+                    # Prepare next iteration
+                    r_prev = r_curr
+                    k_prev = k_curr
+
                     # k_curr are not necessarily in increasing order
                     k_curr = step['k']
                     r_curr = step['ratio_score']
@@ -141,17 +147,12 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
                         k_infos[k_curr]['life_span'][t] = r_curr - r_prev
                         k_infos[k_curr]['score_ratios'][t] = [r_prev, r_curr]
 
-                    # Prepare next iteration
-                    r_prev = r_curr
-                    k_prev = k_curr
-                else:
-                    r_prev = step['ratio_score']
-
             # ------- Last step ---------
             # If we were in a series of equal ratios, find the "good" k_curr
-            k_curr = max(min(k_curr, k_prev), 1)
-            k_infos[k_curr]['life_span'][t] = 1 - r_prev
-            k_infos[k_curr]['score_ratios'][t] = [r_prev, 1]
+            if r_curr == r_prev:
+                k_curr = max(min(k_curr, k_prev), 1)
+                k_infos[k_curr]['life_span'][t] = 1 - r_prev
+                k_infos[k_curr]['score_ratios'][t] = [r_prev, 1]
 
     # ------------------------------------------------------------------
     # -------------------- Absolute case -------------------------------
