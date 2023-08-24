@@ -24,7 +24,8 @@ def jsonify(obj):
     # Find all class property names
     property_names = [
         p for p in dir(obj.__class__)
-        if isinstance(getattr(obj.__class__, p), property)
+        # None is here in case "p" is not even an attribute
+        if isinstance(getattr(obj.__class__, p, None), property)
     ]
     class_dict = {}
     for p_name in property_names:

@@ -1,9 +1,10 @@
 import numpy as np
 from numpy.testing import assert_array_equal
+from pycvi.datasets import mini
 
 from ..persistentgraph import PersistentGraph
 from ..plots import graph
-from ...datasets import mini
+
 
 def test_k_info():
     """

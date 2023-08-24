@@ -38,12 +38,14 @@ def _compute_score_bounds(
 
     pg._worst_scores = [
         pg._score.worst_score([
-            pg._local_steps[t][s]['score'] for s in len(pg._local_steps[t])
+            pg._local_steps[t][s]['score']
+            for s in range(len(pg._local_steps[t]))
         ]) for t in range(pg._T_w)
     ]
     pg._best_scores = [
         pg._score.best_score([
-            pg._local_steps[t][s]['score'] for s in len(pg._local_steps[t])
+            pg._local_steps[t][s]['score']
+            for s in range(len(pg._local_steps[t]))
         ]) for t in range(pg._T_w)
     ]
     if pg._global_bounds:
@@ -98,5 +100,8 @@ def _compute_ratio_scores(
                 second_norm = 1
 
             for step in range(len(pg._local_steps[t])):
-                pg._local_steps[t][step]['ratio_score'] = ratios_t / second_norm
+
+                pg._local_steps[t][step]['ratio_score'] = (
+                    ratios_t[step]/second_norm
+                )
 

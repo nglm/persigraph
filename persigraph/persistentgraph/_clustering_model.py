@@ -122,23 +122,28 @@ def merge_clusters(
     # extracted time window t_w.
 
     # initialise a list of k for each cluster of each k of each t_w
+    # listk_t_k[t_w][k][i] contains a list of k values for the cluster i
+    # in the the clustering k at t_w
     T_w = len(clusterings_t_k)
     listk_t_k = [
-        {k: [[k] for _ in range(k)] for k in clusterings_t_k[t_w].key()}
-        for t_w in range(T_w)]
+        {
+            k: [[k] for _ in range(k)] if k>0 else [[0]]
+            for k in clusterings_t_k[t_w].keys()
+        } for t_w in range(T_w)]
 
     # Delete redundant clusters and merge their k
     for t_w in range(T_w):
 
-        list_k = list(clusterings_t_k[t_w].key())
+        # k values of the clusterings at t_w
+        list_k = list(clusterings_t_k[t_w].keys())
         # Iterate over the values of k in two nested loops
         # while always starting one element ahead in the second loop
         for i, k1 in enumerate(list_k):
             for j, k2 in enumerate(list_k[i+1:]):
                 # Merge clusters that are the same between 2 clusterings
                 _merge_clusters_aux(
-                    clusterings_t_k[t_w][i], clusterings_t_k[t_w][j],
-                    listk_t_k[t_w][i], listk_t_k[t_w][j],
+                    clusterings_t_k[t_w][k1], clusterings_t_k[t_w][k2],
+                    listk_t_k[t_w][k1], listk_t_k[t_w][k2],
                 )
     return clusterings_t_k, listk_t_k
 
@@ -192,14 +197,13 @@ def generate_all_clusters(
     # `scores_t_n[t_w][k]` is the score for the clustering assuming k
     # clusters for the extracted time window t_w
     scores_t_n = compute_all_scores(
-        pg._score_type,
+        pg._score,
         pg._members,
         clusterings_t_k,
         transformer = pg._transformer,
         scaler = pg._scaler,
         DTW = pg._DTW,
         time_window = pg._w,
-        dist_kwargs = {},
         score_kwargs = {},
     )
 
@@ -207,11 +211,10 @@ def generate_all_clusters(
     if 0 in scores_t_n[0]:
         pg._zero_scores = [scores_t_n[t][0] for t in range(pg._T_w)]
 
-
     pg._local_steps = [
         [
             {
-                "k": [n_clusters],
+                "k": n_clusters,
                 "score": score,
             }
             for (n_clusters, score) in scores_t_n[t_w].items()

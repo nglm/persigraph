@@ -69,8 +69,8 @@ def mini(
     # Bivariate data
     if multivariate:
         data = np.ones((N, T, 2))
-        data[:,0,:] = members
-        data[:,1,:] = members_bis
+        data[:, :, 0] = members
+        data[:, :, 1] = members_bis
         data = members_biv
     # Univariate data
     else:

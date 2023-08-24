@@ -8,7 +8,7 @@ from .._scores import SCORES, SCORES_TO_MINIMIZE
 from .._clustering_model import CLUSTERING_METHODS
 from ..persistentgraph import PersistentGraph
 from ..plots import graph, overview
-from ...datasets import mini
+from pycvi.datasets import mini
 
 def assert_sorted(l, msg=""):
     assert np.all([l[i] <= l[i+1] for i in range(len(l) - 1)]), msg
@@ -46,7 +46,7 @@ def test_init():
 
 def test_construct_graph():
     members, time = mini()
-    g = PersistentGraph(members, time)
+    g = PersistentGraph(members, time, w=1)
     g.construct_graph()
     overview(g)
 
@@ -63,6 +63,9 @@ def test_construct_graph():
     ]
     for out, out_exp in zip(output_np, output_np_exp):
         assert_array_equal(out, out_exp)
+
+    fname = "test_construct_graph"
+    g.save('tmp/'+fname, type="json")
 
 def test_time_window():
     members, time = mini(multivariate=True)

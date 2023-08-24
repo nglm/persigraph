@@ -568,7 +568,7 @@ tslearn = "^0.6.1"
 type = "git"
 url = "https://github.com/nglm/pycvi.git"
 reference = "HEAD"
-resolved_reference = "224c2efb2b05ec252ca66b1d11d6c7da44d095e3"
+resolved_reference = "5f5d8d40b266c0858e39640f753cc92b9312b5d2"
 
 [[package]]
 name = "pyparsing"

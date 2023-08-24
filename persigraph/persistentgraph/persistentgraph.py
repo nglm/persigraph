@@ -3,6 +3,7 @@ import time
 import pickle
 import json
 from copy import deepcopy
+from pycvi.cluster import compute_cluster_params, prepare_data
 
 from typing import List, Sequence, Tuple, Union, Any, Dict
 
@@ -137,7 +138,7 @@ class PersistentGraph():
             _set_score(self, score)
 
             if name is None:
-                self._name = self._model_type + "_" + self._score
+                self._name = self._model_type + "_" + str(self._score)
             else:
                 self._name = name
 
@@ -192,15 +193,16 @@ class PersistentGraph():
 
     def _add_vertex(
         self,
-        k: int,
+        list_k: List[int],
+        info: Dict[str, Any],
         t: int,
         members: List[int],
     ):
         """
         Add a vertex to the current graph
 
-        :param k: Number(s) of clusters in which this vertex exist
-        :type k: int
+        :param list_k: Number(s) of clusters in which this vertex exist
+        :type list_k: List[int]
         :param t: time step at which the vertex should be added
         :type t: int
         :param members: Ordered list of members indices represented by the
@@ -210,12 +212,14 @@ class PersistentGraph():
         :rtype: Vertex
         """
 
-        info = {}
-
+        info_complete = {
+            **{"k": list_k},
+            **info
+        }
 
         # Compute the ratio intervals
         score_ratios = []
-        for k in info["k"]:
+        for k in list_k:
             score_ratios = Component.ratio_union(
                 score_ratios, [self._k_info[k]["score_ratios"][t]]
             )
@@ -223,7 +227,7 @@ class PersistentGraph():
         # Create the vertex
         num = self._nb_vertices[t]
         v = Vertex(
-            info = info,
+            info = info_complete,
             t = t,
             num = num,
             members = members,
@@ -234,7 +238,7 @@ class PersistentGraph():
         # Update the graph with the new vertex
         self._nb_vertices[t] += 1
         self._vertices[t].append(v)
-        for k in info["k"]:
+        for k in info_complete["k"]:
             self._members_v_distrib[t][k][members] = num
 
         return v
@@ -405,7 +409,15 @@ class PersistentGraph():
     def _construct_vertices(
         self,
         clusterings_t_k: List[Dict[int, List[List[int]]]],
+        listk_t_k: List[Dict[int, List[List[int]]]],
     ) -> None:
+        # list of T (if sliding window) or 1 array(s) of shape:
+        # (N, T|w_t, d) if DTW
+        # (N, (T|w_t)*d) if not DTW
+        data_params = prepare_data(
+            self._members, DTW=self._DTW, window=self._sliding_window,
+            transformer=None, scaler=None)
+
         # `clusterings_t_k[t_w][k][i]` is a list of members indices
         # contained in cluster i for the clustering assuming k clusters
         # for the extracted time window t_w.
@@ -414,10 +426,14 @@ class PersistentGraph():
                     # create all v
                     new_vertices = [
                         self._add_vertex(
-                                k=k,
+                                list_k=listk_t_k[t_w][k][i_c],
+                                info=compute_cluster_params(
+                                    data_params[t_w][cluster],
+                                    self._sliding_window["midpoint_w"][t_w]
+                                ),
                                 t=t_w,
                                 members=cluster,
-                            ) for cluster in clustering_t
+                            ) for i_c, cluster in enumerate(clustering_t)
                         ]
 
     def _construct_edges(self):
@@ -485,7 +501,6 @@ class PersistentGraph():
         if self._verbose:
             print("Clustering data...")
         clusterings_t_k = generate_all_clusters(self)
-        merge_clusters(clusterings_t_k)
         t_end = time.time()
         if self._verbose:
             print('Data clustered in %.2f s' %(t_end - t_start))
@@ -505,10 +520,18 @@ class PersistentGraph():
         self._relevant_k = dict_relevant_k
 
         # ================== Construct vertices ========================
+        # Remove the case k=0 from the clusters and list_k now that
+        # k_info, and ratios and score bounds have been computed
+        for clusterings_t in clusterings_t_k:
+            clusterings_t.pop(0)
+
+        # Merge clusters that are identical
+        clusterings_t_k, listk_t_k = merge_clusters(clusterings_t_k)
+
         t_start = time.time()
         if self._verbose:
             print("Construct vertices...")
-        self._construct_vertices(clusterings_t_k)
+        self._construct_vertices(clusterings_t_k, listk_t_k)
         t_end = time.time()
         if self._verbose:
             print('Vertices constructed in %.2f s' %(t_end - t_start))

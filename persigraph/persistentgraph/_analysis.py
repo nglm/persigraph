@@ -97,51 +97,65 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
 
     # By default all life span are 0 (even if their corresponding step was
     # ignored). They might remain 0 in case of equal ratios
-    k_info = { k :
+    k_infos = { k :
         {
             "life_span" : [0. for _ in range(g.T)],
             "score_ratios" : [[0., 0.] for _ in range(g.T)],
-        } for k in range(1, k_max+1) }
+        } for k in range(1, k_max+1)
+    }
 
-    # Extract ratio for each k and each t
-    for t in range(g.T):
+    # ------------------------------------------------------------------
+    # ------------------ Monotonous case -------------------------------
+    # ------------------------------------------------------------------
+    if g._score.score_type == "monotonous":
+        # Extract ratio for each k and each t
+        for t in range(g.T):
 
-        # to keep track of the last step and make sure smaller k are favored
-        k_prev = 0
-        r_prev = 0
+            # to keep track of the last step and make sure smaller k are favored
+            k_prev = 0
+            r_prev = 0
+            # sort steps
+            sorted_steps_t = sorted(
+                g._local_steps[t], key=lambda step: step["ratio_score"]
+            )
 
-        for step in g._local_steps[t]:
-            # k_curr are not necessarily in increasing order
-            k_curr = step['k']
-            r_curr = step['ratio_score']
+            for step in sorted_steps_t:
+                if step['k'] != 0:
+                    # k_curr are not necessarily in increasing order
+                    k_curr = step['k']
+                    r_curr = step['ratio_score']
 
-            # ----- Initialisation -----------------
-            # By default all k have r_birth = r_death and life_span = 0
-            k_info[k_curr]['score_ratios'][t] = [r_curr, r_curr]
+                    # ----- Initialisation -----------------
+                    # By default all k have r_birth = r_death and life_span = 0
+                    k_infos[k_curr]['score_ratios'][t] = [r_curr, r_curr]
 
-            # If ratios are equal, don't update, keep everything as
-            # initialized
-            if r_curr == r_prev:
-                if k_prev != 0:
-                    argmin = np.argmin([k_curr, k_prev])
-                    k_curr = [k_curr, k_prev][argmin]
+                    # If ratios are equal, don't update, keep everything as
+                    # initialized
+                    if r_curr == r_prev:
+                        if k_prev != 0:
+                            argmin = np.argmin([k_curr, k_prev])
+                            k_curr = [k_curr, k_prev][argmin]
 
-            # Else update info of k_curr, with r_prev != r_curr
-            else:
-                k_info[k_curr]['life_span'][t] = r_curr - r_prev
-                k_info[k_curr]['score_ratios'][t] = [r_prev, r_curr]
+                    # Else update info of k_curr, with r_prev != r_curr
+                    else:
+                        k_infos[k_curr]['life_span'][t] = r_curr - r_prev
+                        k_infos[k_curr]['score_ratios'][t] = [r_prev, r_curr]
 
-            # Prepare next iteration
-            r_prev = r_curr
-            k_prev = k_curr
+                    # Prepare next iteration
+                    r_prev = r_curr
+                    k_prev = k_curr
 
-        # ------- Last step ---------
-        # If we were in a series of equal ratios, find the "good" k_curr
-        k_curr = max(min(k_curr, k_prev), 1)
-        k_info[k_curr]['life_span'][t] = 1 - r_prev
-        k_info[k_curr]['score_ratios'][t] = [r_prev, 1]
+            # ------- Last step ---------
+            # If we were in a series of equal ratios, find the "good" k_curr
+            k_curr = max(min(k_curr, k_prev), 1)
+            k_infos[k_curr]['life_span'][t] = 1 - r_prev
+            k_infos[k_curr]['score_ratios'][t] = [r_prev, 1]
 
-    return k_info
+    # ------------------------------------------------------------------
+    # -------------------- Absolute case -------------------------------
+    # ------------------------------------------------------------------
+
+    return k_infos
 
 def get_relevant_k(
     g,
