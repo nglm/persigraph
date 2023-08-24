@@ -144,6 +144,8 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
                     # Prepare next iteration
                     r_prev = r_curr
                     k_prev = k_curr
+                else:
+                    r_prev = step['ratio_score']
 
             # ------- Last step ---------
             # If we were in a series of equal ratios, find the "good" k_curr

@@ -8,7 +8,7 @@ from ..plots import graph
 
 def test_k_info():
     """
-    Test that the sum of life spans is 1(-worst_ratio) for each t
+    Test that the sum of life spans is 1 for each t
     """
     members, time = mini()
     g = PersistentGraph(members, time)
@@ -17,7 +17,7 @@ def test_k_info():
 
     lf_t = np.array([
         sum([
-            g.k_info[k]["life_span"][t] for k in range(1, g.k_max)
+            g.k_info[k]["life_span"][t] for k in range(1, g.k_max+1)
         ]) for t in range(g.T)
     ])
 

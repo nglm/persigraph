@@ -186,7 +186,6 @@ class PersistentGraph():
             # List of length T_w of scores
             self._best_scores = None
             self._worst_scores = None
-            # self._zero_scores = None
 
             self._verbose = False
             self._quiet = False
