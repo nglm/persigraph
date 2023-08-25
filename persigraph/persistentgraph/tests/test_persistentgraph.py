@@ -185,5 +185,8 @@ def test_scores():
         print(s)
         g = PersistentGraph(members, time, score=s())
         g.construct_graph()
-        overview(g)
-    pass
+        fig, ax = overview(g)
+        fname = "test_scores_" + str(s)
+        fig.savefig('tmp/'+fname)
+        g.save('tmp/'+fname, type="json")
+

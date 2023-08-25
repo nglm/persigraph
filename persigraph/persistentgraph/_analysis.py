@@ -115,34 +115,40 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
             k_curr = 0
             r_prev = 0
             r_curr = 0
-            # sort steps
-            sorted_steps_t = sorted(
-                g._local_steps[t], key=lambda step: step["ratio_score"]
-            )
 
-            for step in sorted_steps_t:
+            for step in g._local_steps[t]:
                 if step['k'] != 0:
-                    # Prepare next iteration
-                    r_prev = r_curr
-                    k_prev = k_curr
-
-                    # k_curr are not necessarily in increasing order
-                    k_curr = step['k']
-                    r_curr = step['ratio_score']
-
                     # ----- Initialisation -----------------
                     # By default all k have r_birth = r_death and life_span = 0
-                    k_infos[k_curr]['score_ratios'][t] = [r_curr, r_curr]
+                    k_infos[step['k']]['score_ratios'][t] = [step['ratio_score'], step['ratio_score']]
 
                     # If ratios are equal, don't update, keep everything as
-                    # initialized
-                    if r_curr == r_prev:
+                    # initialized, but choose the "good" k_curr for the
+                    # next iteration of k_prev
+                    if step['ratio_score'] == r_prev:
                         if k_prev != 0:
-                            argmin = np.argmin([k_curr, k_prev])
-                            k_curr = [k_curr, k_prev][argmin]
-
-                    # Else update info of k_curr, with r_prev != r_curr
+                            k_curr = np.amin([step['k'], k_prev])
+                    # Else if the ratio is not improving while it should
+                    # or is improving when it shouldn't
+                    elif not (
+                        (step['ratio_score'] > r_prev) == (g._score.improve)
+                    ):
+                        # Ignore the step and go directly to the next
+                        # iteration
+                        continue
+                    # Otherwise normal case:
+                    # Update info of k_curr, with r_prev != r_curr
+                    # and r_curr relevant
                     else:
+                        # Previous step is the former current step
+                        r_prev = r_curr
+                        k_prev = k_curr
+
+                        # current step is the new step
+                        k_curr = step['k']
+                        r_curr = step['ratio_score']
+
+                        # Update
                         k_infos[k_curr]['life_span'][t] = r_curr - r_prev
                         k_infos[k_curr]['score_ratios'][t] = [r_prev, r_curr]
 
