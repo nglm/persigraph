@@ -41,7 +41,7 @@ def _compute_score_bounds(
         pg._score.best_score([
             pg._local_steps[t][s]['score']
             for s in range(len(pg._local_steps[t]))
-        ]) for t in range(pg._T_w)
+        ], ignore_None=True) for t in range(pg._T_w)
     ]
     if pg._global_bounds:
         pg._worst_scores = pg._score.worst_score([
@@ -49,7 +49,7 @@ def _compute_score_bounds(
         ])
         pg._best_scores = pg._score.best_score([
             s for s in pg._best_scores
-        ])
+        ], ignore_None=True)
 
 def _compute_ratio_scores(
     pg,

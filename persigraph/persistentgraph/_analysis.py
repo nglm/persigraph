@@ -163,7 +163,15 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
     # -------------------- Absolute case -------------------------------
     # ------------------------------------------------------------------
     else:
-        pass
+        for t in range(g.T):
+            for step in g._local_steps[t]:
+                if step['k'] != 0:
+                    # Update all cases in the same way
+                    k_curr = step['k']
+                    r_curr = step['ratio_score']
+
+                    k_infos[k_curr]['life_span'][t] = r_curr
+                    k_infos[k_curr]['score_ratios'][t] = [r_curr, 0]
     return k_infos
 
 def get_relevant_k(
