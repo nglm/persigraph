@@ -64,7 +64,7 @@ def _compute_ratio_scores(
     :param pg: [description]
     :type pg: [type]
     """
-    for t in range(pg.T):
+    for t in range(pg._T_w):
         score_bounds = (pg._worst_scores[t], pg._best_scores[t])
         norm_bounds = np.abs(score_bounds[0] - score_bounds[1])
 

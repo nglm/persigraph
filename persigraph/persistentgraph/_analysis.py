@@ -98,8 +98,8 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
     # ignored). They might remain 0 in case of equal ratios
     k_infos = { k :
         {
-            "life_span" : [0. for _ in range(g.T)],
-            "score_ratios" : [[0., 0.] for _ in range(g.T)],
+            "life_span" : [0. for _ in range(g._T_w)],
+            "score_ratios" : [[0., 0.] for _ in range(g._T_w)],
         } for k in range(1, g._k_max+1)
     }
 
@@ -108,7 +108,7 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
     # ------------------------------------------------------------------
     if g._score.score_type == "monotonous":
         # Extract ratio for each k and each t
-        for t in range(g.T):
+        for t in range(g._T_w):
 
             # to keep track of the last step and make sure smaller k are favored
             k_prev = 0
@@ -163,7 +163,7 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
     # -------------------- Absolute case -------------------------------
     # ------------------------------------------------------------------
     else:
-        for t in range(g.T):
+        for t in range(g._T_w):
             for step in g._local_steps[t]:
                 if step['k'] != 0:
                     # Update all cases in the same way
@@ -188,8 +188,8 @@ def get_relevant_k(
     """
 
     # list of t (k, k_info)
-    relevant_k = [[1, 0.] for _ in range(g.T)]
-    for t in range(g.T):
+    relevant_k = [[1, 0.] for _ in range(g._T_w)]
+    for t in range(g._T_w):
         for k, k_info_k in g.k_info.items():
             # Strict comparison to prioritize smaller k values
             if k_info_k["life_span"][t] > relevant_k[t][1]:

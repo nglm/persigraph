@@ -18,7 +18,7 @@ def test_k_info():
     lf_t = np.array([
         sum([
             g.k_info[k]["life_span"][t] for k in g.k_range if k>0
-        ]) for t in range(g.T)
+        ]) for t in range(g._T_w)
     ])
 
     msg = "Sum of life_span != 1" + str(lf_t)

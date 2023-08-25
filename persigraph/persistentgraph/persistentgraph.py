@@ -146,11 +146,11 @@ class PersistentGraph():
             self._nb_edges = np.zeros((self.T-1), dtype=int)
             # Nested list (time, nb_vertices/edges) of vertices/edges
             # Here are stored Vertices/Edges themselves, not only their num
-            self._vertices = [[] for _ in range(self.T)]
-            self._edges = [[] for _ in range(self.T-1)]
+            self._vertices = [[] for _ in range(self._T_w)]
+            self._edges = [[] for _ in range(self._T_w-1)]
             # Nested list (time, nb_local_steps) of dict storing info about
             # The successive steps
-            self._local_steps = [[] for _ in range(self.T)]
+            self._local_steps = [[] for _ in range(self._T_w)]
             self._k_info = None
             self._life_span_max = None
             self._life_span_min = None
@@ -180,7 +180,7 @@ class PersistentGraph():
                     # case k=0
                     for k in self._k_range if k>=1
                 }
-                for _ in range(self.T)
+                for _ in range(self._T_w)
             ]
 
             # List of length T_w of scores
@@ -330,7 +330,7 @@ class PersistentGraph():
         v_alive = []
         if t is None:
             return_nested_list = True
-            t_range = range(self.T)
+            t_range = range(self._T_w)
         else:
             if isinstance(t, int):
                 return_nested_list = False
@@ -379,7 +379,7 @@ class PersistentGraph():
         e_alive = []
         if t is None:
             return_nested_list = True
-            t_range = range(self.T-1)
+            t_range = range(self._T_w-1)
         else:
             if isinstance(t, int):
                 return_nested_list = False
@@ -436,7 +436,7 @@ class PersistentGraph():
                         ]
 
     def _construct_edges(self):
-        for t in range(self.T-1):
+        for t in range(self._T_w-1):
             v_starts = self._vertices[t]
             v_ends = self._vertices[t+1]
 
@@ -575,7 +575,7 @@ class PersistentGraph():
             [
                 deepcopy(v) for v in self._vertices[t]
                 if has_element(v.info['k'], selected_k[t])
-            ] for t in range(self.T)
+            ] for t in range(self._T_w)
         ]
 
         # ------------- Find edges between 2 relevant k ----------------
@@ -591,7 +591,7 @@ class PersistentGraph():
                             self._vertices[e.time_step + 1][e.v_end].info['k'],
                             selected_k[t+1]
                         ))
-                ] for t in range(self.T-1)
+                ] for t in range(self._T_w-1)
             ]
 
         # Some edges might be non-existant (edge k1 -> k2 does not exist)
@@ -599,7 +599,7 @@ class PersistentGraph():
         # the necessary information so that they can be visualized
         else:
             relevant_edges = []
-            for t in range(self.T-1):
+            for t in range(self._T_w-1):
                 edges = []
 
                 # keep track of edge num for each t

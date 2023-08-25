@@ -2,6 +2,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
 from sklearn.mixture import GaussianMixture
+from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
 from .._scores import SCORES
@@ -179,13 +180,22 @@ def test_gmm():
         overview(g)
 
 def test_scores():
-    members, time = mini(multivariate=True)
+
     scores = SCORES
     for s in scores:
         print(s)
-        g = PersistentGraph(members, time, score=s())
-        g.construct_graph()
-        fig, ax = overview(g)
+        for DTW in [True, False]:
+            for multivariate in [True, False]:
+                for window in [None, 1, 3]:
+                    members, time = mini(multivariate=multivariate)
+                    for scaler in [None, StandardScaler()]:
+                        g = PersistentGraph(
+                            members, time,
+                            DTW=DTW, scaler=scaler, w=window,
+                            score=s(),
+                            )
+                    g.construct_graph()
+                    fig, ax = overview(g)
         fname = "test_scores_" + str(s)
         fig.savefig('tmp/'+fname+".png")
         g.save('tmp/'+fname, type="json")
