@@ -9,11 +9,6 @@ import numpy as np
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
 SCORES = pycvi.SCORES
-SUBSCORES = pycvi.compute_scores.SUBSCORES
-MAIN_SCORES_TO_MINIMIZE = pycvi.compute_scores.MAIN_SCORES_TO_MINIMIZE
-MAIN_SCORES_TO_MAXIMIZE = pycvi.compute_scores.MAIN_SCORES_TO_MAXIMIZE
-SCORES_TO_MINIMIZE = [p+s for s in MAIN_SCORES_TO_MINIMIZE for p in SUBSCORES]
-SCORES_TO_MAXIMIZE = [p+s for s in MAIN_SCORES_TO_MAXIMIZE for p in SUBSCORES]
 
 def _compute_score_bounds(
     pg,

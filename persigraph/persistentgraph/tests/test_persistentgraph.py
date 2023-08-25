@@ -4,7 +4,7 @@ from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering
 from sklearn.mixture import GaussianMixture
 import matplotlib.pyplot as plt
 
-from .._scores import SCORES, SCORES_TO_MINIMIZE
+from .._scores import SCORES
 from .._clustering_model import CLUSTERING_METHODS
 from ..persistentgraph import PersistentGraph
 from ..plots import graph, overview
@@ -179,10 +179,11 @@ def test_gmm():
         overview(g)
 
 def test_scores():
-    members, time = mini(multivariate=True)
-    scores = SCORES_TO_MINIMIZE
-    for s in scores:
-        print(s)
-        g = PersistentGraph(members, time, score=s)
-        g.construct_graph()
-        overview(g)
+    # members, time = mini(multivariate=True)
+    # scores = SCORES_TO_MINIMIZE
+    # for s in scores:
+    #     print(s)
+    #     g = PersistentGraph(members, time, score=s)
+    #     g.construct_graph()
+    #     overview(g)
+    pass

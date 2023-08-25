@@ -3,9 +3,8 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 from pycvi.cluster import generate_uniform, sliding_window
-from pycvi.scores import Inertia, MaxDiameter, Score
+from pycvi.scores import Inertia, Diameter, Score
 
-from ._scores import SCORES_TO_MAXIMIZE, SCORES_TO_MINIMIZE
 from ._clustering_model import CLUSTERING_METHODS
 
 def _check_members_shape(members: np.ndarray) -> np.ndarray:
@@ -177,7 +176,7 @@ def _set_score(pg, score):
         raise ValueError(
             "Choose an available score, see pycvi.scores.Score"
         )
-    if score in [MaxDiameter]:
+    if score in [Diameter]:
         pg._global_bounds = True
     else:
         pg._global_bounds = False
