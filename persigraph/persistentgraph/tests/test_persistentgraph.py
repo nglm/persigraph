@@ -187,6 +187,6 @@ def test_scores():
         g.construct_graph()
         fig, ax = overview(g)
         fname = "test_scores_" + str(s)
-        fig.savefig('tmp/'+fname)
+        fig.savefig('tmp/'+fname+".png")
         g.save('tmp/'+fname, type="json")
 
