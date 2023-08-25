@@ -522,7 +522,7 @@ class PersistentGraph():
         # Remove the case k=0 from the clusters and list_k now that
         # k_info, and ratios and score bounds have been computed
         for clusterings_t in clusterings_t_k:
-            clusterings_t.pop(0)
+            clusterings_t.pop(0, None)
 
         # Merge clusters that are identical
         clusterings_t_k, listk_t_k = merge_clusters(clusterings_t_k)

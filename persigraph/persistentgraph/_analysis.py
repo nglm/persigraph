@@ -125,17 +125,17 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
                     # If ratios are equal, don't update, keep everything as
                     # initialized, but choose the "good" k_curr for the
                     # next iteration of k_prev
-                    if step['ratio_score'] == r_prev:
+                    if step['ratio_score'] == r_curr:
                         if k_prev != 0:
                             k_curr = np.amin([step['k'], k_prev])
                     # Else if the ratio is not improving while it should
                     # or is improving when it shouldn't
                     elif not (
-                        (step['ratio_score'] > r_prev) == (g._score.improve)
+                        (step['ratio_score'] > r_curr) == (g._score.improve)
                     ):
                         # Ignore the step and go directly to the next
                         # iteration
-                        continue
+                        pass
                     # Otherwise normal case:
                     # Update info of k_curr, with r_prev != r_curr
                     # and r_curr relevant
@@ -171,7 +171,7 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
                     r_curr = step['ratio_score']
 
                     k_infos[k_curr]['life_span'][t] = r_curr
-                    k_infos[k_curr]['score_ratios'][t] = [r_curr, 0]
+                    k_infos[k_curr]['score_ratios'][t] = [0, r_curr]
     return k_infos
 
 def get_relevant_k(
