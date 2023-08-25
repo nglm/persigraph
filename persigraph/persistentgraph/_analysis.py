@@ -93,7 +93,6 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
     :return: life span and ratios of each assumption k for all k and each t
     :rtype: Dict[int, Dict[str, List[float]]]
     """
-    k_max =g.k_max
 
     # By default all life span are 0 (even if their corresponding step was
     # ignored). They might remain 0 in case of equal ratios
@@ -101,7 +100,7 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
         {
             "life_span" : [0. for _ in range(g.T)],
             "score_ratios" : [[0., 0.] for _ in range(g.T)],
-        } for k in range(1, k_max+1)
+        } for k in range(1, g._k_max+1)
     }
 
     # ------------------------------------------------------------------

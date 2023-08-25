@@ -179,11 +179,11 @@ def test_gmm():
         overview(g)
 
 def test_scores():
-    # members, time = mini(multivariate=True)
-    # scores = SCORES_TO_MINIMIZE
-    # for s in scores:
-    #     print(s)
-    #     g = PersistentGraph(members, time, score=s)
-    #     g.construct_graph()
-    #     overview(g)
+    members, time = mini(multivariate=True)
+    scores = SCORES
+    for s in scores:
+        print(s)
+        g = PersistentGraph(members, time, score=s())
+        g.construct_graph()
+        overview(g)
     pass

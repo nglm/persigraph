@@ -171,7 +171,7 @@ def _set_score(pg, score):
     if score is None:
         pg._score = Inertia()
     elif isinstance(score, Score):
-        pg._score = score()
+        pg._score = score
     else:
         raise ValueError(
             "Choose an available score, see pycvi.scores.Score"
@@ -180,6 +180,17 @@ def _set_score(pg, score):
         pg._global_bounds = True
     else:
         pg._global_bounds = False
+
+def _set_k_range(pg, k_max):
+    """
+    Set pg._k_max and pg._k_range
+    """
+    # Max number of cluster considered
+    if k_max is None:
+        pg._k_max = pg.N
+    else:
+        pg._k_max = min(max(int(k_max), 1), pg.N)
+    pg._k_range = [k for k in range(pg._k_max+1) if pg._score.k_condition(k)]
 
 def _set_transformer(pg, transformer):
     """

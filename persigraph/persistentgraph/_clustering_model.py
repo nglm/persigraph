@@ -179,7 +179,7 @@ def generate_all_clusters(
     # extracted time window t_w.
     clusterings_t_k = generate_all_clusterings(
         pg.members, pg._model_class,
-        n_clusters_range=range(pg.k_max+1),
+        n_clusters_range=pg._k_range,
         DTW=pg._DTW,
         time_window=pg.w,
         transformer=pg._transformer,

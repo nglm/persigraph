@@ -11,7 +11,7 @@ from . import Vertex
 from . import Edge
 from . import Component
 from ._set_default_properties import (
-    _set_members, _set_zero, _set_model_class, _set_score,
+    _set_members, _set_zero, _set_model_class, _set_score, _set_k_range,
     _set_sliding_window, _set_transformer, _set_scaler
 )
 from ._clustering_model import generate_all_clusters, merge_clusters
@@ -122,20 +122,15 @@ class PersistentGraph():
             # ---------------- About the clustering method  ----------------
             # --------------------------------------------------------------
 
-            # Max number of cluster considered
-            if k_max is None:
-                self._k_max = self.N
-            else:
-                self._k_max = min(max(int(k_max), 1), self.N)
-
             # Determines how to cluster the members
             _set_model_class(
                 self, model_class, DTW, model_kw, fit_predict_kw,
                 model_class_kw)
-            # Ordered number of clusters that will be tried
-            self._n_clusters_range = range(self.k_max + 1)
             # Score type, determines how to measure how good a model is
             _set_score(self, score)
+            # Set k_range while taking into account the condition on k
+            # of the given score.
+            _set_k_range(self, k_max)
 
             if name is None:
                 self._name = self._model_type + "_" + str(self._score)
@@ -179,7 +174,12 @@ class PersistentGraph():
             # members_v_distrib[t][k][i] is the vertex num of the
             # ith member at t for the assumption k.
             self._members_v_distrib = [
-                {k: np.zeros(self.N) for k in range(1, self._k_max+1)}
+                {
+                    k: np.zeros(self.N)
+                    # Take into account the available k and ignore the
+                    # case k=0
+                    for k in self._k_range if k>=1
+                }
                 for _ in range(self.T)
             ]
 
@@ -888,13 +888,14 @@ class PersistentGraph():
         return self._local_steps
 
     @property
-    def n_clusters_range(self) -> Sequence[int]:
+    def k_range(self) -> Sequence[int]:
         """
-        Ordered range of number of clusters studied: [0, .., k_max]
+        Ordered range of number of clusters studied, satisfying the
+        condition of the score and the condition on k_max
 
         :rtype: Sequence[int]
         """
-        return self._n_clusters_range
+        return self._k_range
 
     @property
     def parameters(self) -> dict:
