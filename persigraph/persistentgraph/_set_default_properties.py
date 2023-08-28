@@ -74,14 +74,13 @@ def _set_sliding_window(pg, w:int):
 
 def _set_zero(pg, zero_type: str = "bounds"):
     """
-    Set pg._members_zero, pg._zero_type
+    Set pg._zero_type
 
     Generate member values to emulate the case k=0
 
     :param pg: PersistentGraph
     :type pg: PersistentGraph
     """
-    pg._members_zero = generate_uniform(pg._members, zero_type)
     pg._zero_type = zero_type
 
 def _set_model_class(

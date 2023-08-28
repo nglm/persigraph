@@ -749,14 +749,6 @@ class PersistentGraph():
         return np.copy(self._members)
 
     @property
-    def members_zero(self) -> np.ndarray:
-        """Data used for the "zero component", ensemble of time series
-
-        :rtype: np.ndarray[float], shape: (N, T, d)
-        """
-        return np.copy(self._members_zero)
-
-    @property
     def time_axis(self) -> np.ndarray:
         """
         Time axis, mostly used for plotting
