@@ -421,6 +421,10 @@ class PersistentGraph():
         # contained in cluster i for the clustering assuming k clusters
         # for the extracted time window t_w.
         for t_w in range(len(clusterings_t_k)):
+            if self._sliding_window is None:
+                midpoint = None
+            else:
+                midpoint = self._sliding_window["midpoint_w"][t_w]
             for k, clustering_t in clusterings_t_k[t_w].items():
                     # create all v
                     new_vertices = [
@@ -428,7 +432,7 @@ class PersistentGraph():
                                 list_k=listk_t_k[t_w][k][i_c],
                                 info=compute_cluster_params(
                                     data_params[t_w][cluster],
-                                    self._sliding_window["midpoint_w"][t_w]
+                                    midpoint
                                 ),
                                 t=t_w,
                                 members=cluster,
