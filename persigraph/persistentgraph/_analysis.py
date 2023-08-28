@@ -106,7 +106,7 @@ def k_info(g) -> Dict[int, Dict[str, List[float]]]:
     # ------------------------------------------------------------------
     # ------------------ Monotonous case -------------------------------
     # ------------------------------------------------------------------
-    if g._score.score_type == "monotonous":
+    if g._score.score_type in ["monotonous" or "pseudo-monotonous"]:
         # Extract ratio for each k and each t
         for t in range(g._T_w):
 
