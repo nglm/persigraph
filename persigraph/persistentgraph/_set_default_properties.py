@@ -2,7 +2,7 @@
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import numpy as np
-from pycvi.cluster import generate_uniform, sliding_window
+from pycvi.cluster import sliding_window
 from pycvi.scores import Inertia, Diameter, Score
 
 from ._clustering_model import CLUSTERING_METHODS

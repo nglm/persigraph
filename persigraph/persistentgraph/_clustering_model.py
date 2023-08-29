@@ -204,6 +204,7 @@ def generate_all_clusters(
         scaler = pg._scaler,
         DTW = pg._DTW,
         time_window = pg._w,
+        zero_type = pg._zero_type,
         score_kwargs = {},
     )
 

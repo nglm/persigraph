@@ -35,7 +35,7 @@ class PersistentGraph():
         transformer = None,
         scaler = None,
         DTW: bool = False,
-        zero_type: str = 'bounds',
+        zero_type: str = 'variance',
         model_class = None,
         k_max : int = 5,
         name: str = None,
