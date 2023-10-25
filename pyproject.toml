@@ -7,7 +7,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.9"
-pycvi = {git = "https://github.com/nglm/pycvi.git"}
+pycvi = {git = "https://github.com/nglm/pycvi.git", branch="master"}
 matplotlib = "^3.7.2"
 
 [tool.poetry.dev-dependencies]
