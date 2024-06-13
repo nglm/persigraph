@@ -9,9 +9,7 @@ from tslearn.clustering import TimeSeriesKMeans
 from typing import List, Sequence, Union, Any, Dict, Tuple
 
 from pycvi.compute_scores import compute_all_scores
-from pycvi.cluster import (
-    compute_cluster_params, generate_all_clusterings,
-)
+from pycvi.cluster import ( generate_all_clusterings)
 from ..utils.sorted_lists import are_equal
 
 CLUSTERING_METHODS = {

@@ -3,6 +3,8 @@ import time
 import pickle
 import json
 from copy import deepcopy
+# Find compute_cluster_params in pcvi
+# (see commit "commented out irrelevant cluster functions")
 from pycvi.cluster import compute_cluster_params, prepare_data
 
 from typing import List, Sequence, Tuple, Union, Any, Dict
