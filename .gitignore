@@ -9,4 +9,6 @@
 */docs/build*
 # no tmp files
 tmp/*
+README.pdf
+!README.md
 
